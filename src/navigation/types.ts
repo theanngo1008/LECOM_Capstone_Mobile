@@ -151,8 +151,12 @@ declare global {
 export type ProductsStackParamList = {
   ProductsList: undefined;
   ProductDetail: {
-    productId: string;
-    productName: string;
+    slug: string;
+  };
+  CartMain: undefined;       
+  Checkout: undefined;       
+  CartProductDetail: {
+    productId: string;       
   };
 };
 
@@ -164,5 +168,6 @@ export type ProductsStackScreenProps<T extends keyof ProductsStackParamList> =
       RNDrawerScreenProps<DrawerParamList>
     >
   >;
+
 
 

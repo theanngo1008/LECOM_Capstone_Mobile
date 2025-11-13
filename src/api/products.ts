@@ -36,11 +36,12 @@ export interface ProductListResult {
 }
 
 export type ProductListResponse = ApiResponse<ProductListResult>
+export type ProductDetailResponse = ApiResponse<ProductItem>
 
 export interface ProductQueryParams {
   search?: string
   page?: number
-   category?: string
+  category?: string
   pageSize?: number
   minPrice?: number
   maxPrice?: number
@@ -48,9 +49,12 @@ export interface ProductQueryParams {
 
 export const productsApi = {
   getProducts: async (params?: ProductQueryParams): Promise<ProductListResponse> => {
-    const { data } = await apiClient.get<ProductListResponse>("/home/products", {
-      params,
-    })
+    const { data } = await apiClient.get<ProductListResponse>("/home/products", { params })
+    return data
+  },
+
+  getProductBySlug: async (slug: string): Promise<ProductDetailResponse> => {
+    const { data } = await apiClient.get<ProductDetailResponse>(`/home/products/by-slug/${slug}`)
     return data
   },
 }

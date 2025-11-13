@@ -16,12 +16,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useProducts } from "../hooks/useProducts";
 import { useProductCategories } from "@/hooks/useProductCategories"; 
+import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
 
-type ProductsStackParamList = {
-  Products: undefined;
-  ProductDetail: { productId: string };
-  Cart: undefined;
-};
 
 export function ProductsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ProductsStackParamList>>();
@@ -63,7 +59,7 @@ export function ProductsScreen() {
   const renderProductItem = ({ item }: { item: any }) => (
     <Pressable
       className="bg-white dark:bg-dark-card rounded-2xl mb-4 overflow-hidden border border-beige/30 dark:border-dark-border/30"
-      onPress={() => navigation.navigate("ProductDetail", { productId: item.id })}
+      onPress={() => navigation.navigate("ProductDetail", { slug: item.slug })}
     >
       <View className="p-4">
         <View className="flex-row items-start">
@@ -143,7 +139,7 @@ export function ProductsScreen() {
         </View>
         <Pressable
           className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
-          onPress={() => navigation.navigate("Cart")}
+          onPress={() => navigation.navigate("CartMain")}
         >
           <FontAwesome name="shopping-cart" size={20} color="#ACD6B8" />
         </Pressable>
