@@ -1,15 +1,14 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Video, ResizeMode } from "expo-av";
-import React, { useState, useRef } from "react";
+import { ResizeMode, Video } from "expo-av";
+import React, { useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
-  Platform,
   Dimensions,
   Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -217,85 +216,83 @@ export function LessonPlayerScreen({ navigation, route }: any) {
             )}
           </View>
 
-          {/* Linked Products */}
-          {hasLinkedProducts && linkedProducts.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-4">
-                Featured Products
-              </Text>
+         {/* Linked Products */}
+{hasLinkedProducts && linkedProducts.length > 0 && (
+  <View className="mb-6">
+    <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-4">
+      Featured Products
+    </Text>
 
-              {linkedProducts.map((product: any) => (
-                <TouchableOpacity
-                  key={product.id}
-                  onPress={() => handleProductPress(product)}
-                  className="bg-white dark:bg-dark-card rounded-2xl p-4 mb-3 border border-beige/30 dark:border-dark-border/30"
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row">
-                    {/* Product Image */}
-                    {product.thumbnail ? (
-                      <Image
-                        source={{ uri: product.thumbnail }}
-                        className="w-20 h-20 rounded-xl mr-4"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View className="w-20 h-20 rounded-xl bg-beige/20 dark:bg-dark-border/20 items-center justify-center mr-4">
-                        <FontAwesome name="shopping-bag" size={24} color="#ACD6B8" />
-                      </View>
-                    )}
-
-                    {/* Product Info */}
-                    <View className="flex-1">
-                      <Text
-                        className="text-base font-bold text-light-text dark:text-dark-text mb-1"
-                        numberOfLines={2}
-                      >
-                        {product.name}
-                      </Text>
-
-                      {/* Price */}
-                      <View className="flex-row items-center mb-2">
-                        <Text className="text-lg font-bold text-mint dark:text-gold">
-                          ${product.price.toFixed(2)}
-                        </Text>
-                        {product.compareAtPrice && product.compareAtPrice > product.price && (
-                          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary line-through ml-2">
-                            ${product.compareAtPrice.toFixed(2)}
-                          </Text>
-                        )}
-                      </View>
-
-                      {/* Stock Status */}
-                      <View className="flex-row items-center">
-                        <FontAwesome
-                          name="circle"
-                          size={8}
-                          color={product.stockQuantity > 0 ? "#ACD6B8" : "#FF6B6B"}
-                        />
-                        <Text
-                          className={`text-xs ml-1 ${
-                            product.stockQuantity > 0
-                              ? "text-mint dark:text-gold"
-                              : "text-coral"
-                          }`}
-                        >
-                          {product.stockQuantity > 0
-                            ? `${product.stockQuantity} in stock`
-                            : "Out of stock"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Arrow */}
-                    <View className="items-center justify-center ml-2">
-                      <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+    {linkedProducts.map((product: any) => (
+      <TouchableOpacity
+        key={product.id}
+        onPress={() => navigation.navigate("ProductDetail", { slug: product.slug })}
+        className="bg-white dark:bg-dark-card rounded-2xl p-4 mb-3 border border-beige/30 dark:border-dark-border/30"
+        activeOpacity={0.7}
+      >
+        <View className="flex-row">
+          {/* Product Image */}
+          {product.thumbnailUrl ? (
+            <Image
+              source={{ uri: product.thumbnailUrl }}
+              className="w-20 h-20 rounded-xl mr-4"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-20 h-20 rounded-xl bg-beige/20 dark:bg-dark-border/20 items-center justify-center mr-4">
+              <FontAwesome name="shopping-bag" size={24} color="#ACD6B8" />
             </View>
           )}
+
+          {/* Product Info */}
+          <View className="flex-1">
+            {/* Name */}
+            <Text
+              className="text-base font-bold text-light-text dark:text-dark-text mb-1"
+              numberOfLines={2}
+            >
+              {product.name}
+            </Text>
+
+            {/* Description */}
+            <Text
+              className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-2"
+              numberOfLines={2}
+            >
+              {product.description || "No description available"}
+            </Text>
+
+            {/* Price */}
+            <View className="flex-row items-center mb-2">
+              <Text className="text-lg font-bold text-mint dark:text-gold">
+                {new Intl.NumberFormat("vi-VN").format(product.price)}₫
+              </Text>
+
+              {product.compareAtPrice &&
+                product.compareAtPrice > product.price && (
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary line-through ml-2">
+                    {new Intl.NumberFormat("vi-VN").format(
+                      product.compareAtPrice
+                    )}₫
+                  </Text>
+                )}
+            </View>
+
+            {/* Stock Status */}
+           
+          </View>
+
+          {/* Arrow */}
+          <View className="items-center justify-center ml-2">
+            <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
+          </View>
+        </View>
+      </TouchableOpacity>
+    ))}
+  </View>
+)}
+
+
 
           {/* No Products Message */}
           {!hasLinkedProducts && (

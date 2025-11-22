@@ -14,6 +14,8 @@ import {
   View,
 } from "react-native";
 import { useProductBySlug } from "../hooks/useProductBySlug";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 export function ProductDetailScreen({ navigation, route }: any) {
   const { slug } = route.params;
@@ -198,11 +200,17 @@ export function ProductDetailScreen({ navigation, route }: any) {
   };
 
   return (
+   <SafeAreaView
+    edges={["top"]}
+    style={{
+      flex: 1,
+      backgroundColor: "#FFFFFF", // màu header
+    }}
+  >
     <View className="flex-1 bg-cream dark:bg-dark-background">
       {/* Header */}
       <View
         className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-        style={{ paddingTop: Platform.OS === "ios" ? 50 : 16 }}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -607,5 +615,6 @@ export function ProductDetailScreen({ navigation, route }: any) {
         </View>
       </Modal>
     </View>
+     </SafeAreaView>
   );
 }
