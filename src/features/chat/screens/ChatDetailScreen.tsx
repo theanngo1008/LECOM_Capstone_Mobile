@@ -1,3 +1,4 @@
+import type { ConversationItem } from "@/api/chat";
 import type { ChatStackParamList } from "@/navigation/ChatStackNavigator";
 import { useAuthStore } from "@/store/auth-store";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -18,11 +19,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useChatRealtime } from "../hooks/useChatRealtime";
 import { useConversationMessages } from "../hooks/useConversationMessages";
+import { useSendAIMessage } from "../hooks/useSendAIMessage";
 import { useSendMessage } from "../hooks/useSendMessage";
 
 type ChatDetailScreenProps = NativeStackScreenProps<ChatStackParamList, "ChatDetail">;
 
-// ✅ Simple message type based on actual API response
 interface SimpleMessage {
   id: string;
   senderId: string;
@@ -34,37 +35,69 @@ interface SimpleMessage {
 export function ChatDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
   const route = useRoute<ChatDetailScreenProps["route"]>();
-  const { conversationId } = route.params;
+  const conversationId = route.params.conversationId;
+  // route.params may be typed as { conversationId: string } by the navigator; safely read isAIChat with a narrow cast
+  const isAIChatParam = (route.params as { isAIChat?: boolean }).isAIChat;
   const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
   
-  // ✅ Get userId from auth store
   const userId = useAuthStore((state) => state.userId);
-
   const [messageText, setMessageText] = useState("");
+  // ✅ Optimistic messages for AI chat
+  const [optimisticMessages, setOptimisticMessages] = useState<SimpleMessage[]>([]);
+
+  // ✅ Lấy isAIChat từ cached conversations (fallback)
+  const conversationsData = queryClient.getQueryData<{ result: ConversationItem[] }>(["chat", "userConversations"]);
+  const currentConversation = conversationsData?.result?.find(conv => conv.id === conversationId);
+  
+
+  const isAIChat =
+  typeof isAIChatParam === "boolean"
+    ? isAIChatParam
+    : currentConversation?.isAIChat ?? false;
+
+
+
+  // ✅ Log để debug
+  useEffect(() => {
+    console.log("=== CHAT DETAIL DEBUG ===");
+    console.log("Conversation ID:", conversationId);
+    console.log("isAIChatParam:", isAIChatParam);
+    console.log("currentConversation?.isAIChat:", currentConversation?.isAIChat);
+    console.log("Final isAIChat:", isAIChat);
+    console.log("========================");
+  }, [conversationId, isAIChatParam, currentConversation, isAIChat]);
 
   const { data, isLoading, isError, refetch } = useConversationMessages(conversationId);
-  const { mutate: sendMessage, isPending: isSending } = useSendMessage();
+  
 
-  const messages = (data?.result || []) as SimpleMessage[];
+  const { mutate: sendNormalMessage, isPending: isSendingNormal } = useSendMessage();
+  const { mutate: sendAIMessage, isPending: isSendingAI } = useSendAIMessage(conversationId);
+  
+  const isSending = isAIChat ? isSendingAI : isSendingNormal;
+  const serverMessages = (data?.result || []) as SimpleMessage[];
 
-  // ✅ Debug: Log user info
+  const messages = isAIChat 
+    ? [...serverMessages, ...optimisticMessages]
+    : serverMessages;
+
+  useChatRealtime(
+    !isAIChat ? conversationId : undefined,
+    (newMessage) => {
+      console.log("🔔 Realtime message received:", newMessage);
+      queryClient.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  );
+
   useEffect(() => {
-    console.log("=== DEBUG USER INFO ===");
-    console.log("User ID from store:", userId);
-    console.log("======================");
-  }, [userId]);
+    if (isAIChat && serverMessages.length > 0) {
+      setOptimisticMessages([]);
+    }
+  }, [serverMessages.length, isAIChat]);
 
-  // ✅ Real-time message updates
-  useChatRealtime(conversationId, (newMessage) => {
-    console.log("🔔 New message in conversation:", newMessage);
-    queryClient.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  });
-
-  // ✅ Auto scroll when messages load
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -73,25 +106,62 @@ export function ChatDetailScreen() {
     }
   }, [messages.length]);
 
-  const handleSendMessage = () => {
-    if (!messageText.trim() || isSending) return;
+const handleSendMessage = () => {
+  if (!messageText.trim() || isSending) return;
 
-    sendMessage(
-      {
-        conversationId,
-        content: messageText.trim(),
-      },
-      {
-        onSuccess: () => {
-          setMessageText("");
-          queryClient.invalidateQueries({ queryKey: ["chat", "messages", conversationId] });
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-        },
-      }
-    );
+  const content = messageText.trim();
+  setMessageText("");
+
+  if (isAIChat) {
+  // 1. Tạo optimistic message
+  const optimistic = {
+    id: `temp-${Date.now()}`,
+    senderId: userId!,
+    content,
+    isRead: false,
+    createdAt: new Date().toISOString(),
   };
+  setOptimisticMessages((prev) => [...prev, optimistic]);
+
+  sendAIMessage(
+    { content },
+    {
+      onSuccess: () => {
+        // 2. Khi server phản hồi → xoá tất cả optimistic
+        setOptimisticMessages([]);
+
+        // 3. Refetch để lấy message AI chính thức từ server
+        queryClient.invalidateQueries({
+          queryKey: ["chat", "messages", conversationId],
+        });
+      },
+
+      onError: () => {
+        // Nếu lỗi → xóa optimistic
+        setOptimisticMessages((prev) =>
+          prev.filter((m) => !m.id.startsWith("temp-"))
+        );
+      },
+    }
+  );
+}
+
+
+  // ==============================
+  // 📌 NORMAL SELLER CHAT
+  // ==============================
+  sendNormalMessage(
+    { conversationId, content },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["chat", "messages", conversationId],
+        });
+      },
+    }
+  );
+};
+
 
   const formatMessageTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -103,14 +173,12 @@ export function ChatDetailScreen() {
   };
 
   const renderMessage = ({ item }: { item: SimpleMessage }) => {
-    // ✅ Check if message is from current user
     const isOwnMessage = item.senderId === userId;
+    const isOptimistic = item.id.startsWith('temp-');
 
     return (
       <View className="w-full mb-3 px-4">
-        {/* ✅ Container align left/right như Messenger */}
         <View className={`flex-row ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-          {/* ✅ Message bubble */}
           <View
             className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
               isOwnMessage
@@ -120,12 +188,12 @@ export function ChatDetailScreen() {
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.1,
+              shadowOpacity: isOptimistic ? 0.05 : 0.1,
               shadowRadius: 2,
               elevation: 2,
+              opacity: isOptimistic ? 0.7 : 1,
             }}
           >
-            {/* Message Content */}
             <Text
               className={`text-base leading-5 ${
                 isOwnMessage
@@ -136,7 +204,6 @@ export function ChatDetailScreen() {
               {item.content}
             </Text>
 
-            {/* Timestamp & Read Status */}
             <View className="flex-row items-center justify-between mt-1">
               <Text
                 className={`text-xs ${
@@ -148,10 +215,9 @@ export function ChatDetailScreen() {
                 {formatMessageTime(item.createdAt)}
               </Text>
 
-              {/* Read indicator for own messages */}
               {isOwnMessage && (
                 <FontAwesome 
-                  name={item.isRead ? "check-circle" : "check"} 
+                  name={isOptimistic ? "clock-o" : item.isRead ? "check-circle" : "check"} 
                   size={12} 
                   color={item.isRead ? "#fff" : "rgba(255,255,255,0.7)"} 
                   style={{ marginLeft: 8 }}
@@ -174,10 +240,19 @@ export function ChatDetailScreen() {
           <FontAwesome name="arrow-left" size={16} color="#2D3748" />
         </Pressable>
 
-        {/* Conversation Info */}
         <View className="flex-row items-center flex-1">
-          <View className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
-            <FontAwesome name="comments" size={20} color="#ACD6B8" />
+          <View className={`w-12 h-12 rounded-xl items-center justify-center mr-3 ${
+            isAIChat ? "bg-lavender/10" : "bg-mint/10 dark:bg-gold/10"
+          }`}>
+            <FontAwesome 
+              name={
+                isAIChat
+                  ? ("robot" as React.ComponentProps<typeof FontAwesome>["name"])
+                  : ("comments" as React.ComponentProps<typeof FontAwesome>["name"])
+              }
+              size={20} 
+              color={isAIChat ? "#B19CD9" : "#ACD6B8"} 
+            />
           </View>
 
           <View className="flex-1">
@@ -185,15 +260,14 @@ export function ChatDetailScreen() {
               className="text-base font-bold text-light-text dark:text-dark-text"
               numberOfLines={1}
             >
-              Chat
+              {isAIChat ? "🤖 AI Assistant" : currentConversation?.product?.name || "Chat"}
             </Text>
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              {messages.length} {messages.length === 1 ? 'message' : 'messages'}
+              {serverMessages.length} {serverMessages.length === 1 ? 'message' : 'messages'}
             </Text>
           </View>
         </View>
 
-        {/* Options Button */}
         <Pressable className="w-10 h-10 rounded-xl bg-beige/20 dark:bg-dark-border/20 items-center justify-center ml-2">
           <FontAwesome name="ellipsis-v" size={16} color="#2D3748" />
         </Pressable>
@@ -204,13 +278,21 @@ export function ChatDetailScreen() {
   const renderEmptyState = () => (
     <View className="flex-1 items-center justify-center py-20">
       <View className="w-20 h-20 rounded-full bg-beige/20 dark:bg-dark-border/20 items-center justify-center mb-4">
-        <FontAwesome name="comment-o" size={40} color="#ACD6B8" />
+        <FontAwesome
+          name={
+            isAIChat
+              ? ("robot" as React.ComponentProps<typeof FontAwesome>["name"])
+              : ("comment-o" as React.ComponentProps<typeof FontAwesome>["name"])
+          }
+          size={40}
+          color="#ACD6B8"
+        />
       </View>
       <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
         No Messages Yet
       </Text>
       <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center px-8">
-        Start the conversation!
+        {isAIChat ? "Ask AI anything about this product!" : "Start the conversation!"}
       </Text>
     </View>
   );
@@ -265,12 +347,11 @@ export function ChatDetailScreen() {
       >
         {renderHeader()}
 
-        {/* Messages List */}
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+         keyExtractor={(item, index) => `${item.id}-${index}`}
           contentContainerStyle={{
             paddingTop: 16,
             paddingBottom: 8,
@@ -281,20 +362,17 @@ export function ChatDetailScreen() {
           inverted={false}
         />
 
-        {/* Input Area */}
         <View className="bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30 px-4 py-3">
           <View className="flex-row items-center">
-            {/* Attach Button */}
             <Pressable className="w-10 h-10 rounded-xl bg-beige/20 dark:bg-dark-border/20 items-center justify-center mr-2">
               <FontAwesome name="paperclip" size={18} color="#9CA3AF" />
             </Pressable>
 
-            {/* Text Input */}
             <View className="flex-1 bg-beige/20 dark:bg-dark-border/20 rounded-xl px-4 py-2 mr-2">
               <TextInput
                 value={messageText}
                 onChangeText={setMessageText}
-                placeholder="Type a message..."
+                placeholder={isAIChat ? "Ask AI..." : "Type a message..."}
                 placeholderTextColor="#9CA3AF"
                 className="text-base text-light-text dark:text-dark-text max-h-24"
                 multiline
@@ -302,13 +380,14 @@ export function ChatDetailScreen() {
               />
             </View>
 
-            {/* Send Button */}
             <Pressable
               onPress={handleSendMessage}
               disabled={!messageText.trim() || isSending}
               className={`w-10 h-10 rounded-xl items-center justify-center ${
                 messageText.trim() && !isSending
-                  ? "bg-mint dark:bg-gold"
+                  ? isAIChat 
+                    ? "bg-lavender" 
+                    : "bg-mint dark:bg-gold"
                   : "bg-beige/20 dark:bg-dark-border/20"
               }`}
             >

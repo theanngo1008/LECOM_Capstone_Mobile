@@ -99,6 +99,7 @@ export type ShopStackParamList = {
   SellerChatList: undefined;
   ChatDetail: {
     conversationId: string;
+    isAIChat?: boolean;
   };
 };
 export type ShopStackScreenProps<T extends keyof ShopStackParamList> =
@@ -173,6 +174,10 @@ export type ProductsStackParamList = {
   CartProductDetail: {
     productId: string;       
   };
+  ChatDetail: {
+    conversationId: string;
+    isAIChat?: boolean;
+  };
   
 };
 
@@ -215,6 +220,7 @@ export type ChatStackParamList = {
   ChatList: undefined;
   ChatDetail: {
     conversationId: string;
+    isAIChat?: boolean;
   };
   StartChat?: {
     productId?: string;

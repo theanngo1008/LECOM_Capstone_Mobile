@@ -1,5 +1,6 @@
 import { CartScreen } from "@/features/cart/screens/CartScreen";
 import { CheckoutScreen } from "@/features/cart/screens/CheckoutScreen";
+import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
 import { ProductDetailScreen } from "@/features/products/screens/ProductDetailScreen";
 import { ProductsScreen } from "@/features/products/screens/ProductsScreen";
 
@@ -18,6 +19,10 @@ export type ProductsStackParamList = {
   Checkout: undefined;
   CartProductDetail: {
     productId: string;
+  };
+   ChatDetail: {
+    conversationId: string;
+    isAIChat?: boolean;
   };
 };
 
@@ -58,6 +63,12 @@ export function ProductsStackNavigator() {
         options={{ title: "Thanh toán" }}
       />
      
+     <Stack.Screen
+  name="ChatDetail"
+  component={ChatDetailScreen}
+  options={{ title: "Chi tiết trò chuyện" }}
+/>
+
     </Stack.Navigator>
   );
 } 

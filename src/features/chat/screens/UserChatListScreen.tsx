@@ -52,7 +52,11 @@ export function UserChatListScreen() {
   const renderConversationItem = ({ item }: { item: ConversationItem }) => (
     <Pressable
       className="bg-white dark:bg-dark-card rounded-2xl mb-3 overflow-hidden border border-beige/30 dark:border-dark-border/30"
-      onPress={() => navigation.navigate("ChatDetail", { conversationId: item.id })}
+    onPress={() =>
+  navigation.navigate("ChatDetail", {
+    conversationId: item.id,
+  })
+}
     >
       <View className="p-4">
         <View className="flex-row items-start">

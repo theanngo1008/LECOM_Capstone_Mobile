@@ -15,17 +15,86 @@ import {
 } from "react-native";
 import { useProductBySlug } from "../hooks/useProductBySlug";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useStartChat } from "@/features/chat/hooks/useStartChat";
+import { useStartAIChat } from "@/features/chat/hooks/useStartAIChat";
 
 export function ProductDetailScreen({ navigation, route }: any) {
   const { slug } = route.params;
   const { product, isLoading, isError, refetch } = useProductBySlug(slug);
   const addToCart = useAddToCart();
   const [selectedImage, setSelectedImage] = useState(0);
-  
+  const startChat = useStartChat();
+
   // ✅ Quantity Modal State
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
+
+  const handleAskSeller = () => {
+    if (!product?.id) {
+      Alert.alert("Error", "Product information invalid.");
+      return;
+    }
+
+    startChat.mutate(
+      { productId: product.id },
+      {
+        onSuccess: (res) => {
+          const conversation = res.result;
+
+          if (!conversation) {
+            Alert.alert("Error", "Unable to start chat.");
+            return;
+          }
+
+          // Điều hướng sang ChatDetail CHỈ với conversationId
+          navigation.navigate("ChatDetail", {
+            conversationId: conversation.id,
+          });
+        },
+        onError: (err: any) => {
+          Alert.alert(
+            "Error",
+            err?.response?.data?.message || "Failed to start chat."
+          );
+        },
+      }
+    );
+  };
+
+  const startAIChat = useStartAIChat();
+
+const handleAskAI = () => {
+  if (!product?.id) {
+    Alert.alert("Error", "Product information invalid.");
+    return;
+  }
+
+  startAIChat.mutate(
+    { productId: product.id },
+    {
+      onSuccess: (res) => {
+        const conversation = res.result; // ✅ conversation.isAIChat = true
+
+        if (!conversation) {
+          Alert.alert("Error", "Unable to start AI chat.");
+          return;
+        }
+
+        // ✅ Truyền isAIChat từ response
+        navigation.navigate("ChatDetail", {
+          conversationId: conversation.id,
+          isAIChat: conversation.isAIChat, // ✅ true cho AI chat
+        });
+      },
+      onError: (err: any) => {
+        Alert.alert(
+          "Error",
+          err?.response?.data?.message || "Failed to start AI chat."
+        );
+      },
+    }
+  );
+};
 
   const renderLoading = () => (
     <View className="flex-1 bg-cream dark:bg-dark-background">
@@ -200,421 +269,489 @@ export function ProductDetailScreen({ navigation, route }: any) {
   };
 
   return (
-   <SafeAreaView
-    edges={["top"]}
-    style={{
-      flex: 1,
-      backgroundColor: "#FFFFFF", // màu header
-    }}
-  >
-    <View className="flex-1 bg-cream dark:bg-dark-background">
-      {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
-        >
-          <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
-        </TouchableOpacity>
+    <SafeAreaView
+      edges={["top"]}
+      style={{
+        flex: 1,
+        backgroundColor: "#FFFFFF", // màu header
+      }}
+    >
+      <View className="flex-1 bg-cream dark:bg-dark-background">
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          >
+            <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+          </TouchableOpacity>
 
-        <Text
-          className="flex-1 text-xl font-bold text-light-text dark:text-dark-text text-center mx-4"
-          numberOfLines={1}
-        >
-          Product Details
-        </Text>
-
-        <TouchableOpacity
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
-          onPress={() => navigation.navigate("CartMain")}
-        >
-          <FontAwesome name="shopping-cart" size={18} color="#ACD6B8" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Image Gallery */}
-        <View className="bg-white dark:bg-dark-card">
-          {images.length > 0 ? (
-            <>
-              <Image
-                source={{ uri: images[selectedImage] }}
-                className="w-full h-96"
-                resizeMode="cover"
-              />
-              {images.length > 1 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="px-4 py-4"
-                >
-                  {images.map((img, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => setSelectedImage(index)}
-                      className={`mr-3 rounded-lg overflow-hidden border-2 ${
-                        selectedImage === index
-                          ? "border-mint dark:border-gold"
-                          : "border-beige/30 dark:border-dark-border/30"
-                      }`}
-                    >
-                      <Image
-                        source={{ uri: img }}
-                        className="w-20 h-20"
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-            </>
-          ) : (
-            <View className="w-full h-96 bg-gradient-to-br from-mint to-skyBlue dark:from-gold dark:to-lavender items-center justify-center">
-              <FontAwesome name="image" size={64} color="white" />
-            </View>
-          )}
-
-          {/* Status Badge */}
-          <View className={`absolute top-4 right-4 px-4 py-2 rounded-full ${statusConfig.bgColor}`}>
-            <Text className="text-white text-xs font-bold">{statusConfig.label}</Text>
-          </View>
-
-          {/* Stock Warning Badges */}
-          {product.status !== "OutOfStock" && product.stock <= 10 && product.stock > 0 && (
-            <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-orange-500/90">
-              <Text className="text-white text-xs font-bold">
-                Only {product.stock} left
-              </Text>
-            </View>
-          )}
-
-          {(product.status === "OutOfStock" || product.stock === 0) && (
-            <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-coral/90">
-              <Text className="text-white text-xs font-bold">Out of Stock</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Product Info */}
-        <View className="px-6 py-6">
-          {/* Category */}
-          <View className="flex-row items-center mb-4">
-            <View className="px-3 py-1 rounded-full bg-mint/10 dark:bg-gold/10">
-              <Text className="text-mint dark:text-gold text-xs font-semibold">
-                {product.categoryName}
-              </Text>
-            </View>
-          </View>
-
-          {/* Title */}
-          <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
-            {product.name}
+          <Text
+            className="flex-1 text-xl font-bold text-light-text dark:text-dark-text text-center mx-4"
+            numberOfLines={1}
+          >
+            Product Details
           </Text>
 
-          {/* Price */}
-          <View className="flex-row items-center mb-4">
-            <Text className="text-3xl font-bold text-mint dark:text-gold">
-              {formatPrice(product.price)}
-            </Text>
-          </View>
+          <TouchableOpacity
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            onPress={() => navigation.navigate("CartMain")}
+          >
+            <FontAwesome name="shopping-cart" size={18} color="#ACD6B8" />
+          </TouchableOpacity>
+        </View>
 
-          {/* Stats */}
-          <View className="flex-row bg-white dark:bg-dark-card rounded-2xl p-4 mb-6 border border-beige/30 dark:border-dark-border/30">
-            <View className="flex-1 items-center border-r border-beige/30 dark:border-dark-border/30">
-              <FontAwesome name="cubes" size={20} color="#ACD6B8" />
-              <Text className="text-2xl font-bold text-light-text dark:text-dark-text mt-2">
-                {product.stock}
-              </Text>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                In Stock
-              </Text>
-            </View>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {/* Image Gallery */}
+          <View className="bg-white dark:bg-dark-card">
+            {images.length > 0 ? (
+              <>
+                <Image
+                  source={{ uri: images[selectedImage] }}
+                  className="w-full h-96"
+                  resizeMode="cover"
+                />
+                {images.length > 1 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="px-4 py-4"
+                  >
+                    {images.map((img, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => setSelectedImage(index)}
+                        className={`mr-3 rounded-lg overflow-hidden border-2 ${
+                          selectedImage === index
+                            ? "border-mint dark:border-gold"
+                            : "border-beige/30 dark:border-dark-border/30"
+                        }`}
+                      >
+                        <Image
+                          source={{ uri: img }}
+                          className="w-20 h-20"
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </>
+            ) : (
+              <View className="w-full h-96 bg-gradient-to-br from-mint to-skyBlue dark:from-gold dark:to-lavender items-center justify-center">
+                <FontAwesome name="image" size={64} color="white" />
+              </View>
+            )}
 
-            <View className="flex-1 items-center border-r border-beige/30 dark:border-dark-border/30">
-              <FontAwesome name="image" size={20} color="#ACD6B8" />
-              <Text className="text-2xl font-bold text-light-text dark:text-dark-text mt-2">
-                {product.images?.length || 0}
-              </Text>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                Images
-              </Text>
-            </View>
-
-            <View className="flex-1 items-center">
-              <FontAwesome name={statusConfig.icon as any} size={20} color="#ACD6B8" />
-              <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-2">
+            {/* Status Badge */}
+            <View
+              className={`absolute top-4 right-4 px-4 py-2 rounded-full ${statusConfig.bgColor}`}
+            >
+              <Text className="text-white text-xs font-bold">
                 {statusConfig.label}
               </Text>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                Status
-              </Text>
             </View>
-          </View>
 
-          {/* Description */}
-          <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
-            <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
-              Description
-            </Text>
-            <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary leading-6">
-              {product.description || "No description available"}
-            </Text>
-          </View>
-
-          {/* Shop Info */}
-          <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
-            <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
-              Shop Information
-            </Text>
-            <View className="flex-row items-center">
-              {product.shopAvatar ? (
-                <Image
-                  source={{ uri: product.shopAvatar }}
-                  className="w-16 h-16 rounded-full mr-4"
-                />
-              ) : (
-                <View className="w-16 h-16 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-4">
-                  <FontAwesome name={"store" as any} size={24} color="#ACD6B8" />
+            {/* Stock Warning Badges */}
+            {product.status !== "OutOfStock" &&
+              product.stock <= 10 &&
+              product.stock > 0 && (
+                <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-orange-500/90">
+                  <Text className="text-white text-xs font-bold">
+                    Only {product.stock} left
+                  </Text>
                 </View>
               )}
-              <View className="flex-1">
-                <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
-                  {product.shopName}
-                </Text>
-                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                  {product.shopDescription || "No description"}
+
+            {(product.status === "OutOfStock" || product.stock === 0) && (
+              <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-coral/90">
+                <Text className="text-white text-xs font-bold">
+                  Out of Stock
                 </Text>
               </View>
-            </View>
+            )}
           </View>
 
-          {/* Product Details */}
-          <View className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-beige/30 dark:border-dark-border/30">
-            <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
-              Product Details
-            </Text>
-
-            <View className="space-y-3">
-              <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Product ID
-                </Text>
-                <Text className="text-light-text dark:text-dark-text font-semibold" numberOfLines={1}>
-                  {product.id.slice(0, 8)}...
-                </Text>
-              </View>
-
-              <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Slug
-                </Text>
-                <Text className="text-light-text dark:text-dark-text font-semibold">
-                  {product.slug}
-                </Text>
-              </View>
-
-              <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Category
-                </Text>
-                <Text className="text-light-text dark:text-dark-text font-semibold">
+          {/* Product Info */}
+          <View className="px-6 py-6">
+            {/* Category */}
+            <View className="flex-row items-center mb-4">
+              <View className="px-3 py-1 rounded-full bg-mint/10 dark:bg-gold/10">
+                <Text className="text-mint dark:text-gold text-xs font-semibold">
                   {product.categoryName}
                 </Text>
               </View>
+            </View>
+            {/* 🔵 Ask Seller (small button) */}
+            {/* 🔵 Actions: Ask Seller + Ask AI */}
+            <View className="flex-row space-x-3 mb-4">
+              {/* Hỏi người bán */}
+              <TouchableOpacity
+                onPress={handleAskSeller}
+                disabled={startChat.isPending}
+                className="px-4 py-2 rounded-full bg-skyBlue/20 dark:bg-lavender/20
+               border border-skyBlue/40 dark:border-lavender/40 flex-row items-center"
+              >
+                {startChat.isPending ? (
+                  <ActivityIndicator size="small" color="#87CEEB" />
+                ) : (
+                  <>
+                    <FontAwesome name="comments" size={14} color="#87CEEB" />
+                    <Text className="ml-2 text-skyBlue dark:text-lavender font-semibold text-sm">
+                      Hỏi người bán
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
 
-              <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+              {/* Hỏi AI */}
+              <TouchableOpacity
+                onPress={handleAskAI}
+                disabled={startAIChat.isPending}
+                className="px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/40
+               border border-purple-300 dark:border-purple-700 flex-row items-center"
+              >
+                {startAIChat.isPending ? (
+                  <ActivityIndicator size="small" color="#C084FC" />
+                ) : (
+                  <>
+                    <FontAwesome name="magic" size={14} color="#C084FC" />
+                    <Text className="ml-2 text-purple-600 dark:text-purple-300 font-semibold text-sm">
+                      Hỏi AI
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Title */}
+            <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
+              {product.name}
+            </Text>
+
+            {/* Price */}
+            <View className="flex-row items-center mb-4">
+              <Text className="text-3xl font-bold text-mint dark:text-gold">
+                {formatPrice(product.price)}
+              </Text>
+            </View>
+
+            {/* Stats */}
+            <View className="flex-row bg-white dark:bg-dark-card rounded-2xl p-4 mb-6 border border-beige/30 dark:border-dark-border/30">
+              <View className="flex-1 items-center border-r border-beige/30 dark:border-dark-border/30">
+                <FontAwesome name="cubes" size={20} color="#ACD6B8" />
+                <Text className="text-2xl font-bold text-light-text dark:text-dark-text mt-2">
+                  {product.stock}
+                </Text>
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                  In Stock
+                </Text>
+              </View>
+
+              <View className="flex-1 items-center border-r border-beige/30 dark:border-dark-border/30">
+                <FontAwesome name="image" size={20} color="#ACD6B8" />
+                <Text className="text-2xl font-bold text-light-text dark:text-dark-text mt-2">
+                  {product.images?.length || 0}
+                </Text>
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                  Images
+                </Text>
+              </View>
+
+              <View className="flex-1 items-center">
+                <FontAwesome
+                  name={statusConfig.icon as any}
+                  size={20}
+                  color="#ACD6B8"
+                />
+                <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-2">
+                  {statusConfig.label}
+                </Text>
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
                   Status
                 </Text>
-                <View className="flex-row items-center">
-                  <FontAwesome 
-                    name={statusConfig.icon as any} 
-                    size={12} 
-                    color={statusConfig.textColor.includes("mint") ? "#ACD6B8" : 
-                           statusConfig.textColor.includes("coral") ? "#FF6B6B" :
-                           statusConfig.textColor.includes("orange") ? "#F97316" : "#9CA3AF"}
-                    style={{ marginRight: 4 }}
+              </View>
+            </View>
+
+            {/* Description */}
+            <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
+              <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
+                Description
+              </Text>
+              <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary leading-6">
+                {product.description || "No description available"}
+              </Text>
+            </View>
+
+            {/* Shop Info */}
+            <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
+              <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+                Shop Information
+              </Text>
+
+              <View className="flex-row items-center">
+                {product.shopAvatar ? (
+                  <Image
+                    source={{ uri: product.shopAvatar }}
+                    className="w-16 h-16 rounded-full mr-4"
                   />
-                  <Text className={`font-semibold ${statusConfig.textColor}`}>
-                    {statusConfig.label}
+                ) : (
+                  <View className="w-16 h-16 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-4">
+                    <FontAwesome
+                      name={"store" as any}
+                      size={24}
+                      color="#ACD6B8"
+                    />
+                  </View>
+                )}
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
+                    {product.shopName}
+                  </Text>
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                    {product.shopDescription || "No description"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Product Details */}
+            <View className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-beige/30 dark:border-dark-border/30">
+              <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+                Product Details
+              </Text>
+
+              <View className="space-y-3">
+                <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
+                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                    Product ID
+                  </Text>
+                  <Text
+                    className="text-light-text dark:text-dark-text font-semibold"
+                    numberOfLines={1}
+                  >
+                    {product.id.slice(0, 8)}...
+                  </Text>
+                </View>
+
+                <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
+                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                    Slug
+                  </Text>
+                  <Text className="text-light-text dark:text-dark-text font-semibold">
+                    {product.slug}
+                  </Text>
+                </View>
+
+                <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
+                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                    Category
+                  </Text>
+                  <Text className="text-light-text dark:text-dark-text font-semibold">
+                    {product.categoryName}
+                  </Text>
+                </View>
+
+                <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
+                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                    Status
+                  </Text>
+                  <View className="flex-row items-center">
+                    <FontAwesome
+                      name={statusConfig.icon as any}
+                      size={12}
+                      color={
+                        statusConfig.textColor.includes("mint")
+                          ? "#ACD6B8"
+                          : statusConfig.textColor.includes("coral")
+                          ? "#FF6B6B"
+                          : statusConfig.textColor.includes("orange")
+                          ? "#F97316"
+                          : "#9CA3AF"
+                      }
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text className={`font-semibold ${statusConfig.textColor}`}>
+                      {statusConfig.label}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row justify-between py-2">
+                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                    Last Updated
+                  </Text>
+                  <Text className="text-light-text dark:text-dark-text font-semibold">
+                    {new Date(product.lastUpdatedAt).toLocaleDateString(
+                      "vi-VN"
+                    )}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Bottom Actions */}
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row space-x-3">
+            <TouchableOpacity
+              className="flex-1 bg-beige/50 dark:bg-dark-border/50 rounded-full py-4 items-center"
+              onPress={() => {
+                Alert.alert("Wishlist", "Add to wishlist feature coming soon");
+              }}
+            >
+              <FontAwesome name="heart-o" size={20} color="#ACD6B8" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-3 bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
+              onPress={handleAddToCart}
+              disabled={product.status !== "Published" || product.stock === 0}
+            >
+              <FontAwesome name="shopping-cart" size={20} color="white" />
+              <Text className="text-white text-base font-bold ml-2">
+                {product.status === "OutOfStock" || product.stock === 0
+                  ? "Out of Stock"
+                  : product.status === "Published"
+                  ? "Add to Cart"
+                  : statusConfig.label}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ✅ Quantity Modal */}
+        <Modal
+          visible={showQuantityModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowQuantityModal(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white dark:bg-dark-card rounded-t-3xl p-6">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                  Select Quantity
+                </Text>
+                <TouchableOpacity onPress={() => setShowQuantityModal(false)}>
+                  <FontAwesome name="times" size={24} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Product Info */}
+              <View className="flex-row items-center mb-6 pb-6 border-b border-beige/30 dark:border-dark-border/30">
+                <Image
+                  source={{ uri: product.thumbnailUrl }}
+                  className="w-20 h-20 rounded-xl"
+                  resizeMode="cover"
+                />
+                <View className="flex-1 ml-4">
+                  <Text
+                    className="text-base font-bold text-light-text dark:text-dark-text mb-1"
+                    numberOfLines={2}
+                  >
+                    {product.name}
+                  </Text>
+                  <Text className="text-lg font-bold text-mint dark:text-gold">
+                    {formatPrice(product.price)}
                   </Text>
                 </View>
               </View>
 
-              <View className="flex-row justify-between py-2">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Last Updated
+              {/* Quantity Selector */}
+              <View className="mb-6">
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
+                  Quantity
                 </Text>
-                <Text className="text-light-text dark:text-dark-text font-semibold">
-                  {new Date(product.lastUpdatedAt).toLocaleDateString("vi-VN")}
+                <View className="flex-row items-center justify-between">
+                  {/* Decrease Button */}
+                  <TouchableOpacity
+                    className={`w-14 h-14 rounded-full items-center justify-center ${
+                      quantity === 1
+                        ? "bg-gray-200 dark:bg-gray-700"
+                        : "bg-mint/20 dark:bg-gold/20"
+                    }`}
+                    onPress={handleDecreaseQuantity}
+                    disabled={quantity === 1}
+                  >
+                    <FontAwesome
+                      name="minus"
+                      size={20}
+                      color={quantity === 1 ? "#9CA3AF" : "#ACD6B8"}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Quantity Input */}
+                  <TextInput
+                    value={quantity.toString()}
+                    onChangeText={handleQuantityInput}
+                    keyboardType="number-pad"
+                    className="flex-1 mx-4 text-center text-2xl font-bold text-light-text dark:text-dark-text bg-beige/30 dark:bg-dark-border/30 rounded-2xl py-3"
+                    selectTextOnFocus
+                  />
+
+                  {/* Increase Button */}
+                  <TouchableOpacity
+                    className={`w-14 h-14 rounded-full items-center justify-center ${
+                      quantity >= product.stock
+                        ? "bg-gray-200 dark:bg-gray-700"
+                        : "bg-mint/20 dark:bg-gold/20"
+                    }`}
+                    onPress={handleIncreaseQuantity}
+                    disabled={quantity >= product.stock}
+                  >
+                    <FontAwesome
+                      name="plus"
+                      size={20}
+                      color={quantity >= product.stock ? "#9CA3AF" : "#ACD6B8"}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Stock Info */}
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center mt-3">
+                  Available: {product.stock}{" "}
+                  {product.stock === 1 ? "item" : "items"}
                 </Text>
               </View>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
 
-      {/* Bottom Actions */}
-      <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row space-x-3">
-          <TouchableOpacity
-            className="flex-1 bg-beige/50 dark:bg-dark-border/50 rounded-full py-4 items-center"
-            onPress={() => {
-              Alert.alert("Wishlist", "Add to wishlist feature coming soon");
-            }}
-          >
-            <FontAwesome name="heart-o" size={20} color="#ACD6B8" />
-          </TouchableOpacity>
+              {/* Total Price */}
+              <View className="bg-beige/30 dark:bg-dark-border/30 rounded-2xl p-4 mb-6">
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                    Total Price
+                  </Text>
+                  <Text className="text-2xl font-bold text-mint dark:text-gold">
+                    {formatPrice(product.price * quantity)}
+                  </Text>
+                </View>
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-right mt-1">
+                  {quantity} × {formatPrice(product.price)}
+                </Text>
+              </View>
 
-          <TouchableOpacity
-            className="flex-3 bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
-            onPress={handleAddToCart}
-            disabled={product.status !== "Published" || product.stock === 0}
-          >
-            <FontAwesome name="shopping-cart" size={20} color="white" />
-            <Text className="text-white text-base font-bold ml-2">
-              {product.status === "OutOfStock" || product.stock === 0
-                ? "Out of Stock"
-                : product.status === "Published"
-                ? "Add to Cart"
-                : statusConfig.label}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* ✅ Quantity Modal */}
-      <Modal
-        visible={showQuantityModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowQuantityModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white dark:bg-dark-card rounded-t-3xl p-6">
-            <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Select Quantity
-              </Text>
-              <TouchableOpacity onPress={() => setShowQuantityModal(false)}>
-                <FontAwesome name="times" size={24} color="#9CA3AF" />
+              {/* Add to Cart Button */}
+              <TouchableOpacity
+                className="bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
+                onPress={confirmAddToCart}
+                disabled={addToCart.isPending}
+              >
+                {addToCart.isPending ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <FontAwesome name="shopping-cart" size={20} color="white" />
+                    <Text className="text-white text-base font-bold ml-2">
+                      Add {quantity} to Cart
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
-
-            {/* Product Info */}
-            <View className="flex-row items-center mb-6 pb-6 border-b border-beige/30 dark:border-dark-border/30">
-              <Image
-                source={{ uri: product.thumbnailUrl }}
-                className="w-20 h-20 rounded-xl"
-                resizeMode="cover"
-              />
-              <View className="flex-1 ml-4">
-                <Text
-                  className="text-base font-bold text-light-text dark:text-dark-text mb-1"
-                  numberOfLines={2}
-                >
-                  {product.name}
-                </Text>
-                <Text className="text-lg font-bold text-mint dark:text-gold">
-                  {formatPrice(product.price)}
-                </Text>
-              </View>
-            </View>
-
-            {/* Quantity Selector */}
-            <View className="mb-6">
-              <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-                Quantity
-              </Text>
-              <View className="flex-row items-center justify-between">
-                {/* Decrease Button */}
-                <TouchableOpacity
-                  className={`w-14 h-14 rounded-full items-center justify-center ${
-                    quantity === 1
-                      ? "bg-gray-200 dark:bg-gray-700"
-                      : "bg-mint/20 dark:bg-gold/20"
-                  }`}
-                  onPress={handleDecreaseQuantity}
-                  disabled={quantity === 1}
-                >
-                  <FontAwesome
-                    name="minus"
-                    size={20}
-                    color={quantity === 1 ? "#9CA3AF" : "#ACD6B8"}
-                  />
-                </TouchableOpacity>
-
-                {/* Quantity Input */}
-                <TextInput
-                  value={quantity.toString()}
-                  onChangeText={handleQuantityInput}
-                  keyboardType="number-pad"
-                  className="flex-1 mx-4 text-center text-2xl font-bold text-light-text dark:text-dark-text bg-beige/30 dark:bg-dark-border/30 rounded-2xl py-3"
-                  selectTextOnFocus
-                />
-
-                {/* Increase Button */}
-                <TouchableOpacity
-                  className={`w-14 h-14 rounded-full items-center justify-center ${
-                    quantity >= product.stock
-                      ? "bg-gray-200 dark:bg-gray-700"
-                      : "bg-mint/20 dark:bg-gold/20"
-                  }`}
-                  onPress={handleIncreaseQuantity}
-                  disabled={quantity >= product.stock}
-                >
-                  <FontAwesome
-                    name="plus"
-                    size={20}
-                    color={quantity >= product.stock ? "#9CA3AF" : "#ACD6B8"}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Stock Info */}
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center mt-3">
-                Available: {product.stock} {product.stock === 1 ? "item" : "items"}
-              </Text>
-            </View>
-
-            {/* Total Price */}
-            <View className="bg-beige/30 dark:bg-dark-border/30 rounded-2xl p-4 mb-6">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Total Price
-                </Text>
-                <Text className="text-2xl font-bold text-mint dark:text-gold">
-                  {formatPrice(product.price * quantity)}
-                </Text>
-              </View>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-right mt-1">
-                {quantity} × {formatPrice(product.price)}
-              </Text>
-            </View>
-
-            {/* Add to Cart Button */}
-            <TouchableOpacity
-              className="bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
-              onPress={confirmAddToCart}
-              disabled={addToCart.isPending}
-            >
-              {addToCart.isPending ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <FontAwesome name="shopping-cart" size={20} color="white" />
-                  <Text className="text-white text-base font-bold ml-2">
-                    Add {quantity} to Cart
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-    </View>
-     </SafeAreaView>
+        </Modal>
+      </View>
+    </SafeAreaView>
   );
 }

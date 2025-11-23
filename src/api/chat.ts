@@ -15,7 +15,7 @@ export interface ConversationItem {
   id: string;
   isAIChat: boolean;
   buyerId: string;
-  sellerId: string;
+  sellerId: string | null;
   product: ChatProductInfo;
   lastMessage: string;
   lastMessageAt: string;
@@ -30,7 +30,7 @@ export interface ChatMessage {
 }
 
 // Response types
-export type StartChatResponse = ApiResponse<ConversationItem>;
+export type StartChatResponse = ApiResponse<ConversationItem>; // ✅ Đã có isAIChat
 export type SendMessageResponse = ApiResponse<ChatMessage>;
 export type ConversationListResponse = ApiResponse<ConversationItem[]>;
 export type MessageListResponse = ApiResponse<ChatMessage[]>;
@@ -52,7 +52,7 @@ export interface SendMessagePayload {
 // ======================
 
 export const chatApi = {
-  // Bắt đầu chat giữa Buyer → Seller
+  // Buyer → Seller chat (trả về conversation với isAIChat = false)
   startSellerChat: async (
     payload: StartChatPayload
   ): Promise<StartChatResponse> => {
@@ -63,7 +63,18 @@ export const chatApi = {
     return data;
   },
 
-  // Gửi tin nhắn vào 1 conversation
+  // 🧠 Buyer → AI chat (trả về conversation với isAIChat = true)
+  startAIChat: async (
+    payload: StartChatPayload
+  ): Promise<StartChatResponse> => {
+    const { data } = await apiClient.post<StartChatResponse>(
+      "/chat/ai/start",
+      payload
+    );
+    return data;
+  },
+
+  // Gửi tin nhắn trong conversation (buyer ↔ seller)
   sendMessage: async (
     conversationId: string,
     payload: SendMessagePayload
@@ -75,23 +86,31 @@ export const chatApi = {
     return data;
   },
 
-  // Lấy danh sách conversation cho User (buyer)
+  // 🧠 Gửi tin nhắn cho AI
+  sendAIMessage: async (
+    conversationId: string,
+    payload: SendMessagePayload
+  ): Promise<SendMessageResponse> => {
+    const { data } = await apiClient.post<SendMessageResponse>(
+      `/chat/ai/${conversationId}/message`,
+      payload
+    );
+    return data;
+  },
+
+  // Danh sách conversation buyer
   getUserConversations: async (): Promise<ConversationListResponse> => {
-    const { data } = await apiClient.get<ConversationListResponse>(
-      "/chat/user"
-    );
+    const { data } = await apiClient.get<ConversationListResponse>("/chat/user");
     return data;
   },
 
-  // Lấy danh sách conversation cho Seller
+  // Danh sách conversation seller
   getSellerConversations: async (): Promise<ConversationListResponse> => {
-    const { data } = await apiClient.get<ConversationListResponse>(
-      "/chat/seller"
-    );
+    const { data } = await apiClient.get<ConversationListResponse>("/chat/seller");
     return data;
   },
 
-  // Lấy toàn bộ messages của 1 cuộc hội thoại
+  // Lấy messages
   getConversationMessages: async (
     conversationId: string
   ): Promise<MessageListResponse> => {
