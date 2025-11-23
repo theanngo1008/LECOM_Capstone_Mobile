@@ -12,7 +12,14 @@ export interface ShopCourse {
   shopName: string
   shopAvatar: string | null
   courseThumbnail: string
-  active: number // 1 = active, 0 = inactive
+  active: number
+}
+export interface LinkedProduct {
+  id: string
+  name: string
+  price: number
+  thumbnailUrl: string
+  shopName: string
 }
 
 export interface CourseLesson {
@@ -23,7 +30,11 @@ export interface CourseLesson {
   durationSeconds: number
   contentUrl: string
   orderIndex: number
+
+
+  linkedProducts: LinkedProduct[]
 }
+
 
 export interface CourseSection {
   id: string
@@ -53,7 +64,7 @@ export interface CreateLessonPayload {
   durationSeconds: number
   contentUrl: string
   orderIndex: number
-  type?: string // default "Video"
+  type?: string
 }
 
 export interface UpdateCoursePayload {
@@ -64,6 +75,14 @@ export interface UpdateCoursePayload {
   active: number
 }
 
+// 🔗 Payload để liên kết Product ↔ Lesson
+export interface LinkProductToLessonPayload {
+  lessonId: string
+  productId: string
+}
+
+export type LinkProductToLessonResponse = ApiResponse<null>
+
 export type ShopCoursesResponse = ApiResponse<ShopCourse[]>
 export type CreateCourseResponse = ApiResponse<ShopCourse>
 export type CourseDetailResponse = ApiResponse<ShopCourse>
@@ -72,25 +91,21 @@ export type CreateSectionResponse = ApiResponse<CourseSection>
 export type CreateLessonResponse = ApiResponse<CourseLesson>
 
 export const shopCourseApi = {
-  // ✅ Lấy danh sách khóa học của shop
   getMyCourses: async (): Promise<ShopCoursesResponse> => {
     const { data } = await apiClient.get<ShopCoursesResponse>("/seller/courses/my")
     return data
   },
 
-  // ✅ Tạo khóa học mới
   createCourse: async (payload: CreateCoursePayload): Promise<CreateCourseResponse> => {
     const { data } = await apiClient.post<CreateCourseResponse>("/seller/courses", payload)
     return data
   },
 
-  // ✅ Lấy chi tiết 1 khóa học theo ID
   getCourseById: async (courseId: string): Promise<CourseDetailResponse> => {
     const { data } = await apiClient.get<CourseDetailResponse>(`/seller/courses/${courseId}`)
     return data
   },
 
-  // ✅ Cập nhật khóa học
   updateCourse: async (
     courseId: string,
     payload: UpdateCoursePayload
@@ -102,13 +117,11 @@ export const shopCourseApi = {
     return data
   },
 
-  // 🗑️ Xóa khóa học
   deleteCourse: async (courseId: string): Promise<ApiResponse<null>> => {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/seller/courses/${courseId}`)
     return data
   },
 
-  // ✅ Lấy danh sách section và bài học trong khóa học
   getCourseSections: async (courseId: string): Promise<CourseSectionsResponse> => {
     const { data } = await apiClient.get<CourseSectionsResponse>(
       `/seller/courses/${courseId}/sections`
@@ -116,7 +129,6 @@ export const shopCourseApi = {
     return data
   },
 
-  // ✅ Tạo section mới trong khóa học
   createCourseSection: async (payload: CreateSectionPayload): Promise<CreateSectionResponse> => {
     const { data } = await apiClient.post<CreateSectionResponse>(
       "/seller/courses/sections",
@@ -125,7 +137,6 @@ export const shopCourseApi = {
     return data
   },
 
-  // ✅ Tạo lesson mới trong section (mặc định type = "Video")
   createLesson: async (payload: CreateLessonPayload): Promise<CreateLessonResponse> => {
     const { data } = await apiClient.post<CreateLessonResponse>("/seller/courses/lessons", {
       ...payload,
@@ -134,7 +145,6 @@ export const shopCourseApi = {
     return data
   },
 
-  // 🗑️ Xóa lesson theo ID
   deleteLesson: async (lessonId: string): Promise<ApiResponse<null>> => {
     const { data } = await apiClient.delete<ApiResponse<null>>(
       `/seller/courses/lessons/${lessonId}`
@@ -142,10 +152,20 @@ export const shopCourseApi = {
     return data
   },
 
-  // 🗑️ Xóa section theo ID
   deleteSection: async (sectionId: string): Promise<ApiResponse<null>> => {
     const { data } = await apiClient.delete<ApiResponse<null>>(
       `/seller/courses/sections/${sectionId}`
+    )
+    return data
+  },
+
+  // 🔗 Liên kết sản phẩm vào bài học
+  linkProductToLesson: async (
+    payload: LinkProductToLessonPayload
+  ): Promise<LinkProductToLessonResponse> => {
+    const { data } = await apiClient.post<LinkProductToLessonResponse>(
+      "/seller/courses/lessons/products",
+      payload
     )
     return data
   },

@@ -1,4 +1,5 @@
 import { CommunityScreen } from "@/features/community/screens/CommunityScreen"
+import { PostDetailScreen } from "@/features/community/screens/PostDetailScreen"
 import type { CommunityStackParamList } from "@/navigation/types"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import React from "react"
@@ -20,7 +21,10 @@ export function CommunityStackNavigator() {
         component={CommunityScreen}
       />
 
-      
+      <Stack.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+      />
     </Stack.Navigator>
   )
 }

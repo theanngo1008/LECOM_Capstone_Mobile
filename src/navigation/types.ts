@@ -235,7 +235,7 @@ export type ChatStackScreenProps<T extends keyof ChatStackParamList> =
 export type CommunityStackParamList = {
   CommunityList: undefined;
   CreateCommunityPost: undefined;
-  CommunityDetail: {
+  PostDetail: {
     postId: string;
   };
 };

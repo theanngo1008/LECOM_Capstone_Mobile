@@ -17,6 +17,7 @@ import { ShopStackNavigator } from "./ShopStackNavigator";
 import { DrawerParamList } from "./types";
 
 import { CommunityScreen } from "@/features/community/screens/CommunityScreen";
+import { CommunityStackNavigator } from "./CommunityStackNavigator";
 
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -159,7 +160,7 @@ export function DrawerNavigator() {
       />
       <Drawer.Screen
         name="CommunityList"
-        component={CommunityScreen}
+        component={CommunityStackNavigator}
         options={{
           title: "Community",
           drawerIcon: ({ color, size }) => (

@@ -1,6 +1,6 @@
 import { CourseLesson, CourseSection } from "@/api/shopCourses";
-import { useUploadFile } from "@/hooks/useUploadFile";
 import { useCourseCategories } from "@/hooks/useCourseCategories";
+import { useUploadFile } from "@/hooks/useUploadFile";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { Audio } from "expo-av";
@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Modal,
   Platform,
@@ -19,11 +20,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useShopProducts } from "../../shopProducts/hooks/useShopProducts";
 import { useCreateLesson } from "../hooks/useCreateLesson";
 import { useCreateSection } from "../hooks/useCreateSection";
 import { useDeleteCourse } from "../hooks/useDeleteCourse";
 import { useDeleteLesson } from "../hooks/useDeleteLesson";
 import { useDeleteSection } from "../hooks/useDeleteSection";
+import { useLinkProductToLesson } from "../hooks/useLinkProductToLesson";
 import { useShopCourseDetail } from "../hooks/useShopCourseDetail";
 import { useUpdateCourse } from "../hooks/useUpdateCourse";
 
@@ -34,6 +37,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
 
   const { course, sections, isLoading, isError } = useShopCourseDetail(courseId);
   const { data: categories, isLoading: isCategoriesLoading } = useCourseCategories();
+  const { data: productsData, isLoading: isProductsLoading } = useShopProducts();
   const createSection = useCreateSection();
   const createLesson = useCreateLesson();
   const deleteLesson = useDeleteLesson(courseId);
@@ -41,6 +45,9 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const updateCourse = useUpdateCourse();
   const deleteCourse = useDeleteCourse();
   const { uploadFile, isLoading: isUploading } = useUploadFile();
+  const linkProductMutation = useLinkProductToLesson(courseId);
+
+  const products = productsData?.result || [];
 
   // Section modal
   const [showSectionModal, setShowSectionModal] = useState(false);
@@ -53,7 +60,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const [lessonVideoUrl, setLessonVideoUrl] = useState("");
   const [videoDuration, setVideoDuration] = useState<number>(0);
 
-  // ✅ Edit Course Modal
+  // Edit Course Modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editSummary, setEditSummary] = useState("");
@@ -61,6 +68,11 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const [editActive, setEditActive] = useState(1);
   const [editCategoryId, setEditCategoryId] = useState("");
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  // 🆕 Product Link Modal
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
   console.log("📚 Shop Course Detail:", { course, sections, isLoading, isError });
 
@@ -81,6 +93,9 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
+
+  const formatPrice = (price: number) =>
+    `${new Intl.NumberFormat("vi-VN").format(price)}₫`;
 
   const getTotalLessons = () => {
     if (!sections) return 0;
@@ -107,7 +122,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       if (status.isLoaded && status.durationMillis) {
         const durationSeconds = Math.floor(status.durationMillis / 1000);
         console.log("📹 Video duration:", durationSeconds, "seconds");
-        
+
         await sound.unloadAsync();
         return durationSeconds;
       }
@@ -129,7 +144,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       if (result.canceled) return;
 
       const asset = result.assets[0];
-      
+
       if (asset.size && asset.size > 10 * 1024 * 1024) {
         Alert.alert(
           "File Too Large",
@@ -155,10 +170,13 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       if (!uploadedUrl) throw new Error("Upload failed");
 
       setLessonVideoUrl(uploadedUrl);
-      Alert.alert("Success", `Video uploaded successfully! Duration: ${formatDuration(duration)}`);
+      Alert.alert(
+        "Success",
+        `Video uploaded successfully! Duration: ${formatDuration(duration)}`
+      );
     } catch (err: any) {
       console.error("Upload error:", err);
-      
+
       if (err.message?.includes("413") || err.status === 413) {
         Alert.alert(
           "File Too Large",
@@ -190,7 +208,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       Alert.alert("Uploading", "Uploading thumbnail...");
       const uploaded = await uploadFile(file, "image");
       const uploadedUrl = typeof uploaded === "string" ? uploaded : uploaded?.url;
-      
+
       if (!uploadedUrl) throw new Error("Upload failed");
 
       setEditThumbnail(uploadedUrl);
@@ -199,6 +217,48 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       console.error("Upload error:", err);
       Alert.alert("Error", err.message || "Failed to upload thumbnail");
     }
+  };
+
+  // 🆕 Open Product Link Modal
+  const openProductModal = (lessonId: string) => {
+    setSelectedLessonId(lessonId);
+    setSelectedProductId(null);
+    setShowProductModal(true);
+  };
+
+  // 🆕 Handle Link Product
+  const handleLinkProduct = () => {
+    if (!selectedLessonId || !selectedProductId) {
+      Alert.alert("Error", "Please select a product");
+      return;
+    }
+
+    linkProductMutation.mutate(
+      {
+        lessonId: selectedLessonId,
+        productId: selectedProductId,
+      },
+      {
+        onSuccess: () => {
+          Alert.alert("Success", "Product linked successfully!");
+          setShowProductModal(false);
+          setSelectedLessonId(null);
+          setSelectedProductId(null);
+          
+          // Refresh course detail to show updated linked products
+          queryClient.invalidateQueries({
+            queryKey: ["shopCourseDetail", courseId],
+          });
+        },
+        onError: (error: any) => {
+          console.error("Link product error:", error);
+          Alert.alert(
+            "Error",
+            error.response?.data?.message || error.message || "Failed to link product"
+          );
+        },
+      }
+    );
   };
 
   const handleCreateLesson = () => {
@@ -213,7 +273,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       type: "Video" as const,
       contentUrl: lessonVideoUrl,
       durationSeconds: videoDuration,
-      orderIndex: sections?.find((s) => s.id === selectedSectionId)?.lessons.length || 0,
+      orderIndex:
+        sections?.find((s) => s.id === selectedSectionId)?.lessons.length || 0,
     };
 
     console.log("📤 Creating lesson payload:", payload);
@@ -221,9 +282,9 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     createLesson.mutate(payload, {
       onSuccess: (data) => {
         console.log("✅ Lesson created:", data);
-        
-        queryClient.invalidateQueries({ 
-          queryKey: ["shopCourseDetail", courseId] 
+
+        queryClient.invalidateQueries({
+          queryKey: ["shopCourseDetail", courseId],
         });
 
         Alert.alert("Success", "Lesson created successfully!");
@@ -278,8 +339,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         onSuccess: () => {
           Alert.alert("Success", "Course updated successfully!");
           setShowEditModal(false);
-          queryClient.invalidateQueries({ 
-            queryKey: ["shopCourseDetail", courseId] 
+          queryClient.invalidateQueries({
+            queryKey: ["shopCourseDetail", courseId],
           });
         },
         onError: (error: any) => {
@@ -330,36 +391,32 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   };
 
   const handleDeleteLesson = (lessonId: string, lessonTitle: string) => {
-    Alert.alert(
-      "Delete Lesson",
-      `Are you sure you want to delete "${lessonTitle}"?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
+    Alert.alert("Delete Lesson", `Are you sure you want to delete "${lessonTitle}"?`, [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          deleteLesson.mutate(lessonId, {
+            onSuccess: () => {
+              Alert.alert("Success", "Lesson deleted successfully!");
+              queryClient.invalidateQueries({
+                queryKey: ["shopCourseDetail", courseId],
+              });
+            },
+            onError: (error: any) => {
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to delete lesson"
+              );
+            },
+          });
         },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            deleteLesson.mutate(lessonId, {
-              onSuccess: () => {
-                Alert.alert("Success", "Lesson deleted successfully!");
-                queryClient.invalidateQueries({ 
-                  queryKey: ["shopCourseDetail", courseId] 
-                });
-              },
-              onError: (error: any) => {
-                Alert.alert(
-                  "Error",
-                  error.response?.data?.message || "Failed to delete lesson"
-                );
-              },
-            });
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleDeleteSection = (sectionId: string, sectionTitle: string) => {
@@ -383,8 +440,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
             deleteSection.mutate(sectionId, {
               onSuccess: () => {
                 Alert.alert("Success", "Section deleted successfully!");
-                queryClient.invalidateQueries({ 
-                  queryKey: ["shopCourseDetail", courseId] 
+                queryClient.invalidateQueries({
+                  queryKey: ["shopCourseDetail", courseId],
                 });
               },
               onError: (error: any) => {
@@ -400,62 +457,144 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     );
   };
 
-  const renderLesson = (lesson: CourseLesson, index: number) => (
-    <View
-      key={lesson.id}
-      className="flex-row items-center p-4 bg-beige/20 dark:bg-dark-border/20 rounded-xl mb-2"
-    >
-      <TouchableOpacity
-        className="flex-1 flex-row items-center"
-        activeOpacity={0.7}
-        onPress={() => {
-          Alert.alert("Lesson", `Playing: ${lesson.title}`);
-        }}
-      >
-        <View className="w-10 h-10 rounded-full bg-mint/20 dark:bg-gold/20 items-center justify-center mr-3">
-          <Text className="text-mint dark:text-gold font-bold">{index + 1}</Text>
-        </View>
+  // ✅ Lesson item + Linked Products + Link Button
+  const renderLesson = (lesson: CourseLesson, index: number) => {
+    const hasLinkedProducts = lesson.linkedProducts && lesson.linkedProducts.length > 0;
 
-        <View className="flex-1">
-          <Text
-            className="text-base font-semibold text-light-text dark:text-dark-text mb-1"
-            numberOfLines={2}
+    return (
+      <View
+        key={lesson.id}
+        className="p-4 bg-beige/20 dark:bg-dark-border/20 rounded-xl mb-2"
+      >
+        {/* Row chính: info + play + delete */}
+        <View className="flex-row items-center mb-3">
+          <TouchableOpacity
+            className="flex-1 flex-row items-center"
+            activeOpacity={0.7}
+            onPress={() => {
+              Alert.alert("Lesson", `Playing: ${lesson.title}`);
+            }}
           >
-            {lesson.title}
+            <View className="w-10 h-10 rounded-full bg-mint/20 dark:bg-gold/20 items-center justify-center mr-3">
+              <Text className="text-mint dark:text-gold font-bold">{index + 1}</Text>
+            </View>
+
+            <View className="flex-1">
+              <Text
+                className="text-base font-semibold text-light-text dark:text-dark-text mb-1"
+                numberOfLines={2}
+              >
+                {lesson.title}
+              </Text>
+
+              <View className="flex-row items-center flex-wrap">
+                <FontAwesome name="video-camera" size={12} color="#9CA3AF" />
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
+                  {lesson.type}
+                </Text>
+
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
+                  •
+                </Text>
+
+                <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
+                  {formatDuration(lesson.durationSeconds)}
+                </Text>
+
+                {hasLinkedProducts && (
+                  <>
+                    <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
+                      •
+                    </Text>
+                    <FontAwesome name="shopping-bag" size={12} color="#ACD6B8" />
+                    <Text className="text-xs text-mint dark:text-gold ml-1">
+                      {lesson.linkedProducts.length}{" "}
+                      {lesson.linkedProducts.length === 1 ? "product" : "products"}
+                    </Text>
+                  </>
+                )}
+              </View>
+            </View>
+
+            <View className="w-10 h-10 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-2">
+              <FontAwesome name="play" size={14} color="#ACD6B8" />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="w-10 h-10 rounded-full bg-coral/10 items-center justify-center"
+            onPress={() => handleDeleteLesson(lesson.id, lesson.title)}
+            disabled={deleteLesson.isPending}
+          >
+            {deleteLesson.isPending ? (
+              <ActivityIndicator size="small" color="#FF6B6B" />
+            ) : (
+              <FontAwesome name="trash-o" size={16} color="#FF6B6B" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* 🆕 Link Product Button */}
+        <TouchableOpacity
+          className="flex-row items-center justify-center p-3 bg-skyBlue/10 dark:bg-lavender/10 rounded-xl border border-skyBlue/30 dark:border-lavender/30 mb-3 active:opacity-70"
+          onPress={() => openProductModal(lesson.id)}
+        >
+          <FontAwesome name="link" size={14} color="#87CEEB" />
+          <Text className="text-skyBlue dark:text-lavender font-semibold text-sm ml-2">
+            Link Product to Lesson
           </Text>
-          <View className="flex-row items-center">
-            <FontAwesome name="video-camera" size={12} color="#9CA3AF" />
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
-              {lesson.type}
-            </Text>
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
-              •
-            </Text>
-            <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
-              {formatDuration(lesson.durationSeconds)}
-            </Text>
+        </TouchableOpacity>
+
+        {/* ✅ Linked Products block */}
+        {hasLinkedProducts && (
+          <View className="bg-white/80 dark:bg-dark-card rounded-xl p-3 border border-beige/30 dark:border-dark-border/30">
+            <View className="flex-row items-center mb-2">
+              <FontAwesome name="shopping-basket" size={14} color="#ACD6B8" />
+              <Text className="text-xs font-semibold text-light-text dark:text-dark-text ml-2">
+                Linked Products ({lesson.linkedProducts.length})
+              </Text>
+            </View>
+
+            {lesson.linkedProducts.map((product) => (
+              <View
+                key={product.id}
+                className="flex-row items-center mb-2 last:mb-0"
+              >
+                {product.thumbnailUrl ? (
+                  <Image
+                    source={{ uri: product.thumbnailUrl }}
+                    className="w-10 h-10 rounded-lg mr-3"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View className="w-10 h-10 rounded-lg bg-beige/40 dark:bg-dark-border/40 items-center justify-center mr-3">
+                    <FontAwesome name="image" size={14} color="#9CA3AF" />
+                  </View>
+                )}
+
+                <View className="flex-1">
+                  <Text
+                    className="text-xs font-semibold text-light-text dark:text-dark-text"
+                    numberOfLines={1}
+                  >
+                    {product.name}
+                  </Text>
+                  <Text className="text-[11px] text-light-textSecondary dark:text-dark-textSecondary" numberOfLines={1}>
+                    {product.shopName}
+                  </Text>
+                </View>
+
+                <Text className="text-xs font-bold text-mint dark:text-gold ml-2">
+                  {formatPrice(product.price)}
+                </Text>
+              </View>
+            ))}
           </View>
-        </View>
-
-        <View className="w-10 h-10 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-2">
-          <FontAwesome name="play" size={14} color="#ACD6B8" />
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        className="w-10 h-10 rounded-full bg-coral/10 items-center justify-center"
-        onPress={() => handleDeleteLesson(lesson.id, lesson.title)}
-        disabled={deleteLesson.isPending}
-      >
-        {deleteLesson.isPending ? (
-          <ActivityIndicator size="small" color="#FF6B6B" />
-        ) : (
-          <FontAwesome name="trash-o" size={16} color="#FF6B6B" />
         )}
-      </TouchableOpacity>
-    </View>
-  );
+      </View>
+    );
+  };
 
   const renderSection = (section: CourseSection) => {
     const isExpanded = expandedSections.has(section.id);
@@ -479,7 +618,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 {section.title}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {section.lessons.length} {section.lessons.length === 1 ? "lesson" : "lessons"}
+                {section.lessons.length}{" "}
+                {section.lessons.length === 1 ? "lesson" : "lessons"}
               </Text>
             </View>
             <FontAwesome
@@ -683,7 +823,9 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
             <TouchableOpacity
               onPress={() => {
                 if (sections && sections.length > 0) {
-                  const allExpanded = sections.every((s) => expandedSections.has(s.id));
+                  const allExpanded = sections.every((s) =>
+                    expandedSections.has(s.id)
+                  );
                   if (allExpanded) {
                     setExpandedSections(new Set());
                   } else {
@@ -796,10 +938,12 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
                 Add New Lesson
               </Text>
-              <TouchableOpacity onPress={() => {
-                setShowLessonModal(false);
-                setVideoDuration(0);
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowLessonModal(false);
+                  setVideoDuration(0);
+                }}
+              >
                 <FontAwesome name="times" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
@@ -827,14 +971,19 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                     <View className="flex-row items-center justify-between mb-2">
                       <View className="flex-row items-center flex-1">
                         <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
-                        <Text className="text-mint dark:text-gold ml-2 flex-1" numberOfLines={1}>
+                        <Text
+                          className="text-mint dark:text-gold ml-2 flex-1"
+                          numberOfLines={1}
+                        >
                           Video uploaded
                         </Text>
                       </View>
-                      <TouchableOpacity onPress={() => {
-                        setLessonVideoUrl("");
-                        setVideoDuration(0);
-                      }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setLessonVideoUrl("");
+                          setVideoDuration(0);
+                        }}
+                      >
                         <FontAwesome name="times-circle" size={20} color="#FF6B6B" />
                       </TouchableOpacity>
                     </View>
@@ -886,7 +1035,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         </View>
       </Modal>
 
-      {/* ✅ Edit Course Modal */}
+      {/* Edit Course Modal */}
       <Modal
         visible={showEditModal}
         transparent
@@ -894,7 +1043,10 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         onRequestClose={() => setShowEditModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white dark:bg-dark-card rounded-t-3xl p-6" style={{ maxHeight: "90%" }}>
+          <View
+            className="bg-white dark:bg-dark-card rounded-t-3xl p-6"
+            style={{ maxHeight: "90%" }}
+          >
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
                 Edit Course
@@ -919,7 +1071,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 />
               </View>
 
-              {/* ✅ Category Selector */}
+              {/* Category Selector */}
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
                   Category <Text className="text-coral">*</Text>
@@ -933,7 +1085,13 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                     <ActivityIndicator size="small" color="#ACD6B8" />
                   ) : (
                     <>
-                      <Text className={`flex-1 ${selectedCategory ? "text-light-text dark:text-dark-text" : "text-gray-400"}`}>
+                      <Text
+                        className={`flex-1 ${
+                          selectedCategory
+                            ? "text-light-text dark:text-dark-text"
+                            : "text-gray-400"
+                        }`}
+                      >
                         {selectedCategory?.name || "Select a category"}
                       </Text>
                       <FontAwesome name="chevron-down" size={16} color="#9CA3AF" />
@@ -1061,7 +1219,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         </View>
       </Modal>
 
-      {/* ✅ Category Picker Modal */}
+      {/* Category Picker Modal */}
       <Modal
         visible={showCategoryPicker}
         transparent
@@ -1113,6 +1271,176 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 </Text>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🆕 Product Link Modal */}
+      <Modal
+        visible={showProductModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProductModal(false)}
+      >
+        <View className="flex-1 bg-black/50">
+          <View className="flex-1 mt-20 bg-cream dark:bg-dark-background rounded-t-3xl">
+            {/* Modal Header */}
+            <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30 rounded-t-3xl">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
+                    Link Product
+                  </Text>
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                    {selectedProductId ? "1 product selected" : "Select one product"}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity
+                  className="w-10 h-10 rounded-xl bg-coral/10 items-center justify-center"
+                  onPress={() => setShowProductModal(false)}
+                  disabled={linkProductMutation.isPending}
+                >
+                  <FontAwesome name="times" size={20} color="#F2A297" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Products List */}
+            {isProductsLoading ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4 text-base">
+                  Loading products...
+                </Text>
+              </View>
+            ) : products.length === 0 ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <View className="w-20 h-20 rounded-full bg-skyBlue/10 dark:bg-lavender/10 items-center justify-center mb-4">
+                  <FontAwesome name="shopping-bag" size={40} color="#87CEEB" />
+                </View>
+                <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
+                  No Products
+                </Text>
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
+                  Add products to your shop first
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={products}
+                keyExtractor={(item) => item.id.toString()}
+                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item: product }) => {
+                  const isSelected = selectedProductId === product.id;
+                  
+                  return (
+                    <TouchableOpacity
+                      className={`mb-3 rounded-2xl border overflow-hidden active:opacity-70 ${
+                        isSelected
+                          ? 'bg-skyBlue/10 dark:bg-lavender/10 border-skyBlue dark:border-lavender'
+                          : 'bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30'
+                      }`}
+                      onPress={() => setSelectedProductId(product.id)}
+                      disabled={linkProductMutation.isPending}
+                    >
+                      <View className="flex-row items-center p-4">
+                        {/* Product Image */}
+                        {product.thumbnailUrl ? (
+                          <Image
+                            source={{ uri: product.thumbnailUrl }}
+                            className="w-16 h-16 rounded-xl"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="w-16 h-16 rounded-xl bg-beige/20 dark:bg-dark-border/20 items-center justify-center">
+                            <FontAwesome name="image" size={24} color="#9CA3AF" />
+                          </View>
+                        )}
+
+                        {/* Product Info */}
+                        <View className="flex-1 ml-3">
+                          <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1" numberOfLines={2}>
+                            {product.name}
+                          </Text>
+                          <Text className="text-sm font-semibold text-skyBlue dark:text-lavender">
+                            {formatPrice(product.price)}
+                          </Text>
+                          {product.stock !== undefined && (
+                            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                              Stock: {product.stock}
+                            </Text>
+                          )}
+                        </View>
+
+                        {/* Radio Button */}
+                        <View className={`w-6 h-6 rounded-full items-center justify-center border-2 ${
+                          isSelected
+                            ? 'bg-skyBlue dark:bg-lavender border-skyBlue dark:border-lavender'
+                            : 'border-beige/50 dark:border-dark-border/50'
+                        }`}>
+                          {isSelected && (
+                            <View className="w-3 h-3 rounded-full bg-white" />
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+
+            {/* Action Buttons */}
+            {products.length > 0 && (
+              <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
+                <View className="gap-3">
+                  <TouchableOpacity
+                    className={`rounded-2xl py-4 shadow-lg active:opacity-80 ${
+                      selectedProductId && !linkProductMutation.isPending
+                        ? 'bg-skyBlue dark:bg-lavender'
+                        : 'bg-beige/20 dark:bg-dark-border/20'
+                    }`}
+                    onPress={handleLinkProduct}
+                    disabled={!selectedProductId || linkProductMutation.isPending}
+                  >
+                    <View className="flex-row items-center justify-center">
+                      {linkProductMutation.isPending ? (
+                        <>
+                          <ActivityIndicator size="small" color="white" />
+                          <Text className="text-white font-bold text-lg ml-2">Linking...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <FontAwesome 
+                            name="link" 
+                            size={18} 
+                            color={selectedProductId ? "white" : "#9CA3AF"} 
+                          />
+                          <Text className={`font-bold text-lg ml-2 ${
+                            selectedProductId
+                              ? 'text-white'
+                              : 'text-light-textSecondary dark:text-dark-textSecondary'
+                          }`}>
+                            Link Product
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className="bg-white dark:bg-dark-card rounded-2xl py-4 border-2 border-beige/30 dark:border-dark-border/30 active:opacity-80"
+                    onPress={() => setShowProductModal(false)}
+                    disabled={linkProductMutation.isPending}
+                  >
+                    <Text className="text-light-text dark:text-dark-text font-bold text-lg text-center">
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
