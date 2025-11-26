@@ -48,28 +48,28 @@ export function ProfileScreen({ navigation }: Props) {
   const menuItems = [
     {
       icon: "book",
-      title: "My Courses",
+      title: "Khóa học của tôi",
       color: "#ACD6B8",
       bgColor: "bg-mint/10 dark:bg-gold/10",
       onPress: () => {},
     },
     {
-      icon: "heart",
-      title: "Favorites",
+      icon: "ticket",
+      title: "Ưu đãi của tôi",
       color: "#F2A297",
       bgColor: "bg-coral/10",
       onPress: () => {},
     },
     {
       icon: "certificate",
-      title: "Certificates",
+      title: "Chứng chỉ",
       color: "#FFCB66",
       bgColor: "bg-gold/10",
       onPress: () => {},
     },
     {
       icon: "lock",
-      title: "Change Password",
+      title: "Đổi mật khẩu",
       color: "#A5C4FB",
       bgColor: "bg-skyBlue/10",
       onPress: () => navigation.navigate("ChangePassword"),

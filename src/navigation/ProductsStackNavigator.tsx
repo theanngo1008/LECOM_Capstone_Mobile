@@ -24,6 +24,7 @@ export type ProductsStackParamList = {
     conversationId: string;
     isAIChat?: boolean;
   };
+   OrdersMain: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProductsStackParamList>();

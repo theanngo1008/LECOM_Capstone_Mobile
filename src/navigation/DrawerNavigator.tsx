@@ -137,7 +137,7 @@ export function DrawerNavigator() {
         options={{
           title: "My Orders",
           drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📦</Text>,
-          headerShown: true,
+          headerShown: false,
           headerStyle: {
             backgroundColor: "#3B82F6",
           },

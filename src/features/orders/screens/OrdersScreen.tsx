@@ -3,13 +3,13 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Platform,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useMyOrders } from "../hooks/useMyOrders";
 
 export function OrdersScreen({ navigation }: any) {
@@ -152,37 +152,44 @@ export function OrdersScreen({ navigation }: any) {
   const renderOrderCard = (order: any) => (
     <TouchableOpacity
       key={order.id}
-      className="bg-white dark:bg-dark-card rounded-2xl mb-4 overflow-hidden border border-beige/30 dark:border-dark-border/30"
+      className="bg-white dark:bg-dark-card rounded-2xl mb-6 overflow-hidden border-2 border-beige/50 dark:border-dark-border/50 shadow-lg"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+      }}
       onPress={() => navigation.navigate("OrderDetail", { orderId: order.id })}
       activeOpacity={0.7}
     >
       {/* Order Header */}
-      <View className="p-4 bg-beige/30 dark:bg-dark-border/30 border-b border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row items-center justify-between mb-2">
+      <View className="p-5 bg-beige/30 dark:bg-dark-border/30 border-b-2 border-beige/50 dark:border-dark-border/50">
+        <View className="flex-row items-center justify-between mb-3">
           <View className="flex-1">
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1">
               Order Code
             </Text>
-            <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+            <Text className="text-base font-bold text-light-text dark:text-dark-text">
               {order.orderCode}
             </Text>
           </View>
-          <View className={`px-3 py-1 rounded-full ${getStatusColor(order.status)}`}>
-            <Text className={`text-xs font-semibold ${getStatusTextColor(order.status)}`}>
+          <View className={`px-4 py-2 rounded-full ${getStatusColor(order.status)}`}>
+            <Text className={`text-xs font-bold ${getStatusTextColor(order.status)}`}>
               {order.status}
             </Text>
           </View>
         </View>
 
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <FontAwesome name="shopping-cart" size={14} color="#ACD6B8" />
-            <Text className="text-xs font-semibold text-light-text dark:text-dark-text ml-2">
+        <View className="flex-row items-center justify-between pt-3 border-t border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center flex-1">
+            <FontAwesome name="shopping-cart" size={16} color="#ACD6B8" />
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text ml-2 flex-1" numberOfLines={1}>
               {order.shopName}
             </Text>
           </View>
-          <View className={`px-2 py-1 rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}>
-            <Text className={`text-xs font-semibold ${getPaymentStatusTextColor(order.paymentStatus)}`}>
+          <View className={`px-3 py-1.5 rounded-full ${getPaymentStatusColor(order.paymentStatus)} ml-2`}>
+            <Text className={`text-xs font-bold ${getPaymentStatusTextColor(order.paymentStatus)}`}>
               {order.paymentStatus}
             </Text>
           </View>
@@ -190,27 +197,27 @@ export function OrdersScreen({ navigation }: any) {
       </View>
 
       {/* Order Items Preview */}
-      <View className="p-4">
+      <View className="p-5">
         {order.details.slice(0, 2).map((item: any, index: number) => (
           <View
             key={index}
-            className="flex-row items-center mb-3 last:mb-0"
+            className="flex-row items-center mb-4 last:mb-0 pb-4 last:pb-0 border-b border-beige/30 dark:border-dark-border/30 last:border-b-0"
           >
             {item.productImage ? (
               <Image
                 source={{ uri: item.productImage }}
-                className="w-16 h-16 rounded-xl mr-3"
+                className="w-20 h-20 rounded-xl mr-4 border border-beige/30 dark:border-dark-border/30"
                 resizeMode="cover"
               />
             ) : (
-              <View className="w-16 h-16 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-3">
-                <FontAwesome name="image" size={24} color="#D1D5DB" />
+              <View className="w-20 h-20 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-4 border border-beige/30 dark:border-dark-border/30">
+                <FontAwesome name="image" size={28} color="#D1D5DB" />
               </View>
             )}
             <View className="flex-1">
               <Text
-                className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
-                numberOfLines={1}
+                className="text-sm font-bold text-light-text dark:text-dark-text mb-2"
+                numberOfLines={2}
               >
                 {item.productName}
               </Text>
@@ -218,31 +225,33 @@ export function OrdersScreen({ navigation }: any) {
                 {formatPrice(item.unitPrice)} × {item.quantity}
               </Text>
             </View>
-            <Text className="text-sm font-bold text-mint dark:text-gold">
+            <Text className="text-base font-bold text-mint dark:text-gold ml-2">
               {formatPrice(item.lineTotal)}
             </Text>
           </View>
         ))}
 
         {order.details.length > 2 && (
-          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center mt-2">
-            +{order.details.length - 2} more {order.details.length - 2 === 1 ? "item" : "items"}
-          </Text>
+          <View className="mt-3 pt-3 border-t border-beige/30 dark:border-dark-border/30">
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center">
+              +{order.details.length - 2} more {order.details.length - 2 === 1 ? "item" : "items"}
+            </Text>
+          </View>
         )}
       </View>
 
       {/* Order Summary */}
-      <View className="p-4 bg-beige/20 dark:bg-dark-border/20 border-t border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+      <View className="p-5 bg-beige/20 dark:bg-dark-border/20 border-t-2 border-beige/50 dark:border-dark-border/50">
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
             Subtotal
           </Text>
           <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
             {formatPrice(order.subtotal)}
           </Text>
         </View>
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
             Shipping Fee
           </Text>
           <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
@@ -250,8 +259,8 @@ export function OrdersScreen({ navigation }: any) {
           </Text>
         </View>
         {order.discount > 0 && (
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
               Discount
             </Text>
             <Text className="text-sm font-semibold text-coral">
@@ -259,44 +268,41 @@ export function OrdersScreen({ navigation }: any) {
             </Text>
           </View>
         )}
-        <View className="h-px bg-beige/30 dark:bg-dark-border/30 my-2" />
+        <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-3" />
         <View className="flex-row justify-between items-center">
           <Text className="text-base font-bold text-light-text dark:text-dark-text">
             Total
           </Text>
-          <Text className="text-lg font-bold text-mint dark:text-gold">
+          <Text className="text-xl font-bold text-mint dark:text-gold">
             {formatPrice(order.total)}
           </Text>
         </View>
       </View>
 
       {/* Order Date */}
-      <View className="px-4 py-3 border-t border-beige/30 dark:border-dark-border/30">
+      <View className="px-5 py-4 border-t-2 border-beige/50 dark:border-dark-border/50 bg-beige/10 dark:bg-dark-border/10">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
+            <FontAwesome name="clock-o" size={14} color="#9CA3AF" />
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2">
               {formatDate(order.createdAt)}
             </Text>
           </View>
-          <FontAwesome name="chevron-right" size={12} color="#ACD6B8" />
+          <FontAwesome name="chevron-right" size={14} color="#ACD6B8" />
         </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-        style={{ paddingTop: Platform.OS === "ios" ? 50 : 16 }}
-      >
+      <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b-2 border-beige/50 dark:border-dark-border/50">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          className="w-12 h-12 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
         >
-          <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+          <FontAwesome name="arrow-left" size={20} color="#ACD6B8" />
         </TouchableOpacity>
 
         <View className="flex-1 items-center">
@@ -311,10 +317,10 @@ export function OrdersScreen({ navigation }: any) {
         </View>
 
         <TouchableOpacity
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          className="w-12 h-12 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
           onPress={() => refetch()}
         >
-          <FontAwesome name="refresh" size={18} color="#ACD6B8" />
+          <FontAwesome name="refresh" size={20} color="#ACD6B8" />
         </TouchableOpacity>
       </View>
 
@@ -328,7 +334,7 @@ export function OrdersScreen({ navigation }: any) {
       ) : (
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 30 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -342,6 +348,6 @@ export function OrdersScreen({ navigation }: any) {
           {orders.map((order) => renderOrderCard(order))}
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

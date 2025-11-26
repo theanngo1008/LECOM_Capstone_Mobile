@@ -10,6 +10,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  FadeOut,
+  ZoomIn,
+  ZoomOut,
+  BounceIn,
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { useCart } from "../hooks/useCart";
 import { useRemoveFromCart } from "../hooks/useRemoveFromCart";
 import { useUpdateCartItem } from "../hooks/useUpdateCartItem";
@@ -19,7 +30,8 @@ export function CartScreen({ navigation }: any) {
   const removeFromCart = useRemoveFromCart();
   const updateCartItem = useUpdateCartItem();
 
-  // ✅ Fixed shipping fee
+  const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
+
   const SHIPPING_FEE = 30000;
 
   const formatPrice = (price: number) => {
@@ -29,24 +41,30 @@ export function CartScreen({ navigation }: any) {
     }).format(price);
   };
 
+  // ⭐ Chọn / bỏ chọn sản phẩm
+  const toggleSelectItem = (productId: string) => {
+    setSelectedProductIds((prev) => {
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
+    });
+  };
+
   const handleRemoveItem = (productId: string, productName: string) => {
-    Alert.alert("Remove Item", `Remove "${productName}" from cart?`, [
+    Alert.alert("Xóa sản phẩm", `Bạn có muốn xóa "${productName}" khỏi giỏ hàng không?`, [
+      { text: "Hủy", style: "cancel" },
       {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Remove",
+        text: "Xóa",
         style: "destructive",
         onPress: () => {
           removeFromCart.mutate(productId, {
-            onSuccess: () => {
-              Alert.alert("Success", "Product removed from cart");
-            },
+            onSuccess: () => Alert.alert("Thành công", "Đã xóa sản phẩm khỏi giỏ hàng"),
             onError: (error: any) => {
               Alert.alert(
-                "Error",
-                error.response?.data?.message || "Failed to remove product"
+                "Lỗi",
+                error.response?.data?.message || "Không thể xóa sản phẩm"
               );
             },
           });
@@ -55,115 +73,143 @@ export function CartScreen({ navigation }: any) {
     ]);
   };
 
-  // ✅ Quick Update Quantity - Sử dụng quantityChange
   const handleQuickUpdate = (productId: string, currentQuantity: number, change: number) => {
     const newQuantity = currentQuantity + change;
 
     if (newQuantity < 1) {
-      Alert.alert("Invalid Quantity", "Quantity must be at least 1");
+      Alert.alert("Số lượng không hợp lệ", "Số lượng phải lớn hơn 0");
       return;
     }
 
     updateCartItem.mutate(
+      { productId, payload: { quantityChange: change } },
       {
-        productId,
-        payload: {
-          quantityChange: change,
-        },
-      },
-      {
-        onSuccess: () => {
-          // Success - cart sẽ tự động refetch
-        },
-        onError: (error: any) => {
+        onError: (error: any) =>
           Alert.alert(
-            "Error",
-            error.response?.data?.message || "Failed to update quantity"
-          );
-        },
+            "Lỗi",
+            error.response?.data?.message || "Không thể cập nhật số lượng"
+          ),
       }
     );
   };
 
-  const handleCheckout = () => {
-    if (!items || items.length === 0) {
-      Alert.alert("Empty Cart", "Please add items to cart before checkout");
-      return;
-    }
-    // ✅ Navigate to Checkout Screen
-    navigation.navigate("Checkout");
-  };
-
-  const getTotalItems = () => {
+  // ⭐ SUBTOTAL chỉ tính sản phẩm được chọn
+  const calculateSelectedSubtotal = () => {
     if (!items) return 0;
-    return items.reduce((total, shop) => total + shop.items.length, 0);
+
+    let total = 0;
+
+    items.forEach((shop: any) => {
+      shop.items.forEach((item: any) => {
+        if (selectedProductIds.includes(item.productId)) {
+          total += item.lineTotal;
+        }
+      });
+    });
+
+    return total;
   };
 
-  // ✅ Calculate total with shipping
-  const calculateTotal = () => {
-    return subtotal + SHIPPING_FEE;
-  };
+  const selectedSubtotal = calculateSelectedSubtotal();
+const calculateShipping = () => {
+  if (!items) return 0;
 
+  let uniqueShopsCount = 0;
+
+  items.forEach((shop: any) => {
+    const hasSelected = shop.items.some((item: any) =>
+      selectedProductIds.includes(item.productId)
+    );
+    if (hasSelected) {
+      uniqueShopsCount++;
+    }
+  });
+
+  return uniqueShopsCount * SHIPPING_FEE;
+};
+
+const shippingFee = calculateShipping();
+const totalWithShipping = selectedSubtotal + shippingFee;
+
+
+  // RENDER GIỎ HÀNG TRỐNG
   const renderEmptyCart = () => (
-    <View className="flex-1 items-center justify-center px-6">
+    <Animated.View entering={FadeIn} className="flex-1 items-center justify-center px-6">
       <View className="w-32 h-32 rounded-full bg-beige/30 dark:bg-dark-border/30 items-center justify-center mb-6">
         <FontAwesome name="shopping-cart" size={64} color="#D1D5DB" />
       </View>
       <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
-        Cart is Empty
-      </Text>
-      <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-8">
-        Add products to your cart to see them here
+        Giỏ hàng trống
       </Text>
       <TouchableOpacity
-        className="px-8 py-4 rounded-full bg-mint dark:bg-gold"
+        className="px-8 py-4 rounded-full bg-mint"
         onPress={() => navigation.navigate("ProductsList")}
       >
-        <Text className="text-white text-base font-bold">Start Shopping</Text>
+        <Text className="text-white text-base font-bold">Mua sắm ngay</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 
   const renderLoading = () => (
-    <View className="flex-1 items-center justify-center">
+    <Animated.View entering={FadeIn} className="flex-1 items-center justify-center">
       <ActivityIndicator size="large" color="#ACD6B8" />
-      <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-        Loading cart...
+      <Text className="mt-4 text-light-textSecondary dark:text-dark-textSecondary">
+        Đang tải giỏ hàng...
       </Text>
-    </View>
+    </Animated.View>
   );
 
   const renderError = () => (
-    <View className="flex-1 items-center justify-center px-6">
+    <Animated.View entering={FadeIn} className="flex-1 items-center justify-center px-6">
       <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
       <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-        Something went wrong
-      </Text>
-      <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-        Unable to load your cart
+        Có lỗi xảy ra
       </Text>
       <TouchableOpacity
-        className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
+        className="px-6 py-3 rounded-full bg-mint"
         onPress={() => refetch()}
       >
-        <Text className="text-white font-semibold">Retry</Text>
+        <Text className="text-white font-semibold">Thử lại</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 
+  // ⭐ RENDER ITEM
   const renderCartItem = (item: any, itemIndex: number) => (
-    <View
+    <Animated.View
+      entering={FadeInUp.delay(itemIndex * 80)}
+      exiting={FadeOut}
       key={item.productId}
       className="bg-white dark:bg-dark-card rounded-2xl mb-3 overflow-hidden border border-beige/30 dark:border-dark-border/30"
     >
       <View className="flex-row p-4">
-        {/* Product Image */}
+
+        {/* CHECKBOX */}
         <TouchableOpacity
-          onPress={() => {
-            if (item.productSlug) {
-              navigation.navigate("ProductDetail", { slug: item.productSlug });
-            }
-          }}
+          onPress={() => toggleSelectItem(item.productId)}
+          className="mr-3 mt-1"
+        >
+          <View
+            className={`w-6 h-6 rounded-md border-2 items-center justify-center ${
+              selectedProductIds.includes(item.productId)
+                ? "border-mint bg-mint"
+                : "border-beige dark:border-dark-border"
+            }`}
+          >
+            {selectedProductIds.includes(item.productId) && (
+              <Animated.View entering={ZoomIn} exiting={ZoomOut}>
+                <FontAwesome name="check" size={14} color="white" />
+              </Animated.View>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* HÌNH ẢNH */}
+        <TouchableOpacity
+          onPress={() =>
+            item.productSlug &&
+            navigation.navigate("ProductDetail", { slug: item.productSlug })
+          }
           className="relative"
         >
           {item.productImage ? (
@@ -173,77 +219,74 @@ export function CartScreen({ navigation }: any) {
               resizeMode="cover"
             />
           ) : (
-            <View className="w-20 h-20 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center">
+            <View className="w-20 h-20 rounded-xl bg-beige/30 items-center justify-center">
               <FontAwesome name="image" size={28} color="#D1D5DB" />
             </View>
           )}
-          {/* Index Badge */}
-          <View className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-mint dark:bg-gold items-center justify-center">
+
+          <View className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-mint items-center justify-center">
             <Text className="text-white text-xs font-bold">{itemIndex + 1}</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Product Info */}
+        {/* INFO */}
         <View className="flex-1 ml-3">
           <TouchableOpacity
-            onPress={() => {
-              if (item.productSlug) {
-                navigation.navigate("ProductDetail", { slug: item.productSlug });
-              }
-            }}
+            onPress={() =>
+              item.productSlug &&
+              navigation.navigate("ProductDetail", { slug: item.productSlug })
+            }
           >
-            <Text
-              className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
-              numberOfLines={2}
-            >
+            <Text className="text-sm font-bold text-light-text dark:text-dark-text mb-1" numberOfLines={2}>
               {item.productName}
             </Text>
           </TouchableOpacity>
 
-          {/* Price */}
-          <Text className="text-base font-bold text-mint dark:text-gold mb-2">
+          <Text className="text-base font-bold text-mint mb-2">
             {formatPrice(item.unitPrice)}
           </Text>
 
-          {/* Quantity Controls & Subtotal */}
+          {/* Quantity */}
           <View className="flex-row items-center justify-between">
-            {/* ✅ Quantity Controls */}
             <View className="flex-row items-center">
+
+              {/* MINUS */}
               <TouchableOpacity
                 className={`w-7 h-7 rounded-full items-center justify-center ${
                   item.quantity === 1
                     ? "bg-gray-200 dark:bg-gray-700"
-                    : "bg-mint/20 dark:bg-gold/20"
+                    : "bg-mint/20"
                 }`}
                 onPress={() => handleQuickUpdate(item.productId, item.quantity, -1)}
                 disabled={item.quantity === 1 || updateCartItem.isPending}
               >
-                <FontAwesome
-                  name="minus"
-                  size={10}
-                  color={item.quantity === 1 ? "#9CA3AF" : "#ACD6B8"}
-                />
+                <Animated.View entering={BounceIn}>
+                  <FontAwesome
+                    name="minus"
+                    size={10}
+                    color={item.quantity === 1 ? "#9CA3AF" : "#ACD6B8"}
+                  />
+                </Animated.View>
               </TouchableOpacity>
 
-              <Text className="text-sm font-bold text-light-text dark:text-dark-text mx-3">
-                {item.quantity}
-              </Text>
+              <Text className="mx-3 text-sm font-bold">{item.quantity}</Text>
 
+              {/* PLUS */}
               <TouchableOpacity
-                className="w-7 h-7 rounded-full bg-mint/20 dark:bg-gold/20 items-center justify-center"
-                onPress={() => handleQuickUpdate(item.productId, item.quantity, +1)}
+                className="w-7 h-7 rounded-full bg-mint/20 items-center justify-center"
+                onPress={() => handleQuickUpdate(item.productId, item.quantity, 1)}
                 disabled={updateCartItem.isPending}
               >
-                <FontAwesome name="plus" size={10} color="#ACD6B8" />
+                <Animated.View entering={BounceIn}>
+                  <FontAwesome name="plus" size={10} color="#ACD6B8" />
+                </Animated.View>
               </TouchableOpacity>
+
             </View>
 
-            {/* Subtotal */}
             <View className="items-end">
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                Total
-              </Text>
-              <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+              <Text className="text-xs text-light-textSecondary">Tổng</Text>
+              <Text className="text-sm font-bold text-light-text">
                 {formatPrice(item.lineTotal)}
               </Text>
             </View>
@@ -251,35 +294,33 @@ export function CartScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Actions */}
-      <View className="border-t border-beige/30 dark:border-dark-border/30">
+      {/* Remove */}
+      <View className="border-t border-beige/30">
         <TouchableOpacity
           className="flex-row items-center justify-center py-2.5"
           onPress={() => handleRemoveItem(item.productId, item.productName)}
           disabled={removeFromCart.isPending}
         >
-          {removeFromCart.isPending ? (
-            <ActivityIndicator size="small" color="#FF6B6B" />
-          ) : (
-            <>
-              <FontAwesome name="trash-o" size={14} color="#FF6B6B" />
-              <Text className="text-coral font-semibold ml-2 text-sm">Remove</Text>
-            </>
-          )}
+          <FontAwesome name="trash-o" size={14} color="#FF6B6B" />
+          <Text className="text-coral font-semibold ml-2 text-sm">Xóa</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 
+  // ❗ RENDER SHOP GROUP
   const renderShopGroup = (shop: any, shopIndex: number) => {
     let itemIndex = 0;
-    // Calculate starting index for this shop
     for (let i = 0; i < shopIndex; i++) {
       itemIndex += items[i].items.length;
     }
 
     return (
-      <View key={shop.shopId} className="mb-6">
+      <Animated.View
+        entering={FadeIn.delay(shopIndex * 120)}
+        key={shop.shopId}
+        className="mb-6"
+      >
         {/* Shop Header */}
         <View className="flex-row items-center mb-3 px-1">
           {shop.shopAvatar ? (
@@ -288,75 +329,58 @@ export function CartScreen({ navigation }: any) {
               className="w-10 h-10 rounded-full mr-3"
             />
           ) : (
-            <View className="w-10 h-10 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
+            <View className="w-10 h-10 rounded-full bg-mint/10 items-center justify-center mr-3">
               <FontAwesome name="shopping-cart" size={18} color="#ACD6B8" />
             </View>
           )}
+
           <View className="flex-1">
-            <Text className="text-base font-bold text-light-text dark:text-dark-text">
-              {shop.shopName}
-            </Text>
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              {shop.items.length} {shop.items.length === 1 ? "item" : "items"}
-            </Text>
-          </View>
-          <View className="items-end">
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              Subtotal
-            </Text>
-            <Text className="text-base font-bold text-mint dark:text-gold">
-              {formatPrice(shop.subtotal)}
+            <Text className="text-base font-bold">{shop.shopName}</Text>
+            <Text className="text-xs text-light-textSecondary">
+              {shop.items.length} sản phẩm
             </Text>
           </View>
         </View>
 
-        {/* Shop Items */}
         {shop.items.map((item: any) => {
-          const currentItemIndex = itemIndex++;
-          return renderCartItem(item, currentItemIndex);
+          const currentIndex = itemIndex++;
+          return renderCartItem(item, currentIndex);
         })}
-      </View>
+      </Animated.View>
     );
   };
 
-  const totalItems = getTotalItems();
-  const totalWithShipping = calculateTotal();
-
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       {/* Header */}
-      <View
+      <Animated.View
+        entering={FadeInUp}
         className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-        style={{ paddingTop: Platform.OS === "ios" ? 50 : 16 }}
+        style={{ paddingTop: Platform.OS === "ios" ? 12 : 10 }}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          className="w-10 h-10 rounded-full bg-beige/50 items-center justify-center"
         >
           <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
         </TouchableOpacity>
 
         <View className="flex-1 items-center">
-          <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-            Shopping Cart
+          <Text className="text-xl font-bold">Giỏ hàng</Text>
+          <Text className="text-xs text-light-textSecondary">
+            {selectedProductIds.length} đã chọn
           </Text>
-          {totalItems > 0 && (
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              {totalItems} {totalItems === 1 ? "item" : "items"} • {items.length}{" "}
-              {items.length === 1 ? "shop" : "shops"}
-            </Text>
-          )}
         </View>
 
         <TouchableOpacity
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          className="w-10 h-10 rounded-full bg-beige/50 items-center justify-center"
           onPress={() => refetch()}
         >
           <FontAwesome name="refresh" size={18} color="#ACD6B8" />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      {/* Content */}
+      {/* CONTENT */}
       {isLoading ? (
         renderLoading()
       ) : isError ? (
@@ -367,68 +391,78 @@ export function CartScreen({ navigation }: any) {
         <>
           <ScrollView
             className="flex-1"
-            contentContainerStyle={{ padding: 20, paddingBottom: 140 }}
+            contentContainerStyle={{ padding: 20, paddingBottom: 160 }}
             showsVerticalScrollIndicator={false}
           >
             {items.map((shop, index) => renderShopGroup(shop, index))}
           </ScrollView>
 
-          {/* Bottom Summary */}
-          <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30 px-6 py-4">
-            {/* Summary Details */}
-            <View className="mb-4">
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})
-                </Text>
-                <Text className="text-light-text dark:text-dark-text font-semibold">
-                  {formatPrice(subtotal)}
-                </Text>
-              </View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                  Shipping Fee
-                </Text>
-                <Text className="text-light-text dark:text-dark-text font-semibold">
-                  {formatPrice(SHIPPING_FEE)}
-                </Text>
-              </View>
-              <View className="h-px bg-beige/30 dark:bg-dark-border/30 my-2" />
-              <View className="flex-row justify-between">
-                <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-                  Total
-                </Text>
-                <Text className="text-lg font-bold text-mint dark:text-gold">
-                  {formatPrice(totalWithShipping)}
-                </Text>
-              </View>
-            </View>
+          {/* BOTTOM SUMMARY */}
+          <Animated.View
+            entering={FadeInUp.duration(400)}
+            className="absolute bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t px-6 py-4"
+          >
+            {selectedSubtotal === 0 ? (
+              <Text className="text-center text-light-textSecondary mb-3">
+                Chọn sản phẩm để thanh toán
+              </Text>
+            ) : (
+              <View className="mb-4">
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-light-textSecondary">
+                    Tạm tính ({selectedProductIds.length} sản phẩm)
+                  </Text>
+                  <Text className="text-light-text font-semibold">
+                    {formatPrice(selectedSubtotal)}
+                  </Text>
+                </View>
 
-            {/* Checkout Button */}
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-light-textSecondary">Phí vận chuyển</Text>
+                  <Text className="text-light-text font-semibold">
+                    {formatPrice(shippingFee)}
+                  </Text>
+                </View>
+
+                <View className="h-px bg-beige/30 my-2" />
+
+                <View className="flex-row justify-between">
+                  <Text className="text-lg font-bold">Tổng cộng</Text>
+                  <Text className="text-lg font-bold text-mint">
+                    {formatPrice(totalWithShipping)}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* CHECKOUT */}
             <TouchableOpacity
-              className="bg-mint dark:bg-gold rounded-full py-4 items-center"
-              onPress={handleCheckout}
+              className={`rounded-full py-4 items-center ${
+                selectedSubtotal === 0 ? "bg-gray-400" : "bg-mint"
+              }`}
+              onPress={() => {
+                if (selectedSubtotal === 0) return;
+                navigation.navigate("Checkout", { selectedProductIds });
+              }}
+              disabled={selectedSubtotal === 0}
             >
               <View className="flex-row items-center">
                 <FontAwesome name="credit-card" size={20} color="white" />
                 <Text className="text-white text-base font-bold ml-2">
-                  Proceed to Checkout
+                  Thanh toán
                 </Text>
               </View>
             </TouchableOpacity>
 
-            {/* Continue Shopping */}
             <TouchableOpacity
               className="mt-3 py-3 items-center"
               onPress={() => navigation.navigate("Products")}
             >
-              <Text className="text-mint dark:text-gold font-semibold">
-                Continue Shopping
-              </Text>
+              <Text className="text-mint font-semibold">Tiếp tục mua sắm</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

@@ -112,8 +112,7 @@ const handleSendMessage = () => {
   const content = messageText.trim();
   setMessageText("");
 
-  if (isAIChat) {
-  // 1. Tạo optimistic message
+if (isAIChat) {
   const optimistic = {
     id: `temp-${Date.now()}`,
     senderId: userId!,
@@ -121,30 +120,30 @@ const handleSendMessage = () => {
     isRead: false,
     createdAt: new Date().toISOString(),
   };
+
   setOptimisticMessages((prev) => [...prev, optimistic]);
 
   sendAIMessage(
     { content },
     {
       onSuccess: () => {
-        // 2. Khi server phản hồi → xoá tất cả optimistic
         setOptimisticMessages([]);
-
-        // 3. Refetch để lấy message AI chính thức từ server
         queryClient.invalidateQueries({
           queryKey: ["chat", "messages", conversationId],
         });
       },
 
       onError: () => {
-        // Nếu lỗi → xóa optimistic
         setOptimisticMessages((prev) =>
           prev.filter((m) => !m.id.startsWith("temp-"))
         );
       },
     }
   );
+
+  return;  // ⬅️ BẮT BUỘC, nếu không normal message vẫn chạy
 }
+
 
 
   // ==============================

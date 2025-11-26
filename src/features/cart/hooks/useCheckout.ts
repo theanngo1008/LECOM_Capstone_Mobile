@@ -1,8 +1,10 @@
-import { cartApi, CheckoutFormPayload } from "@/api/cart"
+import { cartApi, CheckoutPayload } from "@/api/cart"
 import { ApiResponse } from "@/types/common"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 export const useCheckout = () => {
+  const queryClient = useQueryClient()
+
   const {
     mutate: checkout,
     data,
@@ -10,17 +12,28 @@ export const useCheckout = () => {
     isPending,
     isSuccess,
     reset,
-  } = useMutation<ApiResponse<any>, Error, CheckoutFormPayload>({
+  } = useMutation<ApiResponse<any>, Error, CheckoutPayload>({
     mutationFn: async (payload) => {
-      return await cartApi.checkoutFromCart(payload)
+      return await cartApi.checkout(payload)
+    },
+
+    onSuccess: () => {
+
+      queryClient.invalidateQueries({ queryKey: ["cart"] })
+
+     
+      queryClient.invalidateQueries({ queryKey: ["vouchers", "my"] })
+
+    
+      queryClient.invalidateQueries({ queryKey: ["walletBalance"] })
     },
   })
 
   return {
-    checkout,      // hàm gọi check out
-    data,          // result trả về từ API
-    paymentUrl: data?.result?.paymentUrl, 
-    orders: data?.result?.orders,
+    checkout,
+    data,
+    paymentUrl: data?.result?.paymentUrl || null,
+    orders: data?.result?.orders || null,
     isLoading: isPending,
     isSuccess,
     error,

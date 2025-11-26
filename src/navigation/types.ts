@@ -178,7 +178,7 @@ export type ProductsStackParamList = {
     conversationId: string;
     isAIChat?: boolean;
   };
-  
+    OrdersMain: undefined;
 };
 
 export type ProductsStackScreenProps<T extends keyof ProductsStackParamList> =

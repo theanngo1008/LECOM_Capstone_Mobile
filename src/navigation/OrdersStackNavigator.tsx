@@ -15,6 +15,7 @@ export type OrdersStackParamList = {
   CheckoutSuccess: {
     orderId?: string
   }
+ 
 }
 
 const Stack = createNativeStackNavigator<OrdersStackParamList>()
@@ -29,7 +30,7 @@ export function OrdersStackNavigator() {
         name="OrdersMain"
         component={OrdersScreen}
         options={{
-    headerShown: false, // ✅ Ẩn header mặc định
+    headerShown: false, 
   }}
       />
 

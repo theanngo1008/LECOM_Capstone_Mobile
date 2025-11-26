@@ -1,6 +1,10 @@
 import { ApiResponse } from "../types/common"
 import { apiClient } from "./client"
 
+// =======================
+// TYPES
+// =======================
+
 export interface CartProductItem {
   productId: string
   productName: string
@@ -25,14 +29,6 @@ export interface CartResult {
   subtotal: number
 }
 
-
-export interface CheckoutFormPayload {
-  shipToName: string
-  shipToPhone: string
-  shipToAddress: string
-  note?: string
-}
-
 export type CartResponse = ApiResponse<CartResult>
 
 export interface AddToCartPayload {
@@ -45,6 +41,21 @@ export interface UpdateCartItemPayload {
   quantityChange?: number   // Thay đổi số lượng (+/-)
 }
 
+// ⭐ Payload checkout theo backend yêu cầu
+export interface CheckoutPayload {
+  shipToName: string
+  shipToPhone: string
+  shipToAddress: string
+  voucherCode?: string | null
+  selectedProductIds: string[]
+  paymentMethod: string        // "payos" " | "wallet"
+  note?: string
+}
+
+// =======================
+// CART API
+// =======================
+
 export const cartApi = {
   // Lấy giỏ hàng
   getCart: async (): Promise<CartResponse> => {
@@ -54,17 +65,22 @@ export const cartApi = {
 
   // Thêm sản phẩm vào giỏ
   addToCart: async (payload: AddToCartPayload): Promise<ApiResponse<null>> => {
-    const { data } = await apiClient.post<ApiResponse<null>>("/cart/items", payload)
+    const { data } = await apiClient.post<ApiResponse<null>>(
+      "/cart/items",
+      payload
+    )
     return data
   },
 
   // Xóa sản phẩm khỏi giỏ
   deleteCartItem: async (productId: string): Promise<ApiResponse<null>> => {
-    const { data } = await apiClient.delete<ApiResponse<null>>(`/cart/items/${productId}`)
+    const { data } = await apiClient.delete<ApiResponse<null>>(
+      `/cart/items/${productId}`
+    )
     return data
   },
 
-  // Cập nhật số lượng sản phẩm trong giỏ
+  // Cập nhật số lượng sản phẩm
   updateCartItem: async (
     productId: string,
     payload: UpdateCartItemPayload
@@ -75,40 +91,15 @@ export const cartApi = {
     )
     return data
   },
-  checkoutFromCart: async (
-    payload: CheckoutFormPayload
+
+  // ⭐ Checkout — chuẩn style các API khác
+  checkout: async (
+    payload: CheckoutPayload
   ): Promise<ApiResponse<any>> => {
-    // 1. Lấy giỏ hàng hiện tại
-    const cartResponse = await cartApi.getCart()
-    const cart = cartResponse.result // kiểu CartResult
-
-    if (!cart || !cart.items || cart.items.length === 0) {
-      throw new Error("Giỏ hàng trống, không thể checkout")
-    }
-
-    // 2. Lấy toàn bộ productId trong cart
-    const selectedProductIds = cart.items.flatMap((shopGroup) =>
-      shopGroup.items.map((item) => item.productId)
-    )
-
-    // 3. Build body đúng format backend yêu cầu
-    const body = {
-      shipToName: payload.shipToName,
-      shipToPhone: payload.shipToPhone,
-      shipToAddress: payload.shipToAddress,
-      note: payload.note ?? "",
-      selectedProductIds,
-      paymentMethod: "payos",       // mặc định
-      walletAmountToUse: null,      // mặc định
-      voucherCode: "string",        // tạm default
-    }
-
-    // 4. Gọi API checkout
     const { data } = await apiClient.post<ApiResponse<any>>(
       "/orders/checkout",
-      body
+      payload
     )
-
     return data
   },
 }
