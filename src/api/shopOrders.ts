@@ -36,8 +36,8 @@ export interface ShopOrderItem {
   discount: number
   total: number
 
-  status: string          // "Processing"
-  paymentStatus: string   // "Paid"
+  status: string
+  paymentStatus: string
 
   balanceReleased: boolean
 
@@ -54,9 +54,24 @@ export type ShopOrderListResponse = ApiResponse<ShopOrderItem[]>
 // ==============================================
 
 export const shopOrdersApi = {
+  // GET /orders/shop/my
   getMyShopOrders: async (): Promise<ShopOrderListResponse> => {
     const { data } = await apiClient.get<ShopOrderListResponse>(
       "/orders/shop/my"
+    )
+    return data
+  },
+
+  // ==================================================
+  // PUT /orders/{id}/status
+  // ==================================================
+  updateOrderStatus: async (
+    orderId: string,
+    status: string
+  ): Promise<ApiResponse<any>> => {
+    const { data } = await apiClient.put<ApiResponse<any>>(
+      `/orders/${orderId}/status`,
+      { status }
     )
     return data
   },

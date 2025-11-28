@@ -135,143 +135,253 @@ export function CheckoutScreen({ navigation, route }: any) {
 
   if (cartLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" />
-        <Text>Đang tải...</Text>
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background items-center justify-center" edges={['top']}>
+        <ActivityIndicator size="large" color="#ACD6B8" />
+        <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+          Đang tải...
+        </Text>
       </SafeAreaView>
     );
   }
 
   if (checkoutResult) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
-        <View className="flex-row items-center justify-between px-6 py-4 bg-white border-b">
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b-2 border-beige/50 dark:border-dark-border/50">
           <TouchableOpacity
             onPress={() => setCheckoutResult(null)}
-            className="w-10 h-10 rounded-full bg-beige/50 items-center justify-center"
+            className="w-12 h-12 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
           >
-            <FontAwesome name="arrow-left" size={18} color="#5AC38D" />
+            <FontAwesome name="arrow-left" size={20} color="#ACD6B8" />
           </TouchableOpacity>
-          <Text className="flex-1 text-xl font-bold text-center">Chi tiết đơn hàng</Text>
-          <View className="w-10" />
+          <Text className="flex-1 text-xl font-bold text-center text-light-text dark:text-dark-text">
+            Chi tiết đơn hàng
+          </Text>
+          <View className="w-12" />
         </View>
 
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ padding: 20, paddingBottom: 150 }}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="bg-mint/10 p-4 rounded-2xl border mb-6 flex-row">
-            <View className="w-12 h-12 bg-mint rounded-full items-center justify-center mr-4">
-              <FontAwesome name="check" size={22} color="white" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-lg font-bold text-mint">Tạo đơn thành công!</Text>
-              <Text>{checkoutResult.orders.length} đơn hàng đã được tạo</Text>
+          {/* Success Banner */}
+          <View className="bg-mint/10 dark:bg-gold/10 p-5 rounded-2xl border-2 border-mint/30 dark:border-gold/30 mb-6">
+            <View className="flex-row items-center">
+              <View className="w-14 h-14 bg-mint dark:bg-gold rounded-full items-center justify-center mr-4">
+                <FontAwesome name="check" size={24} color="white" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-lg font-bold text-mint dark:text-gold mb-1">
+                  Đặt hàng thành công!
+                </Text>
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary">
+                  {checkoutResult.orders.length} đơn hàng đã được tạo
+                </Text>
+              </View>
             </View>
           </View>
 
+          {/* Orders List */}
           {checkoutResult.orders.map((order: any) => (
-            <View key={order.id} className="bg-white rounded-2xl border mb-4">
-              <View className="p-4 bg-beige/30 border-b">
-                <View className="flex-row justify-between">
-                  <Text className="font-semibold">{order.shopName}</Text>
-                  <View className="bg-orange-100 px-3 py-1 rounded-full">
-                    <Text className="text-orange-600 text-xs">{order.status}</Text>
+            <View
+              key={order.id}
+              className="bg-white dark:bg-dark-card rounded-2xl border-2 border-beige/50 dark:border-dark-border/50 mb-6 overflow-hidden shadow-lg"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 5,
+              }}
+            >
+              {/* Order Header */}
+              <View className="p-5 bg-beige/30 dark:bg-dark-border/30 border-b-2 border-beige/50 dark:border-dark-border/50">
+                <View className="flex-row items-center justify-between mb-2">
+                  <View className="flex-row items-center flex-1">
+                    <FontAwesome name="shopping-cart" size={16} color="#ACD6B8" />
+                    <Text className="text-base font-bold text-light-text dark:text-dark-text ml-2 flex-1" numberOfLines={1}>
+                      {order.shopName}
+                    </Text>
+                  </View>
+                  <View className="bg-orange-100 dark:bg-orange-900/30 px-4 py-2 rounded-full">
+                    <Text className="text-orange-600 dark:text-orange-400 text-xs font-bold">
+                      {order.status}
+                    </Text>
                   </View>
                 </View>
-                <Text className="text-xs">Mã đơn: {order.orderCode}</Text>
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                  Mã đơn: {order.orderCode}
+                </Text>
               </View>
 
-              <View className="p-4">
+              {/* Order Items */}
+              <View className="p-5">
                 {order.details.map((item: any, i: number) => (
                   <View
                     key={i}
-                    className="flex-row items-center pb-3 mb-3 border-b last:border-b-0"
+                    className="flex-row items-center mb-4 last:mb-0 pb-4 last:pb-0 border-b border-beige/30 dark:border-dark-border/30 last:border-b-0"
                   >
                     {item.productImage ? (
                       <Image
                         source={{ uri: item.productImage }}
-                        className="w-16 h-16 rounded-lg mr-3"
+                        className="w-20 h-20 rounded-xl mr-4 border border-beige/30 dark:border-dark-border/30"
+                        resizeMode="cover"
                       />
                     ) : (
-                      <View className="w-16 h-16 bg-gray-200 rounded-lg mr-3" />
+                      <View className="w-20 h-20 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-4 border border-beige/30 dark:border-dark-border/30">
+                        <FontAwesome name="image" size={28} color="#D1D5DB" />
+                      </View>
                     )}
 
                     <View className="flex-1">
-                      <Text className="font-semibold">{item.productName}</Text>
-                      <Text className="text-xs">
+                      <Text className="text-sm font-bold text-light-text dark:text-dark-text mb-2" numberOfLines={2}>
+                        {item.productName}
+                      </Text>
+                      <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                         {formatPrice(item.unitPrice)} × {item.quantity}
                       </Text>
                     </View>
 
-                    <Text className="font-semibold text-mint">
+                    <Text className="text-base font-bold text-mint dark:text-gold ml-2">
                       {formatPrice(item.lineTotal)}
                     </Text>
                   </View>
                 ))}
               </View>
 
-              <View className="p-4 bg-beige/20 border-t">
-                <View className="flex-row justify-between mb-1">
-                  <Text>Tạm tính</Text>
-                  <Text>{formatPrice(order.subtotal)}</Text>
+              {/* Order Summary */}
+              <View className="p-5 bg-beige/20 dark:bg-dark-border/20 border-t-2 border-beige/50 dark:border-dark-border/50">
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                    Tạm tính
+                  </Text>
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+                    {formatPrice(order.subtotal)}
+                  </Text>
                 </View>
-                <View className="flex-row justify-between mb-1">
-                  <Text>Phí vận chuyển</Text>
-                  <Text>{formatPrice(order.shippingFee)}</Text>
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                    Phí vận chuyển
+                  </Text>
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+                    {formatPrice(order.shippingFee)}
+                  </Text>
                 </View>
                 {order.discount > 0 && (
-                  <View className="flex-row justify-between">
-                    <Text>Giảm giá</Text>
-                    <Text className="text-coral">-{formatPrice(order.discount)}</Text>
+                  <View className="flex-row justify-between items-center mb-3">
+                    <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                      Giảm giá
+                    </Text>
+                    <Text className="text-sm font-semibold text-coral">
+                      -{formatPrice(order.discount)}
+                    </Text>
                   </View>
                 )}
+                <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-3" />
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-base font-bold text-light-text dark:text-dark-text">
+                    Tổng cộng
+                  </Text>
+                  <Text className="text-xl font-bold text-mint dark:text-gold">
+                    {formatPrice(order.subtotal + order.shippingFee - order.discount)}
+                  </Text>
+                </View>
               </View>
 
-              <View className="p-4 border-t">
-                <Text className="font-bold mb-1">Thông tin nhận hàng</Text>
-                <Text>👤 {order.shipToName}</Text>
-                <Text>📞 {order.shipToPhone}</Text>
-                <Text>📍 {order.shipToAddress}</Text>
+              {/* Shipping Info */}
+              <View className="p-5 border-t-2 border-beige/50 dark:border-dark-border/50 bg-beige/10 dark:bg-dark-border/10">
+                <Text className="text-base font-bold text-light-text dark:text-dark-text mb-3">
+                  Thông tin nhận hàng
+                </Text>
+                <View className="space-y-2">
+                  <View className="flex-row items-center mb-2">
+                    <FontAwesome name="user" size={14} color="#9CA3AF" />
+                    <Text className="text-sm text-light-text dark:text-dark-text ml-3">
+                      {order.shipToName}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center mb-2">
+                    <FontAwesome name="phone" size={14} color="#9CA3AF" />
+                    <Text className="text-sm text-light-text dark:text-dark-text ml-3">
+                      {order.shipToPhone}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-start">
+                    <FontAwesome name="map-marker" size={14} color="#9CA3AF" />
+                    <Text className="text-sm text-light-text dark:text-dark-text ml-3 flex-1">
+                      {order.shipToAddress}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
           ))}
 
-          <View className="bg-white rounded-2xl p-4 border">
-            <Text className="text-lg font-bold mb-3">Thanh toán</Text>
-            <View className="flex-row justify-between mb-2">
-              <Text>Phương thức</Text>
-              <Text>{checkoutResult.paymentMethod}</Text>
+          {/* Payment Summary */}
+          <View className="bg-white dark:bg-dark-card rounded-2xl p-5 border-2 border-beige/50 dark:border-dark-border/50 shadow-lg"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 5,
+            }}
+          >
+            <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+              Thông tin thanh toán
+            </Text>
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                Phương thức
+              </Text>
+              <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+                {checkoutResult.paymentMethod === "wallet" ? "Ví LECOM" : "PayOS"}
+              </Text>
             </View>
             {checkoutResult.walletAmountUsed > 0 && (
-              <View className="flex-row justify-between mb-2">
-                <Text>Số tiền ví dùng</Text>
-                <Text className="text-coral">
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                  Số tiền ví dùng
+                </Text>
+                <Text className="text-sm font-semibold text-coral">
                   -{formatPrice(checkoutResult.walletAmountUsed)}
                 </Text>
               </View>
             )}
-            <View className="flex-row justify-between">
-              <Text className="font-bold">Tổng thanh toán</Text>
-              <Text className="text-xl font-bold text-mint">
+            <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-3" />
+            <View className="flex-row justify-between items-center">
+              <Text className="text-base font-bold text-light-text dark:text-dark-text">
+                Tổng thanh toán
+              </Text>
+              <Text className="text-2xl font-bold text-mint dark:text-gold">
                 {formatPrice(checkoutResult.totalAmount)}
               </Text>
             </View>
           </View>
         </ScrollView>
 
-        <View className="absolute left-0 right-0 bottom-0 p-4 bg-white border-t">
+        {/* Bottom Actions */}
+        <View className="absolute left-0 right-0 bottom-0 p-5 bg-white dark:bg-dark-card border-t-2 border-beige/50 dark:border-dark-border/50">
           <TouchableOpacity
             onPress={handlePayment}
-            className="bg-mint rounded-full py-4 items-center mb-3"
+            className="bg-mint dark:bg-gold rounded-full py-4 items-center mb-3 shadow-lg"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
           >
-            <Text className="text-white font-bold">
+            <Text className="text-white dark:text-dark-text text-base font-bold">
               {paymentMethod === "wallet" ? "Hoàn tất" : "Thanh toán ngay"}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate("Orders")}>
-            <Text className="text-mint text-center font-semibold">
+          <TouchableOpacity onPress={() => navigation.navigate("OrdersMain")}>
+            <Text className="text-mint dark:text-gold text-center font-bold">
               Xem đơn hàng của tôi
             </Text>
           </TouchableOpacity>
@@ -281,168 +391,281 @@ export function CheckoutScreen({ navigation, route }: any) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
-      <View className="flex-row items-center justify-between px-6 py-4 bg-white border-b">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b-2 border-beige/50 dark:border-dark-border/50">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 bg-beige/50 rounded-full items-center justify-center"
+          className="w-12 h-12 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
         >
-          <FontAwesome name="arrow-left" size={18} color="#5AC38D" />
+          <FontAwesome name="arrow-left" size={20} color="#ACD6B8" />
         </TouchableOpacity>
-        <Text className="text-xl font-bold flex-1 text-center">Thanh toán</Text>
-        <View className="w-10" />
+        <Text className="text-xl font-bold flex-1 text-center text-light-text dark:text-dark-text">
+          Thanh toán
+        </Text>
+        <View className="w-12" />
       </View>
 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 200 }}
+        showsVerticalScrollIndicator={false}
       >
-        <View className="bg-white p-4 rounded-2xl border mb-5">
-          <Text className="text-lg font-bold mb-3">Tóm tắt đơn hàng</Text>
+        {/* Order Summary */}
+        <View className="bg-white dark:bg-dark-card p-5 rounded-2xl border-2 border-beige/50 dark:border-dark-border/50 mb-6 shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+          }}
+        >
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+            Tóm tắt đơn hàng
+          </Text>
 
-          <View className="flex-row justify-between mb-2">
-            <Text>Số lượng sản phẩm</Text>
-            <Text>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              Số lượng sản phẩm
+            </Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
               {filteredItems.reduce((t, s) => t + s.items.length, 0)} sản phẩm
             </Text>
           </View>
 
-          <View className="flex-row justify-between mb-2">
-            <Text>Tạm tính</Text>
-            <Text>{formatPrice(subtotalSelected)}</Text>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              Tạm tính
+            </Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+              {formatPrice(subtotalSelected)}
+            </Text>
           </View>
 
           {discount > 0 && (
-            <View className="flex-row justify-between mb-2">
-              <Text>Giảm giá (voucher)</Text>
-              <Text className="text-coral">-{formatPrice(discount)}</Text>
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                Giảm giá (voucher)
+              </Text>
+              <Text className="text-sm font-semibold text-coral">
+                -{formatPrice(discount)}
+              </Text>
             </View>
           )}
 
-          <View className="flex-row justify-between mb-2">
-            <Text>Phí vận chuyển</Text>
-            <Text>{formatPrice(shippingFee)}</Text>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              Phí vận chuyển
+            </Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+              {formatPrice(shippingFee)}
+            </Text>
           </View>
 
-          <View className="flex-row justify-between mt-2">
-            <Text className="font-bold">Tổng cộng</Text>
-            <Text className="text-lg font-bold text-mint">
+          <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-3" />
+
+          <View className="flex-row justify-between items-center">
+            <Text className="text-base font-bold text-light-text dark:text-dark-text">
+              Tổng cộng
+            </Text>
+            <Text className="text-xl font-bold text-mint dark:text-gold">
               {formatPrice(totalWithShipping)}
             </Text>
           </View>
         </View>
 
-        <View className="bg-white p-4 rounded-2xl border mb-5">
-          <Text className="text-lg font-bold mb-3">Mã giảm giá</Text>
+        {/* Voucher Section */}
+        <View className="bg-white dark:bg-dark-card p-5 rounded-2xl border-2 border-beige/50 dark:border-dark-border/50 mb-6 shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+          }}
+        >
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+            Mã giảm giá
+          </Text>
 
           <TouchableOpacity
             onPress={() => setVoucherModal(true)}
-            className="border border-beige/50 p-4 rounded-xl flex-row justify-between"
+            className="border-2 border-beige/50 dark:border-dark-border/50 p-4 rounded-xl flex-row items-center justify-between bg-beige/10 dark:bg-dark-border/10"
+            activeOpacity={0.7}
           >
-            <Text>
-              {selectedVoucher ? `Voucher: ${selectedVoucher}` : "Chọn voucher"}
-            </Text>
-            <FontAwesome name="angle-right" size={20} />
+            <View className="flex-row items-center flex-1">
+              <FontAwesome name="ticket" size={18} color="#ACD6B8" />
+              <Text className="ml-3 text-sm font-semibold text-light-text dark:text-dark-text flex-1" numberOfLines={1}>
+                {selectedVoucher ? `Voucher: ${selectedVoucher}` : "Chọn mã giảm giá"}
+              </Text>
+            </View>
+            <FontAwesome name="angle-right" size={20} color="#ACD6B8" />
           </TouchableOpacity>
 
           {selectedVoucher && (
-            <TouchableOpacity onPress={() => setSelectedVoucher(null)} className="mt-3">
-              <Text className="text-red-500">Bỏ chọn</Text>
+            <TouchableOpacity
+              onPress={() => setSelectedVoucher(null)}
+              className="mt-3 py-2 px-4 rounded-full bg-red-100 dark:bg-red-900/30 self-start"
+            >
+              <Text className="text-red-600 dark:text-red-400 text-xs font-semibold">
+                Bỏ chọn voucher
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View className="bg-white rounded-2xl p-4 border mb-5">
-          <Text className="text-lg font-bold mb-4">Thông tin nhận hàng</Text>
+        {/* Shipping Info Form */}
+        <View className="bg-white dark:bg-dark-card rounded-2xl p-5 border-2 border-beige/50 dark:border-dark-border/50 mb-6 shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+          }}
+        >
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+            Thông tin nhận hàng
+          </Text>
 
           <View className="mb-4">
-            <Text>Tên người nhận *</Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Tên người nhận <Text className="text-coral">*</Text>
+            </Text>
             <TextInput
               value={formData.shipToName}
               onChangeText={(t) => setFormData({ ...formData, shipToName: t })}
-              className="bg-beige/30 px-4 py-3 rounded-xl"
+              placeholder="Nhập tên người nhận"
+              placeholderTextColor="#9CA3AF"
+              className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
             />
           </View>
 
           <View className="mb-4">
-            <Text>Số điện thoại *</Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Số điện thoại <Text className="text-coral">*</Text>
+            </Text>
             <TextInput
               keyboardType="phone-pad"
               value={formData.shipToPhone}
               onChangeText={(t) => setFormData({ ...formData, shipToPhone: t })}
-              className="bg-beige/30 px-4 py-3 rounded-xl"
+              placeholder="Nhập số điện thoại"
+              placeholderTextColor="#9CA3AF"
+              className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
             />
           </View>
 
           <View className="mb-4">
-            <Text>Địa chỉ *</Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Địa chỉ <Text className="text-coral">*</Text>
+            </Text>
             <TextInput
               multiline
-              numberOfLines={2}
+              numberOfLines={3}
               value={formData.shipToAddress}
-              onChangeText={(t) =>
-                setFormData({ ...formData, shipToAddress: t })
-              }
-              className="bg-beige/30 px-4 py-3 rounded-xl"
+              onChangeText={(t) => setFormData({ ...formData, shipToAddress: t })}
+              placeholder="Nhập địa chỉ nhận hàng"
+              placeholderTextColor="#9CA3AF"
+              className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
+              textAlignVertical="top"
             />
           </View>
 
           <View>
-            <Text>Ghi chú</Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Ghi chú
+            </Text>
             <TextInput
               multiline
               numberOfLines={2}
               value={formData.note}
               onChangeText={(t) => setFormData({ ...formData, note: t })}
-              className="bg-beige/30 px-4 py-3 rounded-xl"
+              placeholder="Ghi chú cho người bán (không bắt buộc)"
+              placeholderTextColor="#9CA3AF"
+              className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
+              textAlignVertical="top"
             />
           </View>
         </View>
 
-        <View className="bg-white p-4 rounded-2xl border mb-10">
-          <Text className="text-lg font-bold mb-4">Phương thức thanh toán</Text>
+        {/* Payment Method */}
+        <View className="bg-white dark:bg-dark-card p-5 rounded-2xl border-2 border-beige/50 dark:border-dark-border/50 mb-6 shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+          }}
+        >
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+            Phương thức thanh toán
+          </Text>
 
           <TouchableOpacity
             onPress={() => setPaymentMethod("payos")}
-            className={`p-4 rounded-xl border mb-3 ${
+            className={`p-4 rounded-xl border-2 mb-3 ${
               paymentMethod === "payos"
-                ? "border-mint bg-mint/10"
-                : "border-beige/30"
+                ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
+                : "border-beige/50 dark:border-dark-border/50 bg-beige/10 dark:bg-dark-border/10"
             }`}
+            activeOpacity={0.7}
           >
             <View className="flex-row items-center">
-              <FontAwesome
-                name="credit-card"
-                size={20}
-                color={paymentMethod === "payos" ? "#5AC38D" : "#999"}
-              />
-              <Text className="ml-3 font-semibold">Thanh toán PayOS</Text>
+              <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                paymentMethod === "payos" ? "bg-mint dark:bg-gold" : "bg-beige/30 dark:bg-dark-border/30"
+              }`}>
+                <FontAwesome
+                  name="credit-card"
+                  size={18}
+                  color={paymentMethod === "payos" ? "#fff" : "#9CA3AF"}
+                />
+              </View>
+              <Text className={`font-bold ${
+                paymentMethod === "payos"
+                  ? "text-mint dark:text-gold"
+                  : "text-light-textSecondary dark:text-dark-textSecondary"
+              }`}>
+                Thanh toán qua PayOS
+              </Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setPaymentMethod("wallet")}
-            className={`p-4 rounded-xl border ${
+            className={`p-4 rounded-xl border-2 ${
               paymentMethod === "wallet"
-                ? "border-mint bg-mint/10"
-                : "border-beige/30"
+                ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
+                : "border-beige/50 dark:border-dark-border/50 bg-beige/10 dark:bg-dark-border/10"
             }`}
+            activeOpacity={0.7}
           >
             <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <FontAwesome
-                  name="money"
-                  size={20}
-                  color={paymentMethod === "wallet" ? "#5AC38D" : "#999"}
-                />
-                <Text className="ml-3 font-semibold">Ví LECOM</Text>
+              <View className="flex-row items-center flex-1">
+                <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                  paymentMethod === "wallet" ? "bg-mint dark:bg-gold" : "bg-beige/30 dark:bg-dark-border/30"
+                }`}>
+                  <FontAwesome
+                    name="money"
+                    size={18}
+                    color={paymentMethod === "wallet" ? "#fff" : "#9CA3AF"}
+                  />
+                </View>
+                <Text className={`font-bold ${
+                  paymentMethod === "wallet"
+                    ? "text-mint dark:text-gold"
+                    : "text-light-textSecondary dark:text-dark-textSecondary"
+                }`}>
+                  Ví LECOM
+                </Text>
               </View>
 
               <View>
                 {walletLoading ? (
-                  <Text className="text-xs text-gray-400">Đang tải...</Text>
+                  <ActivityIndicator size="small" color="#ACD6B8" />
                 ) : (
-                  <Text className="text-xs font-semibold text-red">
+                  <Text className="text-sm font-bold text-mint dark:text-gold">
                     {formatPrice(walletBalance)}
                   </Text>
                 )}
@@ -452,10 +675,21 @@ export function CheckoutScreen({ navigation, route }: any) {
         </View>
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 bg-white p-5 border-t">
-        <View className="flex-row justify-between mb-3">
-          <Text>Tổng thanh toán</Text>
-          <Text className="text-2xl font-bold text-mint">
+      {/* Bottom Checkout Button */}
+      <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-dark-card p-5 border-t-2 border-beige/50 dark:border-dark-border/50 shadow-lg"
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 10,
+        }}
+      >
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+            Tổng thanh toán
+          </Text>
+          <Text className="text-2xl font-bold text-mint dark:text-gold">
             {formatPrice(totalWithShipping)}
           </Text>
         </View>
@@ -463,16 +697,27 @@ export function CheckoutScreen({ navigation, route }: any) {
         <TouchableOpacity
           onPress={handleCheckout}
           disabled={isPending}
-          className="bg-mint rounded-full py-4 items-center"
+          className="bg-mint dark:bg-gold rounded-full py-4 items-center shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 5,
+          }}
+          activeOpacity={0.8}
         >
           {isPending ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator size="small" color="white" />
           ) : (
-            <Text className="text-white font-bold">Đặt hàng</Text>
+            <Text className="text-white dark:text-dark-text text-base font-bold">
+              Đặt hàng ngay
+            </Text>
           )}
         </TouchableOpacity>
       </View>
 
+      {/* Voucher Modal */}
       <Modal
         visible={voucherModal}
         transparent
@@ -482,14 +727,31 @@ export function CheckoutScreen({ navigation, route }: any) {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setVoucherModal(false)}
-          className="flex-1 bg-black/40"
+          className="flex-1 bg-black/50"
         />
 
-        <View className="bg-white p-6 rounded-t-3xl absolute bottom-0 left-0 right-0 max-h-[70%]">
-          <Text className="text-lg font-bold mb-4">Chọn mã giảm giá</Text>
+        <View className="bg-white dark:bg-dark-card p-6 rounded-t-3xl absolute bottom-0 left-0 right-0 max-h-[70%] border-t-2 border-beige/50 dark:border-dark-border/50">
+          <View className="flex-row items-center justify-between mb-5">
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Chọn mã giảm giá
+            </Text>
+            <TouchableOpacity
+              onPress={() => setVoucherModal(false)}
+              className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            >
+              <FontAwesome name="times" size={16} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
 
-          <ScrollView>
-            {voucherLoading && <Text>Đang tải...</Text>}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {voucherLoading && (
+              <View className="py-10 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-3">
+                  Đang tải voucher...
+                </Text>
+              </View>
+            )}
 
             {!voucherLoading &&
               vouchers?.map((v) => {
@@ -503,20 +765,35 @@ export function CheckoutScreen({ navigation, route }: any) {
                       setSelectedVoucher(v.code);
                       setVoucherModal(false);
                     }}
-                    className={`p-4 border rounded-xl mb-3 ${
+                    className={`p-4 border-2 rounded-xl mb-3 ${
                       selectedVoucher === v.code
-                        ? "border-mint bg-mint/10"
-                        : "border-gray-200"
-                    } ${!eligible ? "opacity-50" : ""}`}
+                        ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
+                        : "border-beige/50 dark:border-dark-border/50 bg-beige/10 dark:bg-dark-border/10"
+                    } ${!eligible ? "opacity-40" : ""}`}
+                    activeOpacity={0.7}
                   >
-                    <Text className="font-bold">{v.code}</Text>
-                    <Text>
+                    <View className="flex-row items-center mb-2">
+                      <View className="bg-mint/20 dark:bg-gold/20 px-3 py-1 rounded-full mr-2">
+                        <Text className="text-mint dark:text-gold font-bold text-xs">
+                          {v.code}
+                        </Text>
+                      </View>
+                      {!eligible && (
+                        <View className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full">
+                          <Text className="text-red-600 dark:text-red-400 text-xs font-semibold">
+                            Không đủ điều kiện
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
                       Giảm:{" "}
                       {v.discountType === "FixedAmount"
                         ? formatPrice(v.discountValue)
                         : `${v.discountValue}%`}
                     </Text>
-                    <Text className="text-xs mt-1">
+                    <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                       Đơn tối thiểu: {formatPrice(v.minOrderAmount)}
                     </Text>
                   </TouchableOpacity>
@@ -526,9 +803,12 @@ export function CheckoutScreen({ navigation, route }: any) {
 
           <TouchableOpacity
             onPress={() => setVoucherModal(false)}
-            className="mt-3 py-3 rounded-full bg-gray-200"
+            className="mt-4 py-4 rounded-full bg-beige/50 dark:bg-dark-border/50"
+            activeOpacity={0.7}
           >
-            <Text className="text-center font-bold">Đóng</Text>
+            <Text className="text-center font-bold text-light-text dark:text-dark-text">
+              Đóng
+            </Text>
           </TouchableOpacity>
         </View>
       </Modal>

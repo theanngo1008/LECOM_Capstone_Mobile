@@ -101,6 +101,8 @@ export type ShopStackParamList = {
     conversationId: string;
     isAIChat?: boolean;
   };
+  ShopWalletMain: undefined;
+  ShopWalletTransactions: undefined;
 };
 export type ShopStackScreenProps<T extends keyof ShopStackParamList> =
   CompositeScreenProps<

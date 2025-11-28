@@ -1,4 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   ActivityIndicator,
@@ -20,19 +21,18 @@ export function ShopScreen({ navigation }: any) {
   const shopData = data?.result || null;
 
   const handleDeleteShop = () => {
-    // ✅ Validate shop data
     if (!shopData?.id) {
-      Alert.alert("Error", "Shop data not found");
+      Alert.alert("Lỗi", "Không tìm thấy thông tin shop");
       return;
     }
 
     Alert.alert(
-      "Delete Shop",
-      `Are you sure you want to delete "${shopData.name}"? This action cannot be undone.`,
+      "Xóa Shop",
+      `Bạn có chắc chắn muốn xóa "${shopData.name}"? Hành động này không thể hoàn tác.`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Hủy", style: "cancel" },
         {
-          text: "Delete",
+          text: "Xóa",
           style: "destructive",
           onPress: () => {
             console.log("🗑️ Deleting shop ID:", shopData.id);
@@ -44,7 +44,6 @@ export function ShopScreen({ navigation }: any) {
   };
 
   const handleEditShop = () => {
-    // TODO: Navigate to edit shop screen
     navigation.navigate("UpdateShop");
   };
 
@@ -87,13 +86,26 @@ export function ShopScreen({ navigation }: any) {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "Approved":
+        return "Shop đã được duyệt";
+      case "Pending":
+        return "Chờ phê duyệt";
+      case "Rejected":
+        return "Shop bị từ chối";
+      default:
+        return status;
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#A5C4FB" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-            Loading shop information...
+            Đang tải thông tin shop...
           </Text>
         </View>
       </SafeAreaView>
@@ -116,12 +128,11 @@ export function ShopScreen({ navigation }: any) {
             </View>
 
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text mb-3 text-center">
-              No Shop Yet
+              Chưa có Shop
             </Text>
 
             <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center mb-8 px-4">
-              You have not registered a shop yet.{"\n"}Start selling by creating
-              your shop now!
+              Bạn chưa đăng ký shop.{"\n"}Bắt đầu bán hàng bằng cách tạo shop ngay!
             </Text>
 
             <TouchableOpacity
@@ -129,7 +140,7 @@ export function ShopScreen({ navigation }: any) {
               onPress={() => navigation.navigate("RegisterShop")}
             >
               <Text className="text-white font-bold text-lg">
-                Create Your Shop
+                Tạo Shop của bạn
               </Text>
             </TouchableOpacity>
           </View>
@@ -238,14 +249,12 @@ export function ShopScreen({ navigation }: any) {
                   shopData.status
                 )}`}
               >
-                {shopData.status === "Approved" && "Shop Approved"}
-                {shopData.status === "Pending" && "Pending Approval"}
-                {shopData.status === "Rejected" && "Shop Rejected"}
+                {getStatusText(shopData.status)}
               </Text>
             </View>
             {shopData.status === "Pending" && (
               <Text className="text-xs text-center text-light-textSecondary dark:text-dark-textSecondary mt-2">
-                Your shop is being reviewed. This may take 1-3 business days.
+                Shop của bạn đang được xem xét. Quá trình này có thể mất 1-3 ngày làm việc.
               </Text>
             )}
           </View>
@@ -260,7 +269,7 @@ export function ShopScreen({ navigation }: any) {
                   color="#F2A297"
                 />
                 <Text className="text-sm font-bold text-coral ml-2">
-                  Rejection Reason
+                  Lý do từ chối
                 </Text>
               </View>
               <Text className="text-sm text-light-text dark:text-dark-text">
@@ -274,10 +283,10 @@ export function ShopScreen({ navigation }: any) {
             <View className="flex-1 bg-skyBlue/10 rounded-2xl p-4">
               <FontAwesome name="calendar" size={18} color="#A5C4FB" />
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-2 mb-1">
-                Member Since
+                Thành viên từ
               </Text>
               <Text className="text-sm font-bold text-light-text dark:text-dark-text">
-                {new Date(shopData.createdAt).toLocaleDateString("en-US", {
+                {new Date(shopData.createdAt).toLocaleDateString("vi-VN", {
                   month: "short",
                   year: "numeric",
                 })}
@@ -287,7 +296,7 @@ export function ShopScreen({ navigation }: any) {
             <View className="flex-1 bg-mint/10 rounded-2xl p-4">
               <FontAwesome name="phone" size={18} color="#ACD6B8" />
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-2 mb-1">
-                Contact
+                Liên hệ
               </Text>
               <Text
                 className="text-sm font-bold text-light-text dark:text-dark-text"
@@ -300,23 +309,23 @@ export function ShopScreen({ navigation }: any) {
 
           {/* Shop Information */}
           <InfoSection
-            title="Shop Information"
+            title="Thông tin Shop"
             color="skyBlue"
             icon="info-circle"
             rows={[
               {
                 icon: "align-left",
-                label: "Description",
-                value: shopData.description || "No description provided",
+                label: "Mô tả",
+                value: shopData.description || "Chưa có mô tả",
               },
               {
                 icon: "briefcase",
-                label: "Business Type",
+                label: "Loại hình kinh doanh",
                 value: shopData.businessType || "N/A",
               },
               {
                 icon: "map-marker",
-                label: "Address",
+                label: "Địa chỉ",
                 value: shopData.address,
               },
             ]}
@@ -324,32 +333,32 @@ export function ShopScreen({ navigation }: any) {
 
           {/* Owner Information */}
           <InfoSection
-            title="Owner Information"
+            title="Thông tin chủ sở hữu"
             color="mint"
             icon="user"
             rows={[
               {
                 icon: "user-circle",
-                label: "Full Name",
+                label: "Họ và tên",
                 value: shopData.ownerFullName,
               },
               {
                 icon: "id-card",
-                label: "Personal ID",
+                label: "CMND/CCCD",
                 value: shopData.ownerPersonalIdNumber,
               },
               {
                 icon: "birthday-cake",
-                label: "Date of Birth",
-                value: new Date(shopData.ownerDateOfBirth).toLocaleDateString(),
+                label: "Ngày sinh",
+                value: new Date(shopData.ownerDateOfBirth).toLocaleDateString("vi-VN"),
               },
             ]}
           />
 
-          {/* ✅ Manage Your Shop Section */}
+          {/* Manage Your Shop Section */}
           <View className="mt-8 mb-6">
             <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
-              Manage Your Shop
+              Quản lý Shop
             </Text>
             
             {/* First Row - Products & Courses */}
@@ -360,7 +369,7 @@ export function ShopScreen({ navigation }: any) {
               >
                 <FontAwesome name="cube" size={20} color="white" />
                 <Text className="text-white font-bold mt-2">
-                  Products
+                  Sản phẩm
                 </Text>
               </TouchableOpacity>
 
@@ -370,7 +379,7 @@ export function ShopScreen({ navigation }: any) {
               >
                 <FontAwesome name="graduation-cap" size={20} color="white" />
                 <Text className="text-white font-bold mt-2">
-                  Courses
+                  Khóa học
                 </Text>
               </TouchableOpacity>
             </View>
@@ -383,21 +392,55 @@ export function ShopScreen({ navigation }: any) {
               >
                 <FontAwesome name="shopping-bag" size={20} color="white" />
                 <Text className="text-white font-bold mt-2">
-                  Shop Orders
+                  Đơn hàng
                 </Text>
               </TouchableOpacity>
 
-              {/* ✅ Customer Chats Button */}
               <TouchableOpacity
                 className="flex-1 bg-lavender rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
                 onPress={() => navigation.navigate("SellerChatList")}
               >
                 <FontAwesome name="comments" size={20} color="white" />
                 <Text className="text-white font-bold mt-2">
-                  Customer Chats
+                  Tin nhắn KH
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Third Row - Shop Wallet (Full Width with LinearGradient) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("ShopWalletMain")}
+            >
+              <LinearGradient
+                colors={['#ACD6B8', '#FFCB66']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                className="rounded-2xl p-5 flex-row items-center justify-between shadow-lg"
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }}
+              >
+                <View className="flex-row items-center flex-1">
+                  <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-4">
+                    <FontAwesome name="money" size={24} color="white" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-white font-bold text-lg mb-1">
+                      Ví Shop
+                    </Text>
+                    <Text className="text-white/80 text-xs">
+                      Xem số dư và lịch sử giao dịch
+                    </Text>
+                  </View>
+                </View>
+                <FontAwesome name="chevron-right" size={20} color="white" />
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
           {/* Social Media */}
@@ -405,7 +448,7 @@ export function ShopScreen({ navigation }: any) {
             shopData.shopTiktok ||
             shopData.shopInstagram) && (
             <InfoSection
-              title="Social Media"
+              title="Mạng xã hội"
               color="lavender"
               icon="share-alt"
               rows={

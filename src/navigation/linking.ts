@@ -2,9 +2,9 @@ import { LinkingOptions } from "@react-navigation/native";
 
 export const linking: LinkingOptions<any> = {
   prefixes: [
-    "coursehub://",
-    "https://coursehub.app",
-    "https://*.coursehub.app",
+    "lecom://",
+    "https://lecom-fe.vercel.app",
+    "https://*.lecom-fe.vercel.app",
   ],
   config: {
     screens: {
@@ -27,7 +27,12 @@ export const linking: LinkingOptions<any> = {
               VideoPlayer: "courses/:courseId/video/:videoId",
             },
           },
-
+ OrdersTab: {
+            screens: {
+              OrdersMain: "orders",
+              OrderDetail: "orders/:orderId",
+            },
+          },
           // Posts Tab
           PostsTab: {
             screens: {
@@ -36,7 +41,7 @@ export const linking: LinkingOptions<any> = {
             },
           },
 
-          // Shop Tab ✅
+          // Shop Tab
           ShopTab: {
             screens: {
               ShopMain: "shop",

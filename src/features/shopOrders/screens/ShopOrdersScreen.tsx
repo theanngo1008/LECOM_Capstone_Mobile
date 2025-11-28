@@ -3,13 +3,13 @@ import React, { useState, useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   Image,
-  Platform,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useMyShopOrders } from "../hooks/useMyShopOrders";
 
 export function ShopOrdersScreen({ navigation }: any) {
@@ -115,10 +115,10 @@ export function ShopOrdersScreen({ navigation }: any) {
         <FontAwesome name="shopping-bag" size={64} color="#D1D5DB" />
       </View>
       <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
-        No Orders Yet
+        Chưa có đơn hàng
       </Text>
       <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-8">
-        Orders from customers will appear here
+        Đơn hàng từ khách hàng sẽ hiển thị tại đây
       </Text>
     </View>
   );
@@ -127,7 +127,7 @@ export function ShopOrdersScreen({ navigation }: any) {
     <View className="flex-1 items-center justify-center">
       <ActivityIndicator size="large" color="#ACD6B8" />
       <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-        Loading orders...
+        Đang tải đơn hàng...
       </Text>
     </View>
   );
@@ -136,16 +136,16 @@ export function ShopOrdersScreen({ navigation }: any) {
     <View className="flex-1 items-center justify-center px-6">
       <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
       <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-        Something went wrong
+        Đã có lỗi xảy ra
       </Text>
       <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-        Unable to load shop orders
+        Không thể tải danh sách đơn hàng
       </Text>
       <TouchableOpacity
         className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
         onPress={() => refetch()}
       >
-        <Text className="text-white font-semibold">Retry</Text>
+        <Text className="text-white font-semibold">Thử lại</Text>
       </TouchableOpacity>
     </View>
   );
@@ -153,172 +153,225 @@ export function ShopOrdersScreen({ navigation }: any) {
   const renderOrderCard = (order: any) => (
     <TouchableOpacity
       key={order.id}
-      className="bg-white dark:bg-dark-card rounded-2xl mb-4 overflow-hidden border border-beige/30 dark:border-dark-border/30"
+      className="bg-white dark:bg-dark-card rounded-3xl mb-5 overflow-hidden shadow-lg"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+      }}
       onPress={() => navigation.navigate("ShopOrderDetail", { orderId: order.id })}
       activeOpacity={0.7}
     >
-      {/* Order Header */}
-      <View className="p-4 bg-beige/30 dark:bg-dark-border/30 border-b border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row items-center justify-between mb-3">
+      {/* Order Header with Gradient */}
+      <View className="p-5 bg-gradient-to-r from-skyBlue/10 to-mint/10 dark:from-gold/10 dark:to-mint/10">
+        <View className="flex-row items-center justify-between mb-4">
           <View className="flex-1 mr-3">
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1">
-              Order Code
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1 uppercase tracking-wider">
+              Mã đơn hàng
             </Text>
-            <Text className="text-sm font-bold text-light-text dark:text-dark-text">
-              {order.orderCode}
+            <Text className="text-base font-bold text-light-text dark:text-dark-text">
+              #{order.orderCode}
             </Text>
           </View>
+          
           <View className="flex-row gap-2">
-            <View className={`px-3 py-1 rounded-full ${getStatusColor(order.status)}`}>
-              <Text className={`text-xs font-semibold ${getStatusTextColor(order.status)}`}>
+            <View className={`px-3 py-1.5 rounded-full ${getStatusColor(order.status)}`}>
+              <Text className={`text-xs font-bold ${getStatusTextColor(order.status)}`}>
                 {order.status}
               </Text>
             </View>
-            <View className={`px-3 py-1 rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}>
-              <Text className={`text-xs font-semibold ${getPaymentStatusTextColor(order.paymentStatus)}`}>
+            <View className={`px-3 py-1.5 rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}>
+              <Text className={`text-xs font-bold ${getPaymentStatusTextColor(order.paymentStatus)}`}>
                 {order.paymentStatus}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Customer Info */}
-        <View className="bg-white/50 dark:bg-dark-background/30 rounded-xl p-3">
-          <View className="flex-row items-center mb-2">
-            <FontAwesome name="user" size={14} color="#ACD6B8" />
-            <Text className="text-sm font-semibold text-light-text dark:text-dark-text ml-2">
-              {order.shipToName}
+        {/* Balance Status */}
+        {order.balanceReleased && (
+          <View className="flex-row items-center justify-center bg-green-500/10 dark:bg-green-500/20 rounded-xl py-2.5 px-4 mb-3">
+            <FontAwesome name="check-circle" size={16} color="#10B981" />
+            <Text className="text-sm font-bold text-green-600 dark:text-green-400 ml-2">
+              Đã giải ngân
             </Text>
           </View>
-          <View className="flex-row items-center mb-1">
+        )}
+
+        {/* Customer Info Card */}
+        <View className="bg-white dark:bg-dark-background rounded-2xl p-4 shadow-sm">
+          <View className="flex-row items-center mb-3">
+            <View className="w-10 h-10 bg-skyBlue/20 dark:bg-gold/20 rounded-full items-center justify-center mr-3">
+              <FontAwesome name="user" size={16} color="#ACD6B8" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-0.5">
+                Khách hàng
+              </Text>
+              <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                {order.shipToName}
+              </Text>
+            </View>
+          </View>
+
+          <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-2" />
+
+          <View className="flex-row items-center mb-2">
             <FontAwesome name="phone" size={12} color="#9CA3AF" />
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2">
               {order.shipToPhone}
             </Text>
           </View>
+          
           <View className="flex-row items-start">
             <FontAwesome name="map-marker" size={12} color="#9CA3AF" />
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2 flex-1">
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2 flex-1" numberOfLines={2}>
               {order.shipToAddress}
             </Text>
           </View>
         </View>
-
-        {/* Balance Status */}
-        {order.balanceReleased && (
-          <View className="mt-2 flex-row items-center justify-center bg-green-100 dark:bg-green-900/30 rounded-lg py-2">
-            <FontAwesome name="check-circle" size={14} color="#10B981" />
-            <Text className="text-xs font-semibold text-green-600 dark:text-green-400 ml-2">
-              Balance Released
-            </Text>
-          </View>
-        )}
       </View>
 
-      {/* Order Items Preview */}
-      <View className="p-4">
-        <Text className="text-xs font-bold text-light-text dark:text-dark-text mb-3">
-          ITEMS ({order.details.length})
-        </Text>
-        {order.details.slice(0, 2).map((item: any, index: number) => (
-          <View key={index} className="flex-row items-center mb-3 last:mb-0">
-            {item.productImage ? (
-              <Image
-                source={{ uri: item.productImage }}
-                className="w-16 h-16 rounded-xl mr-3"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="w-16 h-16 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-3">
-                <FontAwesome name="image" size={24} color="#D1D5DB" />
-              </View>
-            )}
-            <View className="flex-1">
-              <Text
-                className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
-                numberOfLines={1}
-              >
-                {item.productName}
-              </Text>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {formatPrice(item.unitPrice)} × {item.quantity}
-              </Text>
-              {item.productSku && (
-                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                  SKU: {item.productSku}
-                </Text>
-              )}
-            </View>
-            <Text className="text-sm font-bold text-mint dark:text-gold">
-              {formatPrice(item.lineTotal)}
+      {/* Order Items Section */}
+      <View className="p-5 bg-beige/10 dark:bg-dark-border/10">
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+            SẢN PHẨM
+          </Text>
+          <View className="px-3 py-1 bg-mint/20 dark:bg-gold/20 rounded-full">
+            <Text className="text-xs font-bold text-mint dark:text-gold">
+              {order.details.length} sản phẩm
             </Text>
           </View>
-        ))}
+        </View>
 
-        {order.details.length > 2 && (
-          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center mt-2">
-            +{order.details.length - 2} more {order.details.length - 2 === 1 ? "item" : "items"}
-          </Text>
-        )}
+        <View className="bg-white dark:bg-dark-card rounded-2xl p-4">
+          {order.details.slice(0, 2).map((item: any, index: number) => (
+            <View key={index} className={`flex-row items-center ${index < 1 && order.details.length > 1 ? 'mb-4 pb-4 border-b border-beige/30 dark:border-dark-border/30' : ''}`}>
+              {item.productImage ? (
+                <Image
+                  source={{ uri: item.productImage }}
+                  className="w-20 h-20 rounded-xl mr-3"
+                  resizeMode="cover"
+                />
+              ) : (
+                <View className="w-20 h-20 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-3">
+                  <FontAwesome name="image" size={28} color="#D1D5DB" />
+                </View>
+              )}
+              
+              <View className="flex-1 mr-2">
+                <Text
+                  className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
+                  numberOfLines={2}
+                >
+                  {item.productName}
+                </Text>
+                <View className="flex-row items-center">
+                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                    {formatPrice(item.unitPrice)}
+                  </Text>
+                  <View className="w-1 h-1 rounded-full bg-light-textSecondary dark:bg-dark-textSecondary mx-2" />
+                  <Text className="text-xs font-bold text-mint dark:text-gold">
+                    x{item.quantity}
+                  </Text>
+                </View>
+                {item.productSku && (
+                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                    SKU: {item.productSku}
+                  </Text>
+                )}
+              </View>
+              
+              <Text className="text-base font-bold text-mint dark:text-gold">
+                {formatPrice(item.lineTotal)}
+              </Text>
+            </View>
+          ))}
+
+          {order.details.length > 2 && (
+            <View className="mt-3 pt-3 border-t border-beige/30 dark:border-dark-border/30">
+              <Text className="text-xs text-center text-light-textSecondary dark:text-dark-textSecondary">
+                + {order.details.length - 2} sản phẩm khác
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Order Summary */}
-      <View className="p-4 bg-beige/20 dark:bg-dark-border/20 border-t border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-            Subtotal
-          </Text>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            {formatPrice(order.subtotal)}
-          </Text>
-        </View>
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-            Shipping Fee
-          </Text>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            {formatPrice(order.shippingFee)}
-          </Text>
-        </View>
-        {order.discount > 0 && (
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              Discount
+      <View className="p-5 bg-white dark:bg-dark-card">
+        <Text className="text-sm font-bold text-light-text dark:text-dark-text mb-3">
+          CHI TIẾT THANH TOÁN
+        </Text>
+
+        <View className="space-y-2">
+          <View className="flex-row justify-between items-center py-2">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              Tạm tính
             </Text>
-            <Text className="text-sm font-semibold text-coral">
-              -{formatPrice(order.discount)}
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+              {formatPrice(order.subtotal)}
             </Text>
           </View>
-        )}
-        <View className="h-px bg-beige/30 dark:bg-dark-border/30 my-2" />
-        <View className="flex-row justify-between items-center">
-          <Text className="text-base font-bold text-light-text dark:text-dark-text">
-            Total Revenue
-          </Text>
-          <Text className="text-lg font-bold text-mint dark:text-gold">
-            {formatPrice(order.total)}
-          </Text>
+
+          <View className="flex-row justify-between items-center py-2">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              Phí vận chuyển
+            </Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+              {formatPrice(order.shippingFee)}
+            </Text>
+          </View>
+
+          {order.discount > 0 && (
+            <View className="flex-row justify-between items-center py-2">
+              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                Giảm giá
+              </Text>
+              <Text className="text-sm font-semibold text-coral">
+                -{formatPrice(order.discount)}
+              </Text>
+            </View>
+          )}
+
+          <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-2" />
+
+          <View className="flex-row justify-between items-center py-2">
+            <Text className="text-base font-bold text-light-text dark:text-dark-text">
+              Tổng doanh thu
+            </Text>
+            <Text className="text-xl font-bold text-mint dark:text-gold">
+              {formatPrice(order.total)}
+            </Text>
+          </View>
         </View>
       </View>
 
       {/* Order Footer */}
-      <View className="px-4 py-3 border-t border-beige/30 dark:border-dark-border/30">
+      <View className="px-5 py-4 bg-beige/10 dark:bg-dark-border/10 border-t border-beige/30 dark:border-dark-border/30">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
+          <View className="flex-row items-center flex-1">
             <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2">
               {formatDate(order.createdAt)}
             </Text>
           </View>
+
           {order.completedAt && (
-            <View className="flex-row items-center">
-              <FontAwesome name="check" size={12} color="#10B981" />
+            <View className="flex-row items-center flex-1 justify-center">
+              <FontAwesome name="check-circle" size={12} color="#10B981" />
               <Text className="text-xs text-green-600 dark:text-green-400 ml-2">
-                Completed: {formatDate(order.completedAt)}
+                {formatDate(order.completedAt)}
               </Text>
             </View>
           )}
-          <FontAwesome name="chevron-right" size={12} color="#ACD6B8" />
+
+          <View className="items-end">
+            <FontAwesome name="chevron-right" size={14} color="#ACD6B8" />
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -331,70 +384,91 @@ export function ShopOrdersScreen({ navigation }: any) {
   const completedOrders = orders.filter((order) => order.status === "Completed").length;
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       {/* Header */}
       <View
-        className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-        style={{ paddingTop: Platform.OS === "ios" ? 50 : 16 }}
+        className="px-6 py-4 bg-white dark:bg-dark-card shadow-sm"
+        style={{ 
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
+        }}
       >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            className="w-11 h-11 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
           >
             <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
           </TouchableOpacity>
 
           <View className="flex-1 items-center">
             <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-              Shop Orders
+              Đơn hàng Shop
             </Text>
             {orders.length > 0 && (
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {orders.length} {orders.length === 1 ? "order" : "orders"}
+                {orders.length} đơn hàng
               </Text>
             )}
           </View>
 
           <TouchableOpacity
-            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            className="w-11 h-11 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
             onPress={() => refetch()}
           >
             <FontAwesome name="refresh" size={18} color="#ACD6B8" />
           </TouchableOpacity>
         </View>
 
-        {/* Statistics */}
+        {/* Statistics Cards */}
         {orders.length > 0 && (
           <View className="flex-row gap-2">
-            <View className="flex-1 bg-beige/30 dark:bg-dark-border/30 rounded-xl p-3">
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                Revenue
-              </Text>
+            <View className="flex-1 bg-gradient-to-br from-mint/20 to-mint/10 dark:from-gold/20 dark:to-gold/10 rounded-2xl p-3 border border-mint/30 dark:border-gold/30">
+              <View className="flex-row items-center mb-1">
+                <FontAwesome name="money" size={12} color="#ACD6B8" />
+                <Text className="text-xs text-mint dark:text-gold ml-1 font-semibold">
+                  Doanh thu
+                </Text>
+              </View>
               <Text className="text-sm font-bold text-mint dark:text-gold" numberOfLines={1}>
                 {formatPrice(totalRevenue)}
               </Text>
             </View>
-            <View className="flex-1 bg-orange-100 dark:bg-orange-900/30 rounded-xl p-3">
-              <Text className="text-xs text-orange-600 dark:text-orange-400 mb-1">
-                Pending
-              </Text>
+
+            <View className="flex-1 bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-3 border border-orange-200 dark:border-orange-800/30">
+              <View className="flex-row items-center mb-1">
+                <FontAwesome name="clock-o" size={12} color="#F97316" />
+                <Text className="text-xs text-orange-600 dark:text-orange-400 ml-1 font-semibold">
+                  Chờ xử lý
+                </Text>
+              </View>
               <Text className="text-sm font-bold text-orange-600 dark:text-orange-400">
                 {pendingOrders}
               </Text>
             </View>
-            <View className="flex-1 bg-blue-100 dark:bg-blue-900/30 rounded-xl p-3">
-              <Text className="text-xs text-blue-600 dark:text-blue-400 mb-1">
-                Processing
-              </Text>
+
+            <View className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-3 border border-blue-200 dark:border-blue-800/30">
+              <View className="flex-row items-center mb-1">
+                <FontAwesome name="refresh" size={12} color="#3B82F6" />
+                <Text className="text-xs text-blue-600 dark:text-blue-400 ml-1 font-semibold">
+                  Đang xử lý
+                </Text>
+              </View>
               <Text className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {processingOrders}
               </Text>
             </View>
-            <View className="flex-1 bg-green-100 dark:bg-green-900/30 rounded-xl p-3">
-              <Text className="text-xs text-green-600 dark:text-green-400 mb-1">
-                Completed
-              </Text>
+
+            <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-2xl p-3 border border-green-200 dark:border-green-800/30">
+              <View className="flex-row items-center mb-1">
+                <FontAwesome name="check" size={12} color="#10B981" />
+                <Text className="text-xs text-green-600 dark:text-green-400 ml-1 font-semibold">
+                  Hoàn thành
+                </Text>
+              </View>
               <Text className="text-sm font-bold text-green-600 dark:text-green-400">
                 {completedOrders}
               </Text>
@@ -413,7 +487,7 @@ export function ShopOrdersScreen({ navigation }: any) {
       ) : (
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 30 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -427,6 +501,6 @@ export function ShopOrdersScreen({ navigation }: any) {
           {orders.map((order) => renderOrderCard(order))}
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

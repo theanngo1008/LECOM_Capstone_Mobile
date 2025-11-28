@@ -41,10 +41,24 @@ export interface OrderItem {
 }
 
 export type OrderListResponse = ApiResponse<OrderItem[]>
+export type OrderResponse = ApiResponse<OrderItem>
 
 export const ordersApi = {
+  // ============================
+  // GET /orders/my
+  // ============================
   getMyOrders: async (): Promise<OrderListResponse> => {
     const { data } = await apiClient.get<OrderListResponse>("/orders/my")
+    return data
+  },
+
+  // ============================
+  // POST /orders/{orderId}/confirm
+  // ============================
+  confirmOrder: async (orderId: string): Promise<OrderResponse> => {
+    const { data } = await apiClient.post<OrderResponse>(
+      `/orders/${orderId}/confirm`
+    )
     return data
   }
 }

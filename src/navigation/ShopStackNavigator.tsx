@@ -7,6 +7,8 @@ import { ShopOrdersScreen } from "@/features/shopOrders/screens/ShopOrdersScreen
 import { CreateShopProductScreen } from "@/features/shopProducts/screens/CreateShopProductScreen";
 import { EditProductScreen } from "@/features/shopProducts/screens/EditProductScreen";
 import { ProductDetailScreen } from "@/features/shopProducts/screens/ShopProductDetailScreen";
+import { ShopWalletScreen } from "@/features/shopWallet/screens/ShopWalletScreen";
+import { ShopWalletTransactionsScreen } from "@/features/shopWallet/screens/ShopWalletTransactionsScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ShopRegisterScreen } from "../features/shop/screens/ShopRegisterScreen";
@@ -35,6 +37,8 @@ export type ShopStackParamList = {
   ChatDetail: {
     conversationId: string;
   };
+  ShopWalletMain: undefined;
+  ShopWalletTransactions: undefined;  
 };
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
@@ -120,6 +124,16 @@ export function ShopStackNavigator() {
                 title: "Chat",
               }}
             />
+      <Stack.Screen
+        name="ShopWalletMain"
+        component={ShopWalletScreen} 
+        options={{ title: "Shop Wallet", presentation: "card" }}
+      />
+      <Stack.Screen
+        name="ShopWalletTransactions"
+        component={ShopWalletTransactionsScreen}
+        options={{ title: "Wallet Transactions", presentation: "card" }}
+      />
     </Stack.Navigator>
   );
 }
