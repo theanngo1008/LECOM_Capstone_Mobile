@@ -26,8 +26,8 @@ const Drawer = createDrawerNavigator<DrawerParamList>();
 function HelpScreen() {
   return (
     <View className="flex-1 items-center justify-center bg-light-background dark:bg-dark-background">
-      <Text className="text-6xl mb-4">❓</Text>
-      <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-2">
+      <FontAwesome name="question-circle" size={64} color="#3B82F6" />
+      <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-2 mt-4">
         Trợ giúp
       </Text>
       <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center px-6">
@@ -112,7 +112,9 @@ export function DrawerNavigator() {
         component={MainTabNavigator}
         options={{
           title: "Trang chủ",
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          drawerIcon: ({ color, size }) => (
+            <FontAwesome name="home" size={size} color={color} />
+          ),
         }}
       />
       <Drawer.Screen
@@ -120,7 +122,9 @@ export function DrawerNavigator() {
         component={ShopStackNavigator}
         options={{
           title: "My Shop",
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>⚙️</Text>,
+          drawerIcon: ({ color, size }) => (
+            <FontAwesome name="shopping-bag" size={size} color={color} />
+          ),
           headerShown: false,
           headerStyle: {
             backgroundColor: "#3B82F6",
@@ -136,7 +140,9 @@ export function DrawerNavigator() {
         component={OrdersStackNavigator}
         options={{
           title: "My Orders",
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📦</Text>,
+          drawerIcon: ({ color, size }) => (
+            <FontAwesome name="shopping-cart" size={size} color={color} />
+          ),
           headerShown: false,
           headerStyle: {
             backgroundColor: "#3B82F6",
@@ -164,7 +170,7 @@ export function DrawerNavigator() {
         options={{
           title: "Community",
           drawerIcon: ({ color, size }) => (
-            <FontAwesome name="comments" size={size} color={color} />
+            <FontAwesome name="users" size={size} color={color} />
           ),
         }}
       />
@@ -174,7 +180,9 @@ export function DrawerNavigator() {
         component={SettingsScreen}
         options={{
           title: "Cài đặt",
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>⚙️</Text>,
+          drawerIcon: ({ color, size }) => (
+            <FontAwesome name="cog" size={size} color={color} />
+          ),
           headerShown: true,
           headerStyle: {
             backgroundColor: "#3B82F6",
@@ -190,7 +198,9 @@ export function DrawerNavigator() {
         component={HelpScreen}
         options={{
           title: "Trợ giúp",
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>❓</Text>,
+          drawerIcon: ({ color, size }) => (
+            <FontAwesome name="question-circle" size={size} color={color} />
+          ),
           headerShown: true,
           headerStyle: {
             backgroundColor: "#3B82F6",

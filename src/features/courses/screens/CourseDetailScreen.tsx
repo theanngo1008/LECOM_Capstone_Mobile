@@ -4,12 +4,12 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useCourseBySlug } from "../hooks/useCourseBySlug";
 import { useEnrollCourse } from "../hooks/useEnrollCourse";
 
@@ -80,17 +80,11 @@ export function CourseDetailScreen({ navigation, route }: any) {
       return;
     }
 
-    // ✅ Navigate to lesson player
+    // ✅ Navigate to lesson player with courseId for useLearnCourse
     navigation.navigate("LessonPlayer", {
       courseId: courseId,
-      courseTitle: course?.title ?? "",
       sectionId: section.id,
-      sectionTitle: section.title,
       lessonId: lesson.id,
-      lessonTitle: lesson.title,
-      contentUrl: lesson.contentUrl,
-      hasLinkedProducts: lesson.hasLinkedProducts,
-      linkedProducts: lesson.linkedProducts,
     });
   };
 
@@ -105,19 +99,38 @@ export function CourseDetailScreen({ navigation, route }: any) {
     }
   };
 
+  // ✅ Navigate to learning screen if already enrolled
+  const handleStartLearning = () => {
+    if (!isEnrolled || !courseId) return;
+    
+    // Navigate to first lesson of first section
+    const firstSection = course?.sections?.[0];
+    const firstLesson = firstSection?.lessons?.[0];
+
+    if (firstSection && firstLesson) {
+      navigation.navigate("LessonPlayer", {
+        courseId: courseId,
+        sectionId: firstSection.id,
+        lessonId: firstLesson.id,
+      });
+    } else {
+      Alert.alert("No Content", "This course doesn't have any lessons yet");
+    }
+  };
+
   const renderLoading = () => (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#ACD6B8" />
         <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
           Loading course...
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   const renderError = () => (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       <View className="flex-1 items-center justify-center px-6">
         <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
         <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
@@ -143,7 +156,7 @@ export function CourseDetailScreen({ navigation, route }: any) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   if (isLoading) return renderLoading();
@@ -153,12 +166,9 @@ export function CourseDetailScreen({ navigation, route }: any) {
   const totalDuration = getTotalDuration();
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-        style={{ paddingTop: Platform.OS === "ios" ? 50 : 16 }}
-      >
+      <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
@@ -454,37 +464,29 @@ export function CourseDetailScreen({ navigation, route }: any) {
       {/* Bottom Action */}
       <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
         <TouchableOpacity
-          disabled={isEnrollDisabled}
+          disabled={!isEnrolled && (!courseId || enrollMutation.isPending)}
           className={`rounded-full py-4 items-center flex-row justify-center
-            ${
-              isEnrolled
-                ? "bg-beige dark:bg-dark-border"
-                : "bg-mint dark:bg-gold"
-            }
-            ${isEnrollDisabled && !isEnrolled ? "opacity-60" : ""}
+            ${isEnrolled ? "bg-mint dark:bg-gold" : "bg-mint/80 dark:bg-gold/80"}
+            ${!isEnrolled && enrollMutation.isPending ? "opacity-60" : ""}
           `}
-          onPress={handleEnroll}
+          onPress={isEnrolled ? handleStartLearning : handleEnroll}
         >
           {enrollMutation.isPending ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <>
               <FontAwesome
-                name="graduation-cap"
+                name={isEnrolled ? "play-circle" : "graduation-cap"}
                 size={20}
-                color={isEnrolled ? "#6B7280" : "white"}
+                color="white"
               />
-              <Text
-                className={`text-base font-bold ml-2 ${
-                  isEnrolled ? "text-light-textSecondary dark:text-dark-textSecondary" : "text-white"
-                }`}
-              >
-                {isEnrolled ? "Enrolled" : "Enroll Now"}
+              <Text className="text-white text-base font-bold ml-2">
+                {isEnrolled ? "Vào học" : "Enroll Now"}
               </Text>
             </>
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

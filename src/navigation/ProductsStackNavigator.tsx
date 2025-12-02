@@ -64,7 +64,7 @@ export function ProductsStackNavigator() {
         options={{ title: "Thanh toán" }}
       />
      
-     <Stack.Screen
+<Stack.Screen
   name="ChatDetail"
   component={ChatDetailScreen}
   options={{ title: "Chi tiết trò chuyện" }}

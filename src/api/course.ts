@@ -14,6 +14,62 @@ export interface CourseItem {
   courseThumbnail: string
   active: number
 }
+// =============================
+// COURSE LEARN TYPES
+// =============================
+export interface LearnCourseProgress {
+  totalLessons: number
+  completedLessons: number
+  percent: number
+}
+
+export interface LearnCourseLesson {
+  id: string
+  title: string
+  type: string
+  durationSeconds: number
+  contentUrl: string
+  orderIndex: number
+  isCompleted: boolean
+  xpReward: number
+
+  linkedProducts: {
+    id: string
+    name: string
+    price: number
+    slug: string
+    categoryId: string
+    categoryName: string
+    categorySlug: string
+    thumbnailUrl: string
+    shopName: string
+  }[]
+}
+
+export interface LearnCourseSection {
+  id: string
+  title: string
+  orderIndex: number
+  lessons: LearnCourseLesson[]
+}
+
+export interface LearnCourseHeader {
+  id: string
+  title: string
+  summary: string
+  thumbnail: string
+  shopName: string
+  categoryName: string
+}
+
+export interface LearnCourseResult {
+  course: LearnCourseHeader
+  progress: LearnCourseProgress
+  sections: LearnCourseSection[]
+}
+
+export type LearnCourseResponse = ApiResponse<LearnCourseResult>
+
 
 export interface CourseListResult {
   totalItems: number
@@ -114,4 +170,21 @@ export const courseApi = {
     )
     return data
   },
+    // GET /courses/{courseId}/learn
+  getLearnCourse: async (courseId: string): Promise<LearnCourseResponse> => {
+    const { data } = await apiClient.get<LearnCourseResponse>(
+      `/courses/${courseId}/learn`
+    )
+    return data
+  },
+  // POST /courses/lessons/{lessonId}/complete
+completeLesson: async (lessonId: string): Promise<ApiResponse<boolean>> => {
+  const { data } = await apiClient.post<ApiResponse<boolean>>(
+    `/courses/lessons/${lessonId}/complete`
+  )
+  return data
+},
+
 }
+
+
