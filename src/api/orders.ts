@@ -53,6 +53,14 @@ export const ordersApi = {
   },
 
   // ============================
+  // GET /orders/{id}
+  // ============================
+  getOrderById: async (orderId: string): Promise<OrderResponse> => {
+    const { data } = await apiClient.get<OrderResponse>(`/orders/${orderId}`)
+    return data
+  },
+
+  // ============================
   // POST /orders/{orderId}/confirm
   // ============================
   confirmOrder: async (orderId: string): Promise<OrderResponse> => {
@@ -62,3 +70,4 @@ export const ordersApi = {
     return data
   }
 }
+

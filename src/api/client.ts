@@ -122,7 +122,7 @@ apiClient.interceptors.response.use(
       try {
         console.log("📤 Client: Calling refresh token API...");
         const { data } = await axios.post(
-          "http://103.249.201.248:8080/api/auth/refresh",
+          "https://lecom.click/api/auth/refresh",
           { refreshToken, userId }
         );
 

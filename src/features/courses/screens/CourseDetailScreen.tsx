@@ -12,14 +12,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCourseBySlug } from "../hooks/useCourseBySlug";
 import { useEnrollCourse } from "../hooks/useEnrollCourse";
+import { useRecommendedCourses } from "../hooks/useRecommendedCourses";
 
 export function CourseDetailScreen({ navigation, route }: any) {
   const { slug } = route.params;
   const { data, isLoading, isError, refetch } = useCourseBySlug(slug);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const { data: recommendedData, isLoading: isLoadingRecommended } =
+    useRecommendedCourses(slug);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  );
 
   const course = data?.result;
   const courseId = course?.id ?? "";
+  const recommendedCourses = recommendedData?.result || [];
 
   // ✅ Use isEnrolled from API response
   const isEnrolled = course?.isEnrolled ?? false;
@@ -52,14 +58,21 @@ export function CourseDetailScreen({ navigation, route }: any) {
 
   const getTotalLessons = () => {
     if (!course?.sections) return 0;
-    return course.sections.reduce((total, section) => total + section.lessons.length, 0);
+    return course.sections.reduce(
+      (total, section) => total + section.lessons.length,
+      0
+    );
   };
 
   const getTotalDuration = () => {
     if (!course?.sections) return 0;
     return course.sections.reduce(
       (total, section) =>
-        total + section.lessons.reduce((sum, lesson) => sum + lesson.durationSeconds, 0),
+        total +
+        section.lessons.reduce(
+          (sum, lesson) => sum + lesson.durationSeconds,
+          0
+        ),
       0
     );
   };
@@ -67,12 +80,12 @@ export function CourseDetailScreen({ navigation, route }: any) {
   const handlePlayLesson = (lesson: any, section: any) => {
     if (!isEnrolled) {
       Alert.alert(
-        "Enroll Required",
-        "You need to enroll in this course to watch lessons",
+        "Yêu cầu đăng ký",
+        "Bạn cần đăng ký khóa học để xem bài học",
         [
-          { text: "Cancel", style: "cancel" },
+          { text: "Hủy", style: "cancel" },
           {
-            text: "Enroll Now",
+            text: "Đăng ký ngay",
             onPress: handleEnroll,
           },
         ]
@@ -92,17 +105,17 @@ export function CourseDetailScreen({ navigation, route }: any) {
     if (!courseId || isEnrolled) return;
     try {
       await enrollMutation.mutateAsync();
-      Alert.alert("Success", "You have enrolled in this course");
+      Alert.alert("Thành công", "Bạn đã đăng ký khóa học này");
       refetch(); // Refresh to get updated isEnrolled status
     } catch (error: any) {
-      Alert.alert("Error", error?.message ?? "Failed to enroll");
+      Alert.alert("Lỗi", error?.message ?? "Không thể đăng ký");
     }
   };
 
   // ✅ Navigate to learning screen if already enrolled
   const handleStartLearning = () => {
     if (!isEnrolled || !courseId) return;
-    
+
     // Navigate to first lesson of first section
     const firstSection = course?.sections?.[0];
     const firstLesson = firstSection?.lessons?.[0];
@@ -114,30 +127,41 @@ export function CourseDetailScreen({ navigation, route }: any) {
         lessonId: firstLesson.id,
       });
     } else {
-      Alert.alert("No Content", "This course doesn't have any lessons yet");
+      Alert.alert("Không có nội dung", "Khóa học này chưa có bài học nào");
     }
   };
 
+  // ✅ Navigate to recommended course
+  const handleRecommendedCoursePress = (recommendedSlug: string) => {
+    navigation.push("CourseDetail", { slug: recommendedSlug });
+  };
+
   const renderLoading = () => (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
+    <SafeAreaView
+      className="flex-1 bg-cream dark:bg-dark-background"
+      edges={["top"]}
+    >
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#ACD6B8" />
         <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-          Loading course...
+          Đang tải khóa học...
         </Text>
       </View>
     </SafeAreaView>
   );
 
   const renderError = () => (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
+    <SafeAreaView
+      className="flex-1 bg-cream dark:bg-dark-background"
+      edges={["top"]}
+    >
       <View className="flex-1 items-center justify-center px-6">
         <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
         <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-          Something went wrong
+          Đã xảy ra lỗi
         </Text>
         <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-          Unable to load course information
+          Không thể tải thông tin khóa học
         </Text>
         <View className="flex-row space-x-4">
           <TouchableOpacity
@@ -145,14 +169,14 @@ export function CourseDetailScreen({ navigation, route }: any) {
             onPress={() => navigation.goBack()}
           >
             <Text className="text-light-text dark:text-dark-text font-semibold">
-              Go Back
+              Quay lại
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
             onPress={() => refetch()}
           >
-            <Text className="text-white font-semibold">Retry</Text>
+            <Text className="text-white font-semibold">Thử lại</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -166,7 +190,10 @@ export function CourseDetailScreen({ navigation, route }: any) {
   const totalDuration = getTotalDuration();
 
   return (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
+    <SafeAreaView
+      className="flex-1 bg-cream dark:bg-dark-background"
+      edges={["top"]}
+    >
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <TouchableOpacity
@@ -180,13 +207,13 @@ export function CourseDetailScreen({ navigation, route }: any) {
           className="flex-1 text-xl font-bold text-light-text dark:text-dark-text text-center mx-4"
           numberOfLines={1}
         >
-          Course Details
+          Chi tiết khóa học
         </Text>
 
         <TouchableOpacity
           className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
           onPress={() => {
-            Alert.alert("Share", "Share course feature coming soon");
+            Alert.alert("Chia sẻ", "Tính năng chia sẻ sắp ra mắt");
           }}
         >
           <FontAwesome name="share-alt" size={18} color="#ACD6B8" />
@@ -214,7 +241,9 @@ export function CourseDetailScreen({ navigation, route }: any) {
           {isEnrolled && (
             <View className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-mint dark:bg-gold flex-row items-center">
               <FontAwesome name="check-circle" size={14} color="white" />
-              <Text className="text-white text-xs font-bold ml-1">Enrolled</Text>
+              <Text className="text-white text-xs font-bold ml-1">
+                Đã đăng ký
+              </Text>
             </View>
           )}
         </View>
@@ -248,7 +277,7 @@ export function CourseDetailScreen({ navigation, route }: any) {
                 {course.sections.length}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                {course.sections.length === 1 ? "Section" : "Sections"}
+                {course.sections.length === 1 ? "Chương" : "Chương"}
               </Text>
             </View>
 
@@ -258,7 +287,7 @@ export function CourseDetailScreen({ navigation, route }: any) {
                 {totalLessons}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                {totalLessons === 1 ? "Lesson" : "Lessons"}
+                {totalLessons === 1 ? "Bài học" : "Bài học"}
               </Text>
             </View>
 
@@ -268,7 +297,7 @@ export function CourseDetailScreen({ navigation, route }: any) {
                 {formatDuration(totalDuration)}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                Duration
+                Thời lượng
               </Text>
             </View>
           </View>
@@ -276,7 +305,7 @@ export function CourseDetailScreen({ navigation, route }: any) {
           {/* Instructor */}
           <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
             <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
-              Instructor
+              Giảng viên
             </Text>
             <View className="flex-row items-center">
               {course.shop.avatar ? (
@@ -294,16 +323,106 @@ export function CourseDetailScreen({ navigation, route }: any) {
                   {course.shop.name}
                 </Text>
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                  {course.shop.description || "No description"}
+                  {course.shop.description || "Không có mô tả"}
                 </Text>
               </View>
             </View>
           </View>
 
+          {/* 🎯 RECOMMENDED COURSES */}
+          {!isLoadingRecommended && recommendedCourses.length > 0 && (
+            <View className="mb-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <View>
+                  <Text
+                    className="text-lg font-bold text-light-text dark:text-dark-text"
+                    numberOfLines={1}
+                  >
+                    Khóa học tương tự
+                  </Text>
+                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                    Có thể bạn sẽ thích
+                  </Text>
+                </View>
+                <View className="w-8 h-8 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center">
+                  <FontAwesome name="magic" size={14} color="#ACD6B8" />
+                </View>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 24 }}
+              >
+                {recommendedCourses.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    className="mr-4 bg-white dark:bg-dark-card rounded-2xl overflow-hidden border border-beige/30 dark:border-dark-border/30 w-72"
+                    onPress={() => handleRecommendedCoursePress(item.slug)}
+                  >
+                    <Image
+                      source={{ uri: item.courseThumbnail }}
+                      className="w-full h-40 bg-beige/20"
+                      resizeMode="cover"
+                    />
+                    <View className="p-4">
+                      <View className="flex-row items-center mb-2">
+                        <View className="px-2 py-1 rounded bg-mint/10 dark:bg-gold/10 mr-2">
+                          <Text className="text-[10px] text-mint dark:text-gold font-bold">
+                            Gợi ý
+                          </Text>
+                        </View>
+                        <View className="px-2 py-1 rounded bg-beige/30 dark:bg-dark-border/30">
+                          <Text className="text-[10px] text-light-textSecondary dark:text-dark-textSecondary font-medium">
+                            {item.categoryName}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text
+                        className="text-base font-bold text-light-text dark:text-dark-text mb-2"
+                        numberOfLines={2}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text
+                        className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-3"
+                        numberOfLines={2}
+                      >
+                        {item.summary}
+                      </Text>
+                      <View className="flex-row items-center">
+                        {item.shopAvatar ? (
+                          <Image
+                            source={{ uri: item.shopAvatar }}
+                            className="w-6 h-6 rounded-full bg-beige/20 mr-2"
+                          />
+                        ) : (
+                          <View className="w-6 h-6 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-2">
+                            <FontAwesome
+                              name="shopping-bag"
+                              size={10}
+                              color="#ACD6B8"
+                            />
+                          </View>
+                        )}
+                        <Text
+                          className="text-xs font-medium text-light-text dark:text-dark-text"
+                          numberOfLines={1}
+                        >
+                          {item.shopName}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Course Content */}
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-              Course Content
+              Nội dung khóa học
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -314,15 +433,17 @@ export function CourseDetailScreen({ navigation, route }: any) {
                   if (allExpanded) {
                     setExpandedSections(new Set());
                   } else {
-                    setExpandedSections(new Set(course.sections.map((s) => s.id)));
+                    setExpandedSections(
+                      new Set(course.sections.map((s) => s.id))
+                    );
                   }
                 }
               }}
             >
               <Text className="text-sm text-mint dark:text-gold font-semibold">
                 {course.sections.every((s) => expandedSections.has(s.id))
-                  ? "Collapse All"
-                  : "Expand All"}
+                  ? "Thu gọn tất cả"
+                  : "Mở rộng tất cả"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -356,10 +477,14 @@ export function CourseDetailScreen({ navigation, route }: any) {
                         {section.title}
                       </Text>
                       <View className="flex-row items-center">
-                        <FontAwesome name="play-circle-o" size={12} color="#9CA3AF" />
+                        <FontAwesome
+                          name="play-circle-o"
+                          size={12}
+                          color="#9CA3AF"
+                        />
                         <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
                           {section.lessons.length}{" "}
-                          {section.lessons.length === 1 ? "lesson" : "lessons"}
+                          {section.lessons.length === 1 ? "bài học" : "bài học"}
                         </Text>
                         <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
                           •
@@ -401,42 +526,59 @@ export function CourseDetailScreen({ navigation, route }: any) {
                             {lesson.title}
                           </Text>
                           <View className="flex-row items-center flex-wrap">
-                            <FontAwesome name="video-camera" size={12} color="#9CA3AF" />
+                            <FontAwesome
+                              name="video-camera"
+                              size={12}
+                              color="#9CA3AF"
+                            />
                             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
                               {lesson.type}
                             </Text>
                             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
                               •
                             </Text>
-                            <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
+                            <FontAwesome
+                              name="clock-o"
+                              size={12}
+                              color="#9CA3AF"
+                            />
                             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
                               {formatDuration(lesson.durationSeconds)}
                             </Text>
-                            
+
                             {/* ✅ Linked Products Badge */}
                             {lesson.hasLinkedProducts && (
                               <>
                                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
                                   •
                                 </Text>
-                                <FontAwesome name="shopping-bag" size={12} color="#ACD6B8" />
+                                <FontAwesome
+                                  name="shopping-bag"
+                                  size={12}
+                                  color="#ACD6B8"
+                                />
                                 <Text className="text-xs text-mint dark:text-gold ml-1 font-semibold">
-                                  {lesson.linkedProducts.length} {lesson.linkedProducts.length === 1 ? 'product' : 'products'}
+                                  {lesson.linkedProducts.length}{" "}
+                                  {lesson.linkedProducts.length === 1
+                                    ? "sản phẩm"
+                                    : "sản phẩm"}
                                 </Text>
                               </>
                             )}
                           </View>
                         </View>
 
-                        <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                          isEnrolled 
-                            ? "bg-mint/10 dark:bg-gold/10" 
-                            : "bg-gray-200 dark:bg-gray-700"
-                        }`}>
-                          <FontAwesome 
-                            name={isEnrolled ? "play" : "lock"} 
-                            size={14} 
-                            color={isEnrolled ? "#ACD6B8" : "#9CA3AF"} 
+                        <View
+                          className={`w-10 h-10 rounded-full items-center justify-center ${
+                            isEnrolled
+                              ? "bg-mint/10 dark:bg-gold/10"
+                              : "bg-gray-200 dark:bg-gray-700"
+                          }`}
+                        >
+                          <FontAwesome
+                            name={isEnrolled ? "play" : "lock"}
+                            size={14}
+                            color={isEnrolled ? "#ACD6B8" : "#9CA3AF"}
                           />
                         </View>
                       </TouchableOpacity>
@@ -451,10 +593,10 @@ export function CourseDetailScreen({ navigation, route }: any) {
             <View className="bg-white dark:bg-dark-card rounded-2xl p-8 items-center border border-beige/30 dark:border-dark-border/30">
               <FontAwesome name="folder-open-o" size={48} color="#D1D5DB" />
               <Text className="text-lg font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-                No Content Yet
+                Chưa có nội dung
               </Text>
               <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-                This course does not have any content yet
+                Khóa học này chưa có nội dung nào
               </Text>
             </View>
           )}
@@ -466,7 +608,9 @@ export function CourseDetailScreen({ navigation, route }: any) {
         <TouchableOpacity
           disabled={!isEnrolled && (!courseId || enrollMutation.isPending)}
           className={`rounded-full py-4 items-center flex-row justify-center
-            ${isEnrolled ? "bg-mint dark:bg-gold" : "bg-mint/80 dark:bg-gold/80"}
+            ${
+              isEnrolled ? "bg-mint dark:bg-gold" : "bg-mint/80 dark:bg-gold/80"
+            }
             ${!isEnrolled && enrollMutation.isPending ? "opacity-60" : ""}
           `}
           onPress={isEnrolled ? handleStartLearning : handleEnroll}
@@ -481,7 +625,7 @@ export function CourseDetailScreen({ navigation, route }: any) {
                 color="white"
               />
               <Text className="text-white text-base font-bold ml-2">
-                {isEnrolled ? "Vào học" : "Enroll Now"}
+                {isEnrolled ? "Vào học" : "Đăng ký ngay"}
               </Text>
             </>
           )}

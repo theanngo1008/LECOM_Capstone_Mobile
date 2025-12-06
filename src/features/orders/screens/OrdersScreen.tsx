@@ -1,4 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -10,10 +12,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { OrdersStackParamList } from "@/navigation/types";
 import { useConfirmOrder } from "../hooks/useConfirmOrder";
 import { useMyOrders } from "../hooks/useMyOrders";
 
-export function OrdersScreen({ navigation }: any) {
+type NavigationProp = NativeStackNavigationProp<OrdersStackParamList>;
+
+export function OrdersScreen() {
+  const navigation = useNavigation<NavigationProp>();
   const { data: ordersResponse, isLoading, isError, refetch } = useMyOrders();
   const { mutate: confirmOrder, isPending: confirming } = useConfirmOrder();
 
@@ -43,6 +49,8 @@ export function OrdersScreen({ navigation }: any) {
     switch (status) {
       case "Pending":
         return "bg-orange-100 dark:bg-orange-900/30";
+      case "Paid":
+        return "bg-green-100 dark:bg-green-900/30";
       case "Processing":
         return "bg-blue-100 dark:bg-blue-900/30";
       case "Shipping":
@@ -50,6 +58,10 @@ export function OrdersScreen({ navigation }: any) {
       case "Completed":
         return "bg-green-100 dark:bg-green-900/30";
       case "Cancelled":
+        return "bg-red-100 dark:bg-red-900/30";
+      case "Refunded":
+        return "bg-gray-100 dark:bg-gray-900/30";
+      case "PaymentFailed":
         return "bg-red-100 dark:bg-red-900/30";
       default:
         return "bg-gray-100 dark:bg-gray-900/30";
@@ -60,6 +72,8 @@ export function OrdersScreen({ navigation }: any) {
     switch (status) {
       case "Pending":
         return "text-orange-600 dark:text-orange-400";
+      case "Paid":
+        return "text-green-600 dark:text-green-400";
       case "Processing":
         return "text-blue-600 dark:text-blue-400";
       case "Shipping":
@@ -67,6 +81,10 @@ export function OrdersScreen({ navigation }: any) {
       case "Completed":
         return "text-green-600 dark:text-green-400";
       case "Cancelled":
+        return "text-red-600 dark:text-red-400";
+      case "Refunded":
+        return "text-gray-600 dark:text-gray-400";
+      case "PaymentFailed":
         return "text-red-600 dark:text-red-400";
       default:
         return "text-gray-600 dark:text-gray-400";
@@ -77,14 +95,20 @@ export function OrdersScreen({ navigation }: any) {
     switch (status) {
       case "Pending":
         return "Chờ thanh toán";
+      case "Paid":
+        return "Đã thanh toán";
       case "Processing":
-        return "Chờ đóng gói";
+        return "Đang xử lý";
       case "Shipping":
         return "Đang giao";
       case "Completed":
         return "Hoàn thành";
       case "Cancelled":
         return "Đã hủy";
+      case "Refunded":
+        return "Đã hoàn tiền";
+      case "PaymentFailed":
+        return "Thanh toán thất bại";
       default:
         return status;
     }
@@ -97,6 +121,12 @@ export function OrdersScreen({ navigation }: any) {
       case "Paid":
         return "bg-green-100 dark:bg-green-900/30";
       case "Failed":
+        return "bg-red-100 dark:bg-red-900/30";
+      case "PartiallyRefunded":
+        return "bg-purple-100 dark:bg-purple-900/30";
+      case "Refunded":
+        return "bg-gray-100 dark:bg-gray-900/30";
+      case "Cancelled":
         return "bg-red-100 dark:bg-red-900/30";
       default:
         return "bg-gray-100 dark:bg-gray-900/30";
@@ -111,6 +141,12 @@ export function OrdersScreen({ navigation }: any) {
         return "text-green-600 dark:text-green-400";
       case "Failed":
         return "text-red-600 dark:text-red-400";
+      case "PartiallyRefunded":
+        return "text-purple-600 dark:text-purple-400";
+      case "Refunded":
+        return "text-gray-600 dark:text-gray-400";
+      case "Cancelled":
+        return "text-red-600 dark:text-red-400";
       default:
         return "text-gray-600 dark:text-gray-400";
     }
@@ -124,6 +160,12 @@ export function OrdersScreen({ navigation }: any) {
         return "Đã thanh toán";
       case "Failed":
         return "Thanh toán thất bại";
+      case "PartiallyRefunded":
+        return "Hoàn tiền một phần";
+      case "Refunded":
+        return "Đã hoàn tiền";
+      case "Cancelled":
+        return "Đã hủy";
       default:
         return status;
     }
@@ -138,7 +180,7 @@ export function OrdersScreen({ navigation }: any) {
   const handleConfirmReceived = (orderId: string) => {
     confirmOrder(orderId, {
       onSuccess: () => {
-        refetch(); // refresh lại đơn hàng
+        refetch();
       },
     });
   };
@@ -147,6 +189,10 @@ export function OrdersScreen({ navigation }: any) {
     // TODO: Navigate to review screen
     console.log("Đánh giá đơn hàng:", orderId);
     // navigation.navigate("ReviewOrder", { orderId });
+  };
+
+  const handleNavigateToDetail = (orderId: string) => {
+    navigation.navigate("OrderDetail", { orderId });
   };
 
   const renderEmptyState = () => (
@@ -162,7 +208,7 @@ export function OrdersScreen({ navigation }: any) {
       </Text>
       <TouchableOpacity
         className="px-8 py-4 rounded-full bg-mint dark:bg-gold"
-        onPress={() => navigation.navigate("Products")}
+        onPress={() => navigation.navigate("Products" as any)}
       >
         <Text className="text-white text-base font-bold">Bắt đầu mua sắm</Text>
       </TouchableOpacity>
@@ -197,7 +243,7 @@ export function OrdersScreen({ navigation }: any) {
   );
 
   const renderActionButtons = (order: any) => {
-    const { status } = order;
+    const { status, id } = order;
 
     if (status === "Shipping" || status === "Completed") {
       return (
@@ -206,7 +252,7 @@ export function OrdersScreen({ navigation }: any) {
             {status === "Shipping" && (
               <TouchableOpacity
                 className="flex-1 py-3.5 rounded-xl bg-mint dark:bg-gold flex-row items-center justify-center"
-                onPress={() => handleConfirmReceived(order.id)}
+                onPress={() => handleConfirmReceived(id)}
                 activeOpacity={0.7}
                 disabled={confirming}
               >
@@ -226,7 +272,7 @@ export function OrdersScreen({ navigation }: any) {
             {status === "Completed" && (
               <TouchableOpacity
                 className="flex-1 py-3.5 rounded-xl bg-lavender dark:bg-lavender/80 flex-row items-center justify-center"
-                onPress={() => handleReview(order.id)}
+                onPress={() => handleReview(id)}
                 activeOpacity={0.7}
               >
                 <FontAwesome name="star" size={18} color="#fff" />
@@ -237,14 +283,8 @@ export function OrdersScreen({ navigation }: any) {
             )}
 
             <TouchableOpacity
-              className={`${
-                status === "Shipping" || status === "Completed"
-                  ? "flex-1"
-                  : "w-full"
-              } py-3.5 rounded-xl bg-beige/50 dark:bg-dark-border/50 border-2 border-beige dark:border-dark-border flex-row items-center justify-center`}
-              onPress={() =>
-                navigation.navigate("OrderDetail", { orderId: order.id })
-              }
+              className="flex-1 py-3.5 rounded-xl bg-beige/50 dark:bg-dark-border/50 border-2 border-beige dark:border-dark-border flex-row items-center justify-center"
+              onPress={() => handleNavigateToDetail(id)}
               activeOpacity={0.7}
             >
               <FontAwesome name="info-circle" size={18} color="#ACD6B8" />
@@ -271,7 +311,7 @@ export function OrdersScreen({ navigation }: any) {
         shadowRadius: 8,
         elevation: 5,
       }}
-      onPress={() => navigation.navigate("OrderDetail", { orderId: order.id })}
+      onPress={() => handleNavigateToDetail(order.id)}
       activeOpacity={0.7}
     >
       {/* Order Header */}

@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useProducts } from "../hooks/useProducts";
 import { useProductCategories } from "@/hooks/useProductCategories"; 
 import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
+import { useCart } from "@/features/cart/hooks/useCart";
 
 
 export function ProductsScreen() {
@@ -29,12 +30,21 @@ export function ProductsScreen() {
   // ✅ Lấy danh mục
   const { data: categories } = useProductCategories();
 
+  // ✅ Lấy giỏ hàng để đếm số lượng
+  const { items: cartShopGroups } = useCart();
+  
+  // ✅ Tính tổng số lượng sản phẩm từ tất cả shop
+  const cartItemCount = cartShopGroups.reduce((total, shopGroup) => {
+    const shopTotal = shopGroup.items.reduce((sum, item) => sum + item.quantity, 0);
+    return total + shopTotal;
+  }, 0);
+
   // ✅ Gửi categoryName lên API khi có chọn
   const { data, isLoading, isError, refetch, isRefetching } = useProducts({
     search: searchQuery || undefined,
     page,
     pageSize,
-    category: selectedCategory || undefined, // ✅ thêm vào params API
+    category: selectedCategory || undefined,
   });
 
   const productData = data?.result;
@@ -78,7 +88,7 @@ export function ProductsScreen() {
               {item.status === "Published" && (
                 <View className="px-2 py-0.5 rounded bg-mint/10 dark:bg-gold/10">
                   <Text className="text-[10px] text-mint dark:text-gold font-bold">
-                    Active
+                    Đang bán
                   </Text>
                 </View>
               )}
@@ -115,7 +125,7 @@ export function ProductsScreen() {
               </View>
               <View className="px-2 py-0.5 rounded bg-skyBlue/10 dark:bg-lavender/10">
                 <Text className="text-[10px] text-skyBlue dark:text-lavender font-bold">
-                  {item.stock} in stock
+                  Còn {item.stock}
                 </Text>
               </View>
             </View>
@@ -131,17 +141,25 @@ export function ProductsScreen() {
       <View className="flex-row items-center justify-between mb-4">
         <View>
           <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
-            {productData?.totalItems || 0} Products
+            {productData?.totalItems || 0} Sản phẩm
           </Text>
           <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-1">
-            Page {productData?.page || 1} of {productData?.totalPages || 1}
+            Trang {productData?.page || 1} / {productData?.totalPages || 1}
           </Text>
         </View>
         <Pressable
-          className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
+          className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center relative"
           onPress={() => navigation.navigate("CartMain")}
         >
           <FontAwesome name="shopping-cart" size={20} color="#ACD6B8" />
+          {/* ✅ Cart Badge */}
+          {cartItemCount > 0 && (
+            <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
+              <Text className="text-white text-[10px] font-bold">
+                {cartItemCount > 99 ? '99+' : cartItemCount}
+              </Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -151,7 +169,7 @@ export function ProductsScreen() {
         <TextInput
           value={searchQuery}
           onChangeText={handleSearch}
-          placeholder="Search products..."
+          placeholder="Tìm kiếm sản phẩm..."
           placeholderTextColor="#9CA3AF"
           className="flex-1 ml-3 text-light-text dark:text-dark-text text-base"
         />
@@ -169,16 +187,16 @@ export function ProductsScreen() {
             onPress={() => handleSelectCategory(undefined)}
             className={`px-3 py-1.5 mr-2 mb-2 rounded-full border ${
               !selectedCategory
-                ? "bg-mint/10 border-mint"
+                ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
                 : "border-beige/30 dark:border-dark-border/30"
             }`}
           >
             <Text
               className={`text-xs font-medium ${
-                !selectedCategory ? "text-mint" : "text-light-textSecondary dark:text-dark-textSecondary"
+                !selectedCategory ? "text-mint dark:text-gold" : "text-light-textSecondary dark:text-dark-textSecondary"
               }`}
             >
-              All
+              Tất cả
             </Text>
           </Pressable>
 
@@ -188,14 +206,14 @@ export function ProductsScreen() {
               onPress={() => handleSelectCategory(cat.name)}
               className={`px-3 py-1.5 mr-2 mb-2 rounded-full border ${
                 selectedCategory === cat.name
-                  ? "bg-mint/10 border-mint"
+                  ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
                   : "border-beige/30 dark:border-dark-border/30"
               }`}
             >
               <Text
                 className={`text-xs font-medium ${
                   selectedCategory === cat.name
-                    ? "text-mint"
+                    ? "text-mint dark:text-gold"
                     : "text-light-textSecondary dark:text-dark-textSecondary"
                 }`}
               >
@@ -216,12 +234,12 @@ export function ProductsScreen() {
           <View className="flex-row items-center justify-between">
             <View>
               <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
-                Products
+                Sản phẩm
               </Text>
               <View className="flex-row items-center mt-2">
                 <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                  Browse all products
+                  Khám phá tất cả sản phẩm
                 </Text>
               </View>
             </View>
@@ -244,10 +262,10 @@ export function ProductsScreen() {
                 <FontAwesome name="shopping-bag" size={40} color="#ACD6B8" />
               </View>
               <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
-                No Products Found
+                Không tìm thấy sản phẩm
               </Text>
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center px-8">
-                {searchQuery ? `No results for "${searchQuery}"` : "Try adjusting your search or category"}
+                {searchQuery ? `Không có kết quả cho "${searchQuery}"` : "Thử điều chỉnh tìm kiếm hoặc danh mục"}
               </Text>
             </View>
           }

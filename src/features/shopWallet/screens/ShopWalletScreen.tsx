@@ -306,7 +306,7 @@ export function ShopWalletScreen({ navigation }: any) {
             activeOpacity={0.7}
             onPress={() => {
               // TODO: Implement withdrawal
-              console.log("Withdraw");
+              navigation.navigate("ShopWithdrawals");
             }}
           >
             <View className="flex-row items-center flex-1">

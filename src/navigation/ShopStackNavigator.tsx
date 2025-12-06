@@ -9,6 +9,7 @@ import { EditProductScreen } from "@/features/shopProducts/screens/EditProductSc
 import { ProductDetailScreen } from "@/features/shopProducts/screens/ShopProductDetailScreen";
 import { ShopWalletScreen } from "@/features/shopWallet/screens/ShopWalletScreen";
 import { ShopWalletTransactionsScreen } from "@/features/shopWallet/screens/ShopWalletTransactionsScreen";
+import { ShopWithdrawalsScreen } from "@/features/shopWallet/screens/ShopWithdrawalsScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ShopRegisterScreen } from "../features/shop/screens/ShopRegisterScreen";
@@ -39,6 +40,7 @@ export type ShopStackParamList = {
   };
   ShopWalletMain: undefined;
   ShopWalletTransactions: undefined;  
+  ShopWithdrawals: undefined;
 };
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
@@ -133,6 +135,11 @@ export function ShopStackNavigator() {
         name="ShopWalletTransactions"
         component={ShopWalletTransactionsScreen}
         options={{ title: "Wallet Transactions", presentation: "card" }}
+      />
+      <Stack.Screen
+        name="ShopWithdrawals"
+        component={ShopWithdrawalsScreen}
+        options={{ title: "Withdrawals", presentation: "card" }}
       />
     </Stack.Navigator>
   );

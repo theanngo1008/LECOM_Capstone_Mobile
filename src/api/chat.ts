@@ -19,6 +19,7 @@ export interface ConversationItem {
   product: ChatProductInfo;
   lastMessage: string;
   lastMessageAt: string;
+  unreadCount: number;
 }
 
 export interface ChatMessage {

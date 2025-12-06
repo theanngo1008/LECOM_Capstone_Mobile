@@ -1,38 +1,44 @@
-import { useEffect } from "react";
+// src/features/chat/hooks/useChatRealtime.ts
+import { useEffect, useRef } from "react";
 import { chatHub } from "@/api/chatHub";
 
-export const useChatRealtime = (
-  conversationId?: string,
-  onMessage?: (msg: any) => void
-) => {
+export function useChatRealtime({
+  userId,
+  onConversationListUpdated,
+}: {
+  userId?: string;
+  onConversationListUpdated?: (data: any) => void;
+}) {
+  const handlerRef = useRef(onConversationListUpdated);
+
+  // luôn giữ ref mới nhất
   useEffect(() => {
-    if (!conversationId) return;
+    handlerRef.current = onConversationListUpdated;
+  }, [onConversationListUpdated]);
 
-    let isMounted = true;
+  useEffect(() => {
+    if (!userId || !handlerRef.current) return;
 
-    const run = async () => {
-      try {
-        // 🔥 Ensure connection + join correct conversation
-        await chatHub.connect(conversationId);
+    let mounted = true;
 
-        if (!isMounted) return;
-
-        // 🔥 Attach listener only once
-        chatHub.onReceiveMessage((msg) => {
-          if (onMessage) onMessage(msg);
-        });
-      } catch (err) {
-        console.log("Realtime error:", err);
-      }
+    const handler = (data: any) => {
+      if (!mounted) return;
+      handlerRef.current?.(data);
     };
 
-    run();
+    const start = async () => {
+      await chatHub.ensureConnection();
+      await chatHub.joinUser(userId);
+      chatHub.onConversationListUpdated(handler);
+      console.log("📡 List realtime subscribed for user:", userId);
+    };
+
+    start();
 
     return () => {
-      isMounted = false;
-
-      // ❗Chỉ remove listener — KHÔNG stop connection
-      chatHub.offReceiveMessage();
+      mounted = false;
+      chatHub.offConversationListUpdated(handler);
+      // KHÔNG leaveUser, vì có thể còn màn khác dùng
     };
-  }, [conversationId]);
-};
+  }, [userId]);
+}

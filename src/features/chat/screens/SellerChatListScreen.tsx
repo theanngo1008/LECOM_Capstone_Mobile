@@ -1,6 +1,10 @@
+import type { ConversationItem } from "@/api/chat";
+import type { ChatStackParamList } from "@/navigation/ChatStackNavigator";
+import { useAuthStore } from "@/store/auth-store";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import {
   ActivityIndicator,
@@ -13,50 +17,124 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSellerConversations } from "../hooks/useSellerConversations";
 import { useChatRealtime } from "../hooks/useChatRealtime";
-import { useQueryClient } from "@tanstack/react-query";
-import type { ConversationItem } from "@/api/chat";
-import type { ChatStackParamList } from "@/navigation/ChatStackNavigator";
+import { useSellerConversations } from "../hooks/useSellerConversations";
 
 export function SellerChatListScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
   const queryClient = useQueryClient();
-  
-  const { data, isLoading, isError, refetch, isRefetching } = useSellerConversations();
 
-  // ✅ Real-time updates for all seller conversations
-  useChatRealtime(undefined, (message) => {
-    console.log("🔔 New message received (Seller):", message);
-    // Invalidate seller conversations to refetch with new message
-    queryClient.invalidateQueries({ queryKey: ["chat", "sellerConversations"] });
-  });
+  // 🔥 Seller userId
+  const userId = useAuthStore((s) => s.userId ?? undefined);
 
-  const conversations = data?.result || [];
+  const { data, isLoading, isError, refetch, isRefetching } =
+    useSellerConversations();
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+let conversations: ConversationItem[] =
+  data?.result
+    ?.slice()
+    .sort(
+      (a, b) =>
+        new Date(b.lastMessageAt).getTime() -
+        new Date(a.lastMessageAt).getTime()
+    ) || [];
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+
+  // ================================
+  // 1️⃣ Update preview của 1 cuộc trò chuyện (realtime)
+  // ================================
+  const updateConversationPreview = (updated: ConversationItem) => {
+    queryClient.setQueryData(["chat", "sellerConversations"], (old: any) => {
+      if (!old?.result) return old;
+
+      let newList = old.result.map((c: ConversationItem) =>
+        c.id === updated.id ? { ...c, ...updated } : c
+      );
+
+      // sort theo lastMessageAt
+      newList.sort(
+        (a: ConversationItem, b: ConversationItem) =>
+          new Date(b.lastMessageAt).getTime() -
+          new Date(a.lastMessageAt).getTime()
+      );
+
+      return { ...old, result: newList };
+    });
   };
 
+  // ================================
+  // 2️⃣ Replace full list (rare case)
+  // ================================
+  const replaceFullList = (list: ConversationItem[]) => {
+    list.sort(
+      (a: ConversationItem, b: ConversationItem) =>
+        new Date(b.lastMessageAt).getTime() -
+        new Date(a.lastMessageAt).getTime()
+    );
+
+    queryClient.setQueryData(["chat", "sellerConversations"], (old: any) => ({
+      ...old,
+      result: list,
+    }));
+  };
+
+  // ================================
+  // 3️⃣ Listen realtime cho SELLER
+  // ================================
+useChatRealtime({
+  userId,
+  onConversationListUpdated: (payload: any) => {
+    console.log("🔥 Seller ConversationListUpdated:", payload);
+
+    // payload luôn là 1 conversation summary (object)
+    updateConversationPreview(payload);
+  },
+});
+
+
+
+
+
+
+  // ================================
+  // Format Time
+  // ================================
+const formatTime = (dateString: string) => {
+  const utc = new Date(dateString);
+  const date = new Date(utc.getTime() + 7 * 60 * 60 * 1000); // 👉 +7 hours for VN
+
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+
+  return date.toLocaleDateString();
+};
+
+
+  // ================================
+  // Render Seller Conversation Item
+  // ================================
   const renderConversationItem = ({ item }: { item: ConversationItem }) => (
     <Pressable
       className="bg-white dark:bg-dark-card rounded-2xl mb-3 overflow-hidden border border-beige/30 dark:border-dark-border/30"
-      onPress={() => navigation.navigate("ChatDetail", { conversationId: item.id })}
+      onPress={() =>
+        navigation.navigate("ChatDetail", {
+          conversationId: item.id,
+        })
+      }
     >
       <View className="p-4">
         <View className="flex-row items-start">
-          {/* Product Thumbnail */}
+
           {item.product.thumbnail ? (
             <Image
               source={{ uri: item.product.thumbnail }}
@@ -69,21 +147,22 @@ export function SellerChatListScreen() {
             </View>
           )}
 
-          {/* Conversation Info */}
+          {/* Info */}
           <View className="flex-1">
             <View className="flex-row items-start justify-between mb-1">
-              <Text 
-                className="text-base font-bold text-light-text dark:text-dark-text flex-1" 
+              <Text
+                className="text-base font-bold text-light-text dark:text-dark-text flex-1"
                 numberOfLines={1}
               >
                 {item.product.name}
               </Text>
+
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2">
                 {formatTime(item.lastMessageAt)}
               </Text>
             </View>
 
-            {/* Customer Name */}
+            {/* Customer Label */}
             <View className="flex-row items-center mb-2">
               <FontAwesome name="user-circle" size={12} color="#9CA3AF" />
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
@@ -91,7 +170,7 @@ export function SellerChatListScreen() {
               </Text>
             </View>
 
-            {/* AI Badge */}
+            {/* AI Handling */}
             {item.isAIChat && (
               <View className="flex-row items-center mb-2">
                 <View className="px-2 py-0.5 rounded-full bg-lavender/10 dark:bg-gold/10">
@@ -103,8 +182,8 @@ export function SellerChatListScreen() {
             )}
 
             {/* Last Message */}
-            <Text 
-              className="text-sm text-light-textSecondary dark:text-dark-textSecondary" 
+            <Text
+              className="text-sm text-light-textSecondary dark:text-dark-textSecondary"
               numberOfLines={2}
             >
               {item.lastMessage}
@@ -112,12 +191,15 @@ export function SellerChatListScreen() {
           </View>
 
           {/* Unread Indicator */}
-          <View className="w-3 h-3 rounded-full bg-skyBlue ml-2" />
+          {item.unreadCount > 0 && (
+            <View className="w-3 h-3 rounded-full bg-skyBlue ml-2" />
+          )}
         </View>
       </View>
     </Pressable>
   );
 
+  // Empty State
   const renderEmptyState = () => (
     <View className="flex-1 items-center justify-center py-20">
       <View className="w-20 h-20 rounded-full bg-beige/20 dark:bg-dark-border/20 items-center justify-center mb-4">
@@ -132,9 +214,12 @@ export function SellerChatListScreen() {
     </View>
   );
 
+  // ================================
+  // Loading UI
+  // ================================
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#A5C4FB" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
@@ -145,9 +230,12 @@ export function SellerChatListScreen() {
     );
   }
 
+  // ================================
+  // Error UI
+  // ================================
   if (isError) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
         <View className="flex-1 items-center justify-center px-6">
           <View className="w-20 h-20 rounded-full bg-coral/10 items-center justify-center mb-4">
             <FontAwesome name="exclamation-circle" size={40} color="#FF6B6B" />
@@ -171,13 +259,17 @@ export function SellerChatListScreen() {
     );
   }
 
+  // ================================
+  // MAIN UI
+  // ================================
   return (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       <View className="flex-1">
+
         {/* Header */}
-        <View 
-          className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" 
-          style={{ paddingTop: Platform.OS === 'ios' ? 16 : 16 }}
+        <View
+          className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
+          style={{ paddingTop: Platform.OS === "ios" ? 16 : 16 }}
         >
           <View className="flex-row items-center justify-between">
             <View>
@@ -187,25 +279,27 @@ export function SellerChatListScreen() {
               <View className="flex-row items-center mt-2">
                 <View className="w-2 h-2 rounded-full bg-skyBlue dark:bg-gold mr-2" />
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                  {conversations.length} {conversations.length === 1 ? 'inquiry' : 'inquiries'}
+                  {conversations.length}{" "}
+                  {conversations.length === 1 ? "inquiry" : "inquiries"}
                 </Text>
               </View>
             </View>
+
             <View className="w-14 h-14 rounded-2xl bg-skyBlue/10 dark:bg-gold/10 items-center justify-center">
               <FontAwesome name="comments" size={24} color="#A5C4FB" />
             </View>
           </View>
         </View>
 
-        {/* Conversations List */}
+        {/* Seller Conversation List */}
         <FlatList
           data={conversations}
           renderItem={renderConversationItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ 
-            padding: 24, 
+          contentContainerStyle={{
+            padding: 24,
             paddingBottom: 40,
-            flexGrow: 1 
+            flexGrow: 1,
           }}
           ListEmptyComponent={renderEmptyState}
           refreshControl={
@@ -222,3 +316,4 @@ export function SellerChatListScreen() {
     </SafeAreaView>
   );
 }
+ 

@@ -3,6 +3,7 @@ import React from "react"
 
 // IMPORT SCREENS
 import { OrdersScreen } from "@/features/orders/screens/OrdersScreen"
+import { OrderDetailScreen } from "@/features/orders/screens/OrderDetailScreen"
 
 // ==============================================
 // ORDERS STACK PARAM LIST
@@ -33,9 +34,16 @@ export function OrdersStackNavigator() {
     headerShown: false, 
   }}
       />
+      
 
       {/* ORDER DETAIL */}
-     
+      <Stack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   )
 }

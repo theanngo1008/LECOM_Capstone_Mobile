@@ -4,7 +4,7 @@ export const linking: LinkingOptions<any> = {
   prefixes: [
     "lecom://",
     "https://lecom-fe.vercel.app",
-    "https://*.lecom-fe.vercel.app",
+    
   ],
   config: {
     screens: {
@@ -12,7 +12,7 @@ export const linking: LinkingOptions<any> = {
       Welcome: "welcome",
       Login: "login",
       Register: "register",
-
+EmailConfirm: "/auth/email-confirmed",
       // Drawer
       MainTabs: {
         screens: {

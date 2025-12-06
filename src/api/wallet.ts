@@ -14,6 +14,42 @@ export interface WalletBalanceResult {
   totalWithdrawn: number
   lastUpdated: string
 }
+// ----- Customer Wallet Transactions -----
+export interface CustomerWalletTransaction {
+  id: string
+  type: string
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  description: string
+  referenceId: string
+  referenceType: string
+  createdAt: string
+  performedBy: string | null
+}
+
+export interface CustomerWalletTransactionList {
+  walletId: string
+  customerId: string
+  balance: number
+  totalRefunded: number
+  totalSpent: number
+  totalWithdrawn: number
+  lastUpdated: string
+
+  transactions: CustomerWalletTransaction[]
+
+  pagination: {
+    currentPage: number
+    pageSize: number
+    totalItems: number
+    totalPages: number
+  }
+}
+
+export type CustomerWalletTransactionsResponse =
+  ApiResponse<CustomerWalletTransactionList>
+
 
 export type WalletBalanceResponse = ApiResponse<WalletBalanceResult>
 
@@ -100,4 +136,16 @@ export const walletApi = {
     )
     return data
   },
+
+  // Customer Wallet Transactions
+getCustomerTransactions: async (
+  page: number = 1,
+  pageSize: number = 20
+): Promise<CustomerWalletTransactionsResponse> => {
+  const { data } = await apiClient.get<CustomerWalletTransactionsResponse>(
+    `/wallet/customer/transactions?page=${page}&pageSize=${pageSize}`
+  )
+  return data
+},
+
 }

@@ -1,6 +1,7 @@
 import { useWalletBalance } from "@/features/cart/hooks/useWalletBalance";
+import { useCustomerTransactions } from "@/features/wallet/hooks/useCustomerTransactions";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -11,8 +12,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export function WalletScreen({ navigation }: any) {
+  const [currentPage, setCurrentPage] = useState(1);
   const { data, isLoading, isError, refetch } = useWalletBalance();
+  const { 
+    data: transactionsData, 
+    isLoading: isLoadingTransactions 
+  } = useCustomerTransactions(currentPage, 10);
+
   const wallet = data?.result;
+  const transactions = transactionsData?.result?.transactions || [];
+  const pagination = transactionsData?.result?.pagination;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount);
@@ -29,13 +38,61 @@ export function WalletScreen({ navigation }: any) {
     });
   };
 
+  type FAIconName = React.ComponentProps<typeof FontAwesome>['name'];
+
+  const getTransactionIcon = (type: string): { name: FAIconName; color: string } => {
+    switch (type) {
+      case "OrderRevenue":
+        return { name: "shopping-cart", color: "#10B981" };
+      case "PlatformFee":
+        return { name: "building", color: "#F97316" };
+      case "Withdrawal":
+        return { name: "arrow-down", color: "#EF4444" };
+      case "Refund":
+        return { name: "undo", color: "#3B82F6" };
+      case "Adjustment":
+        return { name: "edit", color: "#8B5CF6" };
+      case "Payment":
+        return { name: "credit-card", color: "#EC4899" };
+      case "BalanceRelease":
+        return { name: "unlock", color: "#14B8A6" };
+      default:
+        return { name: "exchange", color: "#6B7280" };
+    }
+  };
+
+  const getTransactionTypeLabel = (type: string) => {
+    switch (type) {
+      case "OrderRevenue":
+        return "Thu nhập đơn hàng";
+      case "PlatformFee":
+        return "Phí nền tảng";
+      case "Withdrawal":
+        return "Rút tiền";
+      case "Refund":
+        return "Hoàn tiền";
+      case "Adjustment":
+        return "Điều chỉnh";
+      case "Payment":
+        return "Thanh toán";
+      case "BalanceRelease":
+        return "Giải phóng số dư";
+      default:
+        return type;
+    }
+  };
+
+  const isPositiveTransaction = (type: string) => {
+    return ["OrderRevenue", "Refund", "BalanceRelease", "Adjustment"].includes(type);
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-            Loading wallet...
+            Đang tải...
           </Text>
         </View>
       </SafeAreaView>
@@ -51,13 +108,13 @@ export function WalletScreen({ navigation }: any) {
             Oops!
           </Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-            Failed to load wallet information
+            Không thể tải thông tin ví
           </Text>
           <TouchableOpacity
             className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
             onPress={() => refetch()}
           >
-            <Text className="text-white font-semibold">Retry</Text>
+            <Text className="text-white font-semibold">Thử lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -76,7 +133,7 @@ export function WalletScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <Text className="flex-1 text-xl font-bold text-light-text dark:text-dark-text text-center mx-4">
-          My Wallet
+          Ví của tôi
         </Text>
 
         <View className="w-10 h-10" />
@@ -100,22 +157,16 @@ export function WalletScreen({ navigation }: any) {
               </View>
             </View>
 
-            {/* Action Buttons */}
-            <View className="flex-row gap-3 mt-4">
-              <TouchableOpacity className="flex-1 bg-mint dark:bg-gold rounded-xl py-3 items-center">
-                <View className="flex-row items-center">
-                  <FontAwesome name="exchange" size={14} color="white" />
-                  <Text className="text-white text-sm font-semibold ml-2">Rút tiền</Text>
-                </View>
-              </TouchableOpacity>
-              
-              <TouchableOpacity className="flex-1 bg-skyBlue/20 dark:bg-lavender/20 rounded-xl py-3 items-center border border-skyBlue dark:border-lavender">
-                <View className="flex-row items-center">
-                  <FontAwesome name="history" size={14} color="#A5C4FB" />
-                  <Text className="text-skyBlue dark:text-lavender text-sm font-semibold ml-2">Lịch sử</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+            {/* Action Button */}
+           <TouchableOpacity 
+              className="bg-mint dark:bg-gold rounded-xl py-3 items-center mt-4"
+              onPress={() => navigation.navigate("Withdrawals")}
+            >
+              <View className="flex-row items-center">
+                <FontAwesome name="exchange" size={14} color="white" />
+                <Text className="text-white text-sm font-semibold ml-2">Rút tiền</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -173,6 +224,157 @@ export function WalletScreen({ navigation }: any) {
           </View>
         </View>
 
+        {/* Transaction History */}
+        <View className="px-6 mb-6">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Lịch sử giao dịch
+            </Text>
+            {pagination && (
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                {pagination.totalItems} giao dịch
+              </Text>
+            )}
+          </View>
+
+          {isLoadingTransactions ? (
+            <View className="bg-white dark:bg-dark-card rounded-2xl p-8 items-center border border-beige/30 dark:border-dark-border/30">
+              <ActivityIndicator size="small" color="#ACD6B8" />
+              <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-2 text-sm">
+                Đang tải giao dịch...
+              </Text>
+            </View>
+          ) : transactions.length === 0 ? (
+            <View className="bg-white dark:bg-dark-card rounded-2xl p-8 items-center border border-beige/30 dark:border-dark-border/30">
+              <View className="w-16 h-16 rounded-full bg-beige/30 dark:bg-dark-border/30 items-center justify-center mb-4">
+                <FontAwesome name="history" size={32} color="#9CA3AF" />
+              </View>
+              <Text className="text-light-text dark:text-dark-text font-semibold mb-1">
+                Chưa có giao dịch
+              </Text>
+              <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm text-center">
+                Lịch sử giao dịch của bạn sẽ hiển thị ở đây
+              </Text>
+            </View>
+          ) : (
+            <View className="bg-white dark:bg-dark-card rounded-2xl overflow-hidden border border-beige/30 dark:border-dark-border/30">
+              {transactions.map((transaction, index) => {
+                const icon = getTransactionIcon(transaction.type);
+                const isPositive = isPositiveTransaction(transaction.type);
+                
+                return (
+                  <View
+                    key={transaction.id}
+                    className={`p-4 ${
+                      index !== transactions.length - 1
+                        ? "border-b border-beige/20 dark:border-dark-border/20"
+                        : ""
+                    }`}
+                  >
+                    <View className="flex-row items-center">
+                      {/* Icon */}
+                      <View
+                        className="w-12 h-12 rounded-xl items-center justify-center mr-3"
+                        style={{ backgroundColor: `${icon.color}20` }}
+                      >
+                        <FontAwesome name={icon.name} size={18} color={icon.color} />
+                      </View>
+
+                      {/* Details */}
+                      <View className="flex-1">
+                        <View className="flex-row items-center justify-between mb-1">
+                          <Text className="text-base font-bold text-light-text dark:text-dark-text">
+                            {getTransactionTypeLabel(transaction.type)}
+                          </Text>
+                          <Text
+                            className={`text-base font-bold ${
+                              isPositive
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {isPositive ? "+" : "-"}
+                            {formatCurrency(Math.abs(transaction.amount))}₫
+                          </Text>
+                        </View>
+
+                        <Text
+                          className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1"
+                          numberOfLines={2}
+                        >
+                          {transaction.description}
+                        </Text>
+
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                            {formatDate(transaction.createdAt)}
+                          </Text>
+                          <View className="flex-row items-center">
+                            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                              Số dư: {formatCurrency(transaction.balanceAfter)}₫
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Pagination */}
+              {pagination && pagination.totalPages > 1 && (
+                <View className="p-4 border-t border-beige/30 dark:border-dark-border/30">
+                  <View className="flex-row items-center justify-between">
+                    <TouchableOpacity
+                      disabled={currentPage === 1}
+                      onPress={() => setCurrentPage(currentPage - 1)}
+                      className={`px-4 py-2 rounded-xl ${
+                        currentPage === 1
+                          ? "bg-beige/30 dark:bg-dark-border/30"
+                          : "bg-mint dark:bg-gold"
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm font-semibold ${
+                          currentPage === 1
+                            ? "text-light-textSecondary dark:text-dark-textSecondary"
+                            : "text-white"
+                        }`}
+                      >
+                        Trước
+                      </Text>
+                    </TouchableOpacity>
+
+                    <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                      Trang {currentPage} / {pagination.totalPages}
+                    </Text>
+
+                    <TouchableOpacity
+                      disabled={currentPage === pagination.totalPages}
+                      onPress={() => setCurrentPage(currentPage + 1)}
+                      className={`px-4 py-2 rounded-xl ${
+                        currentPage === pagination.totalPages
+                          ? "bg-beige/30 dark:bg-dark-border/30"
+                          : "bg-mint dark:bg-gold"
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm font-semibold ${
+                          currentPage === pagination.totalPages
+                            ? "text-light-textSecondary dark:text-dark-textSecondary"
+                            : "text-white"
+                        }`}
+                      >
+                        Sau
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* Wallet Info */}
         <View className="px-6 mb-6">
           <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-4">
@@ -200,23 +402,6 @@ export function WalletScreen({ navigation }: any) {
               </View>
             </View>
 
-            {/* Current Balance */}
-            <View className="flex-row items-center justify-between p-4 border-b border-beige/30 dark:border-dark-border/30">
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 items-center justify-center mr-3">
-                  <FontAwesome name="money" size={16} color="#10B981" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1">
-                    Số dư hiện tại
-                  </Text>
-                  <Text className="text-base font-bold text-mint dark:text-gold">
-                    {formatCurrency(wallet.balance)}₫
-                  </Text>
-                </View>
-              </View>
-            </View>
-
             {/* Last Updated */}
             <View className="flex-row items-center justify-between p-4">
               <View className="flex-row items-center flex-1">
@@ -234,63 +419,6 @@ export function WalletScreen({ navigation }: any) {
               </View>
             </View>
           </View>
-        </View>
-
-        {/* Transaction Summary */}
-        <View className="px-6 mb-6">
-          <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-4">
-            Tổng quan giao dịch
-          </Text>
-
-          <View className="bg-white dark:bg-dark-card rounded-2xl p-4 border border-beige/30 dark:border-dark-border/30">
-            {/* Total In */}
-            <View className="flex-row items-center justify-between mb-4 pb-4 border-b border-beige/20 dark:border-dark-border/20">
-              <View className="flex-row items-center">
-                <View className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg items-center justify-center mr-3">
-                  <FontAwesome name="plus" size={12} color="#10B981" />
-                </View>
-                <Text className="text-sm text-light-text dark:text-dark-text">
-                  Tổng tiền vào
-                </Text>
-              </View>
-              <Text className="text-base font-bold text-green-600 dark:text-green-400">
-                +{formatCurrency(wallet.totalRefunded)}₫
-              </Text>
-            </View>
-
-            {/* Total Out */}
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <View className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg items-center justify-center mr-3">
-                  <FontAwesome name="minus" size={12} color="#EF4444" />
-                </View>
-                <Text className="text-sm text-light-text dark:text-dark-text">
-                  Tổng tiền ra
-                </Text>
-              </View>
-              <Text className="text-base font-bold text-red-600 dark:text-red-400">
-                -{formatCurrency(wallet.totalSpent + wallet.totalWithdrawn)}₫
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Help Section */}
-        <View className="px-6 mb-6">
-          <TouchableOpacity className="bg-white dark:bg-dark-card rounded-2xl p-4 border border-beige/30 dark:border-dark-border/30 flex-row items-center">
-            <View className="w-12 h-12 rounded-xl bg-coral/10 items-center justify-center mr-4">
-              <FontAwesome name="question-circle" size={20} color="#F2A297" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
-                Trợ giúp
-              </Text>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                Hướng dẫn sử dụng ví điện tử
-              </Text>
-            </View>
-            <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
-          </TouchableOpacity>
         </View>
 
         {/* Info Note */}

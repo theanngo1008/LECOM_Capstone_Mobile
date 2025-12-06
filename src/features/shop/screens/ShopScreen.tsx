@@ -355,7 +355,7 @@ export function ShopScreen({ navigation }: any) {
             ]}
           />
 
-          {/* Manage Your Shop Section */}
+                   {/* Manage Your Shop Section */}
           <View className="mt-8 mb-6">
             <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
               Quản lý Shop
@@ -407,7 +407,36 @@ export function ShopScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            {/* Third Row - Shop Wallet (Full Width with LinearGradient) */}
+            {/* Third Row - Statistics & Refunds */}
+            <View className="flex-row gap-3 mb-3">
+              <TouchableOpacity
+                className="flex-1 bg-coral rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
+                onPress={() => {
+                  // navigation.navigate("ShopStatistics");
+                  Alert.alert("Thống kê", "Chức năng thống kê đang được phát triển");
+                }}
+              >
+                <FontAwesome name="bar-chart" size={20} color="white" />
+                <Text className="text-white font-bold mt-2">
+                  Thống kê
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-1 bg-beige rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
+                onPress={() => {
+                  // navigation.navigate("ShopRefunds");
+                  Alert.alert("Hoàn tiền", "Chức năng yêu cầu hoàn tiền đang được phát triển");
+                }}
+              >
+                <FontAwesome name="undo" size={20} color="white" />
+                <Text className="text-white font-bold mt-2">
+                  Hoàn tiền
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Fourth Row - Shop Wallet (Full Width) */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => navigation.navigate("ShopWalletMain")}
@@ -416,29 +445,19 @@ export function ShopScreen({ navigation }: any) {
                 colors={['#ACD6B8', '#FFCB66']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                className="rounded-2xl p-5 flex-row items-center justify-between shadow-lg"
+                className="rounded-2xl p-4 items-center justify-center shadow-md"
                 style={{
                   shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 8,
-                  elevation: 5,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
                 }}
               >
-                <View className="flex-row items-center flex-1">
-                  <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-4">
-                    <FontAwesome name="money" size={24} color="white" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-white font-bold text-lg mb-1">
-                      Ví Shop
-                    </Text>
-                    <Text className="text-white/80 text-xs">
-                      Xem số dư và lịch sử giao dịch
-                    </Text>
-                  </View>
-                </View>
-                <FontAwesome name="chevron-right" size={20} color="white" />
+                <FontAwesome name="money" size={20} color="white" />
+                <Text className="text-white font-bold mt-2">
+                  Ví Shop
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

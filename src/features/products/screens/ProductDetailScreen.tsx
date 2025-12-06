@@ -1,4 +1,5 @@
 import { useAddToCart } from "@/features/cart/hooks/useAddToCart";
+import { useCart } from "@/features/cart/hooks/useCart";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
@@ -14,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { useProductBySlug } from "../hooks/useProductBySlug";
+import { useRecommendedProducts } from "../hooks/useRecommendedProducts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useStartChat } from "@/features/chat/hooks/useStartChat";
 import { useStartAIChat } from "@/features/chat/hooks/useStartAIChat";
@@ -21,17 +23,29 @@ import { useStartAIChat } from "@/features/chat/hooks/useStartAIChat";
 export function ProductDetailScreen({ navigation, route }: any) {
   const { slug } = route.params;
   const { product, isLoading, isError, refetch } = useProductBySlug(slug);
+  const { data: recommendedData, isLoading: isLoadingRecommended } = useRecommendedProducts(slug);
   const addToCart = useAddToCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const startChat = useStartChat();
+
+  // ✅ Lấy giỏ hàng để đếm số lượng
+  const { items: cartShopGroups } = useCart();
+  
+  // ✅ Tính tổng số lượng sản phẩm từ tất cả shop
+  const cartItemCount = cartShopGroups.reduce((total, shopGroup) => {
+    const shopTotal = shopGroup.items.reduce((sum, item) => sum + item.quantity, 0);
+    return total + shopTotal;
+  }, 0);
 
   // ✅ Quantity Modal State
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
+  const recommendedProducts = recommendedData?.result || [];
+
   const handleAskSeller = () => {
     if (!product?.id) {
-      Alert.alert("Error", "Product information invalid.");
+      Alert.alert("Lỗi", "Thông tin sản phẩm không hợp lệ.");
       return;
     }
 
@@ -42,19 +56,18 @@ export function ProductDetailScreen({ navigation, route }: any) {
           const conversation = res.result;
 
           if (!conversation) {
-            Alert.alert("Error", "Unable to start chat.");
+            Alert.alert("Lỗi", "Không thể bắt đầu cuộc trò chuyện.");
             return;
           }
 
-          // Điều hướng sang ChatDetail CHỈ với conversationId
           navigation.navigate("ChatDetail", {
             conversationId: conversation.id,
           });
         },
         onError: (err: any) => {
           Alert.alert(
-            "Error",
-            err?.response?.data?.message || "Failed to start chat."
+            "Lỗi",
+            err?.response?.data?.message || "Không thể bắt đầu cuộc trò chuyện."
           );
         },
       }
@@ -63,45 +76,44 @@ export function ProductDetailScreen({ navigation, route }: any) {
 
   const startAIChat = useStartAIChat();
 
-const handleAskAI = () => {
-  if (!product?.id) {
-    Alert.alert("Error", "Product information invalid.");
-    return;
-  }
-
-  startAIChat.mutate(
-    { productId: product.id },
-    {
-      onSuccess: (res) => {
-        const conversation = res.result; // ✅ conversation.isAIChat = true
-
-        if (!conversation) {
-          Alert.alert("Error", "Unable to start AI chat.");
-          return;
-        }
-
-        // ✅ Truyền isAIChat từ response
-        navigation.navigate("ChatDetail", {
-          conversationId: conversation.id,
-          isAIChat: conversation.isAIChat, // ✅ true cho AI chat
-        });
-      },
-      onError: (err: any) => {
-        Alert.alert(
-          "Error",
-          err?.response?.data?.message || "Failed to start AI chat."
-        );
-      },
+  const handleAskAI = () => {
+    if (!product?.id) {
+      Alert.alert("Lỗi", "Thông tin sản phẩm không hợp lệ.");
+      return;
     }
-  );
-};
+
+    startAIChat.mutate(
+      { productId: product.id },
+      {
+        onSuccess: (res) => {
+          const conversation = res.result;
+
+          if (!conversation) {
+            Alert.alert("Lỗi", "Không thể bắt đầu trò chuyện với AI.");
+            return;
+          }
+
+          navigation.navigate("ChatDetail", {
+            conversationId: conversation.id,
+            isAIChat: conversation.isAIChat,
+          });
+        },
+        onError: (err: any) => {
+          Alert.alert(
+            "Lỗi",
+            err?.response?.data?.message || "Không thể bắt đầu trò chuyện với AI."
+          );
+        },
+      }
+    );
+  };
 
   const renderLoading = () => (
     <View className="flex-1 bg-cream dark:bg-dark-background">
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#ACD6B8" />
         <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-          Loading product...
+          Đang tải sản phẩm...
         </Text>
       </View>
     </View>
@@ -112,10 +124,10 @@ const handleAskAI = () => {
       <View className="flex-1 items-center justify-center px-6">
         <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
         <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-          Something went wrong
+          Đã xảy ra lỗi
         </Text>
         <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-          Unable to load product information
+          Không thể tải thông tin sản phẩm
         </Text>
         <View className="flex-row space-x-4">
           <TouchableOpacity
@@ -123,14 +135,14 @@ const handleAskAI = () => {
             onPress={() => navigation.goBack()}
           >
             <Text className="text-light-text dark:text-dark-text font-semibold">
-              Go Back
+              Quay lại
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
             onPress={() => refetch()}
           >
-            <Text className="text-white font-semibold">Retry</Text>
+            <Text className="text-white font-semibold">Thử lại</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -158,28 +170,28 @@ const handleAskAI = () => {
         return {
           bgColor: "bg-mint/90 dark:bg-gold/90",
           textColor: "text-mint dark:text-gold",
-          label: "Published",
+          label: "Đang bán",
           icon: "check-circle",
         };
       case "Draft":
         return {
           bgColor: "bg-gray-500/90",
           textColor: "text-gray-600",
-          label: "Draft",
+          label: "Nháp",
           icon: "pencil",
         };
       case "OutOfStock":
         return {
           bgColor: "bg-coral/90",
           textColor: "text-coral",
-          label: "Out of Stock",
+          label: "Hết hàng",
           icon: "ban",
         };
       case "Archived":
         return {
           bgColor: "bg-orange-500/90",
           textColor: "text-orange-600",
-          label: "Archived",
+          label: "Đã lưu trữ",
           icon: "archive",
         };
       default:
@@ -199,7 +211,7 @@ const handleAskAI = () => {
     if (quantity < product.stock) {
       setQuantity(quantity + 1);
     } else {
-      Alert.alert("Stock Limit", `Only ${product.stock} items available`);
+      Alert.alert("Giới hạn kho", `Chỉ còn ${product.stock} sản phẩm`);
     }
   };
 
@@ -212,7 +224,7 @@ const handleAskAI = () => {
   const handleQuantityInput = (text: string) => {
     const value = parseInt(text) || 1;
     if (value > product.stock) {
-      Alert.alert("Stock Limit", `Only ${product.stock} items available`);
+      Alert.alert("Giới hạn kho", `Chỉ còn ${product.stock} sản phẩm`);
       setQuantity(product.stock);
     } else if (value < 1) {
       setQuantity(1);
@@ -224,11 +236,10 @@ const handleAskAI = () => {
   // ✅ Handle Add to Cart
   const handleAddToCart = () => {
     if (product.status !== "Published" || product.stock === 0) {
-      Alert.alert("Unavailable", "This product cannot be added to cart");
+      Alert.alert("Không khả dụng", "Sản phẩm này không thể thêm vào giỏ hàng");
       return;
     }
 
-    // Reset quantity và show modal
     setQuantity(1);
     setShowQuantityModal(true);
   };
@@ -244,15 +255,15 @@ const handleAskAI = () => {
         onSuccess: () => {
           setShowQuantityModal(false);
           Alert.alert(
-            "Success",
-            `Added ${quantity} ${quantity === 1 ? "item" : "items"} to cart`,
+            "Thành công",
+            `Đã thêm ${quantity} sản phẩm vào giỏ hàng`,
             [
               {
-                text: "Continue Shopping",
+                text: "Tiếp tục mua",
                 style: "cancel",
               },
               {
-                text: "View Cart",
+                text: "Xem giỏ hàng",
                 onPress: () => navigation.navigate("CartMain"),
               },
             ]
@@ -260,12 +271,17 @@ const handleAskAI = () => {
         },
         onError: (error: any) => {
           Alert.alert(
-            "Error",
-            error.response?.data?.message || "Failed to add to cart"
+            "Lỗi",
+            error.response?.data?.message || "Không thể thêm vào giỏ hàng"
           );
         },
       }
     );
+  };
+
+  // ✅ Navigate to recommended product
+  const handleRecommendedProductPress = (recommendedSlug: string) => {
+    navigation.push("ProductDetail", { slug: recommendedSlug });
   };
 
   return (
@@ -273,7 +289,7 @@ const handleAskAI = () => {
       edges={["top"]}
       style={{
         flex: 1,
-        backgroundColor: "#FFFFFF", // màu header
+        backgroundColor: "#FFFFFF",
       }}
     >
       <View className="flex-1 bg-cream dark:bg-dark-background">
@@ -290,14 +306,22 @@ const handleAskAI = () => {
             className="flex-1 text-xl font-bold text-light-text dark:text-dark-text text-center mx-4"
             numberOfLines={1}
           >
-            Product Details
+            Chi tiết sản phẩm
           </Text>
 
           <TouchableOpacity
-            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center relative"
             onPress={() => navigation.navigate("CartMain")}
           >
             <FontAwesome name="shopping-cart" size={18} color="#ACD6B8" />
+            {/* ✅ Cart Badge */}
+            {cartItemCount > 0 && (
+              <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
+                <Text className="text-white text-[10px] font-bold">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -358,7 +382,7 @@ const handleAskAI = () => {
               product.stock > 0 && (
                 <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-orange-500/90">
                   <Text className="text-white text-xs font-bold">
-                    Only {product.stock} left
+                    Chỉ còn {product.stock}
                   </Text>
                 </View>
               )}
@@ -366,7 +390,7 @@ const handleAskAI = () => {
             {(product.status === "OutOfStock" || product.stock === 0) && (
               <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-coral/90">
                 <Text className="text-white text-xs font-bold">
-                  Out of Stock
+                  Hết hàng
                 </Text>
               </View>
             )}
@@ -382,15 +406,13 @@ const handleAskAI = () => {
                 </Text>
               </View>
             </View>
-            {/* 🔵 Ask Seller (small button) */}
-            {/* 🔵 Actions: Ask Seller + Ask AI */}
+
+            {/* Actions: Ask Seller + Ask AI */}
             <View className="flex-row space-x-3 mb-4">
-              {/* Hỏi người bán */}
               <TouchableOpacity
                 onPress={handleAskSeller}
                 disabled={startChat.isPending}
-                className="px-4 py-2 rounded-full bg-skyBlue/20 dark:bg-lavender/20
-               border border-skyBlue/40 dark:border-lavender/40 flex-row items-center"
+                className="px-4 py-2 rounded-full bg-skyBlue/20 dark:bg-lavender/20 border border-skyBlue/40 dark:border-lavender/40 flex-row items-center"
               >
                 {startChat.isPending ? (
                   <ActivityIndicator size="small" color="#87CEEB" />
@@ -404,12 +426,10 @@ const handleAskAI = () => {
                 )}
               </TouchableOpacity>
 
-              {/* Hỏi AI */}
               <TouchableOpacity
                 onPress={handleAskAI}
                 disabled={startAIChat.isPending}
-                className="px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/40
-               border border-purple-300 dark:border-purple-700 flex-row items-center"
+                className="px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/40 border border-purple-300 dark:border-purple-700 flex-row items-center"
               >
                 {startAIChat.isPending ? (
                   <ActivityIndicator size="small" color="#C084FC" />
@@ -444,7 +464,7 @@ const handleAskAI = () => {
                   {product.stock}
                 </Text>
                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                  In Stock
+                  Trong kho
                 </Text>
               </View>
 
@@ -454,7 +474,7 @@ const handleAskAI = () => {
                   {product.images?.length || 0}
                 </Text>
                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                  Images
+                  Hình ảnh
                 </Text>
               </View>
 
@@ -468,7 +488,7 @@ const handleAskAI = () => {
                   {statusConfig.label}
                 </Text>
                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                  Status
+                  Trạng thái
                 </Text>
               </View>
             </View>
@@ -476,17 +496,17 @@ const handleAskAI = () => {
             {/* Description */}
             <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
               <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
-                Description
+                Mô tả
               </Text>
               <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary leading-6">
-                {product.description || "No description available"}
+                {product.description || "Không có mô tả"}
               </Text>
             </View>
 
             {/* Shop Info */}
             <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 border border-beige/30 dark:border-dark-border/30">
               <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
-                Shop Information
+                Thông tin cửa hàng
               </Text>
 
               <View className="flex-row items-center">
@@ -509,22 +529,95 @@ const handleAskAI = () => {
                     {product.shopName}
                   </Text>
                   <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                    {product.shopDescription || "No description"}
+                    {product.shopDescription || "Không có mô tả"}
                   </Text>
                 </View>
               </View>
             </View>
 
+            {/* 🎯 RECOMMENDED PRODUCTS */}
+            {!isLoadingRecommended && recommendedProducts.length > 0 && (
+              <View className="mb-6">
+                <View className="flex-row items-center justify-between mb-4">
+                  <View>
+                    <Text className="text-lg font-bold text-light-text dark:text-dark-text" numberOfLines={1}>
+                      Sản phẩm tương{'\u00A0'}tự
+                    </Text>
+                    <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                      Có thể bạn sẽ thích
+                    </Text>
+                  </View>
+                  <View className="w-8 h-8 rounded-full bg-skyBlue/10 dark:bg-lavender/10 items-center justify-center">
+                    <FontAwesome name="heart" size={14} color="#7DD3FC" />
+                  </View>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingRight: 24 }}
+                >
+                  {recommendedProducts.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      className="mr-4 bg-white dark:bg-dark-card rounded-2xl overflow-hidden border border-beige/30 dark:border-dark-border/30 w-44"
+                      onPress={() => handleRecommendedProductPress(item.slug)}
+                    >
+                      <Image
+                        source={{ uri: item.thumbnailUrl }}
+                        className="w-full h-40 bg-beige/20"
+                        resizeMode="cover"
+                      />
+                      <View className="p-3">
+                        <Text
+                          className="text-sm font-bold text-light-text dark:text-dark-text mb-2"
+                          numberOfLines={2}
+                        >
+                          {item.name}
+                        </Text>
+                        <View className="flex-row items-baseline mb-2">
+                          <Text className="text-lg font-bold text-mint dark:text-gold">
+                            {item.price.toLocaleString()}
+                          </Text>
+                          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
+                            ₫
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center">
+                          {item.shopAvatar ? (
+                            <Image
+                              source={{ uri: item.shopAvatar }}
+                              className="w-5 h-5 rounded-full bg-beige/20 mr-2"
+                            />
+                          ) : (
+                            <View className="w-5 h-5 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-2">
+                              <FontAwesome name="shopping-bag" size={8} color="#ACD6B8" />
+                            </View>
+                          )}
+                          <Text
+                            className="text-xs font-medium text-light-text dark:text-dark-text flex-1"
+                            numberOfLines={1}
+                          >
+                            {item.shopName}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* Product Details */}
             <View className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-beige/30 dark:border-dark-border/30">
               <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
-                Product Details
+                Chi tiết sản phẩm
               </Text>
 
               <View className="space-y-3">
                 <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
                   <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                    Product ID
+                    Mã sản phẩm
                   </Text>
                   <Text
                     className="text-light-text dark:text-dark-text font-semibold"
@@ -536,16 +629,7 @@ const handleAskAI = () => {
 
                 <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
                   <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                    Slug
-                  </Text>
-                  <Text className="text-light-text dark:text-dark-text font-semibold">
-                    {product.slug}
-                  </Text>
-                </View>
-
-                <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
-                  <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                    Category
+                    Danh mục
                   </Text>
                   <Text className="text-light-text dark:text-dark-text font-semibold">
                     {product.categoryName}
@@ -554,7 +638,7 @@ const handleAskAI = () => {
 
                 <View className="flex-row justify-between py-2 border-b border-beige/20 dark:border-dark-border/20">
                   <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                    Status
+                    Trạng thái
                   </Text>
                   <View className="flex-row items-center">
                     <FontAwesome
@@ -579,7 +663,7 @@ const handleAskAI = () => {
 
                 <View className="flex-row justify-between py-2">
                   <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                    Last Updated
+                    Cập nhật lần cuối
                   </Text>
                   <Text className="text-light-text dark:text-dark-text font-semibold">
                     {new Date(product.lastUpdatedAt).toLocaleDateString(
@@ -598,7 +682,7 @@ const handleAskAI = () => {
             <TouchableOpacity
               className="flex-1 bg-beige/50 dark:bg-dark-border/50 rounded-full py-4 items-center"
               onPress={() => {
-                Alert.alert("Wishlist", "Add to wishlist feature coming soon");
+                Alert.alert("Danh sách yêu thích", "Tính năng sắp ra mắt");
               }}
             >
               <FontAwesome name="heart-o" size={20} color="#ACD6B8" />
@@ -612,9 +696,9 @@ const handleAskAI = () => {
               <FontAwesome name="shopping-cart" size={20} color="white" />
               <Text className="text-white text-base font-bold ml-2">
                 {product.status === "OutOfStock" || product.stock === 0
-                  ? "Out of Stock"
+                  ? "Hết hàng"
                   : product.status === "Published"
-                  ? "Add to Cart"
+                  ? "Thêm vào giỏ"
                   : statusConfig.label}
               </Text>
             </TouchableOpacity>
@@ -632,7 +716,7 @@ const handleAskAI = () => {
             <View className="bg-white dark:bg-dark-card rounded-t-3xl p-6">
               <View className="flex-row items-center justify-between mb-6">
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                  Select Quantity
+                  Chọn số lượng
                 </Text>
                 <TouchableOpacity onPress={() => setShowQuantityModal(false)}>
                   <FontAwesome name="times" size={24} color="#9CA3AF" />
@@ -662,10 +746,9 @@ const handleAskAI = () => {
               {/* Quantity Selector */}
               <View className="mb-6">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-                  Quantity
+                  Số lượng
                 </Text>
                 <View className="flex-row items-center justify-between">
-                  {/* Decrease Button */}
                   <TouchableOpacity
                     className={`w-14 h-14 rounded-full items-center justify-center ${
                       quantity === 1
@@ -682,7 +765,6 @@ const handleAskAI = () => {
                     />
                   </TouchableOpacity>
 
-                  {/* Quantity Input */}
                   <TextInput
                     value={quantity.toString()}
                     onChangeText={handleQuantityInput}
@@ -691,7 +773,6 @@ const handleAskAI = () => {
                     selectTextOnFocus
                   />
 
-                  {/* Increase Button */}
                   <TouchableOpacity
                     className={`w-14 h-14 rounded-full items-center justify-center ${
                       quantity >= product.stock
@@ -709,10 +790,8 @@ const handleAskAI = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Stock Info */}
                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center mt-3">
-                  Available: {product.stock}{" "}
-                  {product.stock === 1 ? "item" : "items"}
+                  Còn lại: {product.stock} sản phẩm
                 </Text>
               </View>
 
@@ -720,7 +799,7 @@ const handleAskAI = () => {
               <View className="bg-beige/30 dark:bg-dark-border/30 rounded-2xl p-4 mb-6">
                 <View className="flex-row justify-between items-center">
                   <Text className="text-light-textSecondary dark:text-dark-textSecondary">
-                    Total Price
+                    Tổng cộng
                   </Text>
                   <Text className="text-2xl font-bold text-mint dark:text-gold">
                     {formatPrice(product.price * quantity)}
@@ -743,7 +822,7 @@ const handleAskAI = () => {
                   <>
                     <FontAwesome name="shopping-cart" size={20} color="white" />
                     <Text className="text-white text-base font-bold ml-2">
-                      Add {quantity} to Cart
+                      Thêm {quantity} vào giỏ
                     </Text>
                   </>
                 )}

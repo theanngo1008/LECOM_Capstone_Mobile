@@ -10,6 +10,7 @@ export type AuthStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Register: undefined;
+  EmailConfirm: undefined;
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
@@ -107,6 +108,7 @@ export type ShopStackParamList = {
   };
   ShopWalletMain: undefined;
   ShopWalletTransactions: undefined;
+  ShopWithdrawals: undefined;
 };
 export type ShopStackScreenProps<T extends keyof ShopStackParamList> =
   CompositeScreenProps<
@@ -126,6 +128,7 @@ export type MainTabParamList = {
   PostsTab: undefined;
   ShopTab: undefined; // ✅ Add Shop tab
   ProfileTab: undefined;
+  CartMain: undefined;
 };
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> =
@@ -145,6 +148,7 @@ export type DrawerParamList = {
   OrdersMain: undefined;
   ChatList: undefined; 
   CommunityList: undefined;
+  WalletMain: undefined;
 };
 
 export type DrawerScreenProps<T extends keyof DrawerParamList> =
@@ -261,3 +265,16 @@ export type CommunityStackScreenProps<
     RNDrawerScreenProps<DrawerParamList>
   >
 >;
+// ==============================================
+// WALLET STACK
+// ==============================================
+export type WalletStackParamList = {
+  WalletMain: undefined;
+  Withdrawals: undefined;
+};
+
+export type WalletStackScreenProps<T extends keyof WalletStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<WalletStackParamList, T>,
+    RNDrawerScreenProps<DrawerParamList>
+  >;
