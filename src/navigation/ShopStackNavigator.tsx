@@ -1,5 +1,6 @@
 import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
 import { SellerChatListScreen } from "@/features/chat/screens/SellerChatListScreen";
+import { ShopDashboardScreen } from "@/features/shop/screens/SelletDashboardScreen";
 import { CreateShopCourseScreen } from "@/features/shopCourses/screens/CreateShopCourseScreen";
 import { ShopCourseDetailScreen } from "@/features/shopCourses/screens/ShopCourseDetailScreen";
 import { ShopCoursesScreen } from "@/features/shopCourses/screens/ShopCoursesScreen";
@@ -41,6 +42,7 @@ export type ShopStackParamList = {
   ShopWalletMain: undefined;
   ShopWalletTransactions: undefined;  
   ShopWithdrawals: undefined;
+  ShopDashboard: undefined;
 };
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
@@ -140,6 +142,11 @@ export function ShopStackNavigator() {
         name="ShopWithdrawals"
         component={ShopWithdrawalsScreen}
         options={{ title: "Withdrawals", presentation: "card" }}
+      />
+      <Stack.Screen
+        name="ShopDashboard"
+        component={ShopDashboardScreen}
+        options={{ title: "Shop Dashboard", presentation: "card" }}
       />
     </Stack.Navigator>
   );

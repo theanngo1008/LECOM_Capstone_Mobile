@@ -413,7 +413,7 @@ export function ShopScreen({ navigation }: any) {
                 className="flex-1 bg-coral rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
                 onPress={() => {
                   // navigation.navigate("ShopStatistics");
-                  Alert.alert("Thống kê", "Chức năng thống kê đang được phát triển");
+                 navigation.navigate("ShopDashboard");
                 }}
               >
                 <FontAwesome name="bar-chart" size={20} color="white" />

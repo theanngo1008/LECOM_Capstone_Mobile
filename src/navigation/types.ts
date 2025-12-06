@@ -109,6 +109,7 @@ export type ShopStackParamList = {
   ShopWalletMain: undefined;
   ShopWalletTransactions: undefined;
   ShopWithdrawals: undefined;
+  ShopDashboard: undefined;
 };
 export type ShopStackScreenProps<T extends keyof ShopStackParamList> =
   CompositeScreenProps<
