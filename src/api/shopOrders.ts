@@ -2,6 +2,18 @@ import { ApiResponse } from "../types/common"
 import { apiClient } from "./client"
 
 // ==============================================
+// ENUMS
+// ==============================================
+export type OrderStatus =
+  | "Pending"
+  | "Paid"
+  | "Processing"
+  | "Shipping"
+  | "Completed"
+  | "Cancelled"
+
+
+// ==============================================
 // TYPES
 // ==============================================
 
@@ -36,7 +48,7 @@ export interface ShopOrderItem {
   discount: number
   total: number
 
-  status: string
+  status: OrderStatus
   paymentStatus: string
 
   balanceReleased: boolean
@@ -48,6 +60,7 @@ export interface ShopOrderItem {
 }
 
 export type ShopOrderListResponse = ApiResponse<ShopOrderItem[]>
+export type ShopOrderDetailResponse = ApiResponse<ShopOrderItem>
 
 // ==============================================
 // API MODULE
@@ -62,12 +75,20 @@ export const shopOrdersApi = {
     return data
   },
 
-  // ==================================================
+  // GET /orders/{id}/shop-detail
+  getShopOrderDetail: async (
+    orderId: string
+  ): Promise<ShopOrderDetailResponse> => {
+    const { data } = await apiClient.get<ShopOrderDetailResponse>(
+      `/orders/${orderId}/shop-detail`
+    )
+    return data
+  },
+
   // PUT /orders/{id}/status
-  // ==================================================
   updateOrderStatus: async (
     orderId: string,
-    status: string
+    status: OrderStatus
   ): Promise<ApiResponse<any>> => {
     const { data } = await apiClient.put<ApiResponse<any>>(
       `/orders/${orderId}/status`,

@@ -1,5 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import React, { useState, useLayoutEffect } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -11,12 +11,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMyShopOrders } from "../hooks/useMyShopOrders";
+import { OrderStatus } from "@/api/shopOrders";
+
+// ✅ Filter tabs configuration - Simplified
+const FILTER_TABS: { key: OrderStatus | "All"; label: string; icon: string }[] = [
+  { key: "All", label: "Tất cả", icon: "list" },
+  { key: "Paid", label: "Đã TT", icon: "check-circle" },
+  { key: "Processing", label: "Xử lý", icon: "cog" },
+  { key: "Shipping", label: "Giao", icon: "truck" },
+  { key: "Completed", label: "Hoàn thành", icon: "check" },
+  { key: "Cancelled", label: "Hủy", icon: "times-circle" },
+];
 
 export function ShopOrdersScreen({ navigation }: any) {
   const { data: ordersResponse, isLoading, isError, refetch } = useMyShopOrders();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<OrderStatus | "All">("All");
 
-  // ✅ Hide default navigation header
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -24,6 +35,12 @@ export function ShopOrdersScreen({ navigation }: any) {
   }, [navigation]);
 
   const orders = ordersResponse?.result || [];
+
+  // ✅ Filter orders based on selected status
+  const filteredOrders =
+    selectedFilter === "All"
+      ? orders
+      : orders.filter((order) => order.status === selectedFilter);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -47,6 +64,8 @@ export function ShopOrdersScreen({ navigation }: any) {
     switch (status) {
       case "Pending":
         return "bg-orange-100 dark:bg-orange-900/30";
+      case "Paid":
+        return "bg-green-100 dark:bg-green-900/30";
       case "Processing":
         return "bg-blue-100 dark:bg-blue-900/30";
       case "Shipping":
@@ -64,6 +83,8 @@ export function ShopOrdersScreen({ navigation }: any) {
     switch (status) {
       case "Pending":
         return "text-orange-600 dark:text-orange-400";
+      case "Paid":
+        return "text-green-600 dark:text-green-400";
       case "Processing":
         return "text-blue-600 dark:text-blue-400";
       case "Shipping":
@@ -115,10 +136,12 @@ export function ShopOrdersScreen({ navigation }: any) {
         <FontAwesome name="shopping-bag" size={64} color="#D1D5DB" />
       </View>
       <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
-        Chưa có đơn hàng
+        {selectedFilter === "All" ? "Chưa có đơn hàng" : "Không có đơn hàng"}
       </Text>
       <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-8">
-        Đơn hàng từ khách hàng sẽ hiển thị tại đây
+        {selectedFilter === "All"
+          ? "Đơn hàng từ khách hàng sẽ hiển thị tại đây"
+          : `Không có đơn hàng ở trạng thái "${FILTER_TABS.find((t) => t.key === selectedFilter)?.label}"`}
       </Text>
     </View>
   );
@@ -379,27 +402,26 @@ export function ShopOrdersScreen({ navigation }: any) {
 
   // Calculate statistics
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-  const pendingOrders = orders.filter((order) => order.status === "Pending").length;
+  const paidOrders = orders.filter((order) => order.status === "Paid").length;
   const processingOrders = orders.filter((order) => order.status === "Processing").length;
   const completedOrders = orders.filter((order) => order.status === "Completed").length;
 
+  // ✅ Get count for each filter tab
+  const getFilterCount = (filterKey: OrderStatus | "All") => {
+    if (filterKey === "All") return orders.length;
+    return orders.filter((order) => order.status === filterKey).length;
+  };
+
+ // ...existing code...
+
   return (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
       {/* Header */}
-      <View
-        className="px-6 py-4 bg-white dark:bg-dark-card shadow-sm"
-        style={{ 
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
-          elevation: 2,
-        }}
-      >
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="w-11 h-11 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
           >
             <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
           </TouchableOpacity>
@@ -410,13 +432,13 @@ export function ShopOrdersScreen({ navigation }: any) {
             </Text>
             {orders.length > 0 && (
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {orders.length} đơn hàng
+                {filteredOrders.length}/{orders.length} đơn hàng
               </Text>
             )}
           </View>
 
           <TouchableOpacity
-            className="w-11 h-11 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
             onPress={() => refetch()}
           >
             <FontAwesome name="refresh" size={18} color="#ACD6B8" />
@@ -426,50 +448,38 @@ export function ShopOrdersScreen({ navigation }: any) {
         {/* Statistics Cards */}
         {orders.length > 0 && (
           <View className="flex-row gap-2">
-            <View className="flex-1 bg-gradient-to-br from-mint/20 to-mint/10 dark:from-gold/20 dark:to-gold/10 rounded-2xl p-3 border border-mint/30 dark:border-gold/30">
-              <View className="flex-row items-center mb-1">
-                <FontAwesome name="money" size={12} color="#ACD6B8" />
-                <Text className="text-xs text-mint dark:text-gold ml-1 font-semibold">
-                  Doanh thu
-                </Text>
-              </View>
-              <Text className="text-sm font-bold text-mint dark:text-gold" numberOfLines={1}>
+            <View className="flex-1 bg-mint/10 dark:bg-gold/10 rounded-xl p-2.5 border border-mint/30 dark:border-gold/30">
+              <Text className="text-xs text-mint dark:text-gold font-semibold mb-0.5">
+                Doanh thu
+              </Text>
+              <Text className="text-xs font-bold text-mint dark:text-gold" numberOfLines={1}>
                 {formatPrice(totalRevenue)}
               </Text>
             </View>
 
-            <View className="flex-1 bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-3 border border-orange-200 dark:border-orange-800/30">
-              <View className="flex-row items-center mb-1">
-                <FontAwesome name="clock-o" size={12} color="#F97316" />
-                <Text className="text-xs text-orange-600 dark:text-orange-400 ml-1 font-semibold">
-                  Chờ xử lý
-                </Text>
-              </View>
-              <Text className="text-sm font-bold text-orange-600 dark:text-orange-400">
-                {pendingOrders}
+            <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-xl p-2.5 border border-green-200 dark:border-green-800/30">
+              <Text className="text-xs text-green-600 dark:text-green-400 font-semibold mb-0.5">
+                Đã TT
+              </Text>
+              <Text className="text-xs font-bold text-green-600 dark:text-green-400">
+                {paidOrders}
               </Text>
             </View>
 
-            <View className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-3 border border-blue-200 dark:border-blue-800/30">
-              <View className="flex-row items-center mb-1">
-                <FontAwesome name="refresh" size={12} color="#3B82F6" />
-                <Text className="text-xs text-blue-600 dark:text-blue-400 ml-1 font-semibold">
-                  Đang xử lý
-                </Text>
-              </View>
-              <Text className="text-sm font-bold text-blue-600 dark:text-blue-400">
+            <View className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2.5 border border-blue-200 dark:border-blue-800/30">
+              <Text className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-0.5">
+                Xử lý
+              </Text>
+              <Text className="text-xs font-bold text-blue-600 dark:text-blue-400">
                 {processingOrders}
               </Text>
             </View>
 
-            <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-2xl p-3 border border-green-200 dark:border-green-800/30">
-              <View className="flex-row items-center mb-1">
-                <FontAwesome name="check" size={12} color="#10B981" />
-                <Text className="text-xs text-green-600 dark:text-green-400 ml-1 font-semibold">
-                  Hoàn thành
-                </Text>
-              </View>
-              <Text className="text-sm font-bold text-green-600 dark:text-green-400">
+            <View className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2.5 border border-emerald-200 dark:border-emerald-800/30">
+              <Text className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-0.5">
+                Hoàn thành
+              </Text>
+              <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 {completedOrders}
               </Text>
             </View>
@@ -477,12 +487,69 @@ export function ShopOrdersScreen({ navigation }: any) {
         )}
       </View>
 
+      {/* ✅ Compact Filter Tabs - Fixed Height */}
+      {orders.length > 0 && (
+        <View className="bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 6 }}
+            style={{ maxHeight: 40 }}
+          >
+            {FILTER_TABS.map((tab) => {
+              const count = getFilterCount(tab.key);
+              const isActive = selectedFilter === tab.key;
+
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  onPress={() => setSelectedFilter(tab.key)}
+                  className={`mr-2 px-2.5 py-1 rounded-full flex-row items-center ${
+                    isActive
+                      ? "bg-mint/20 dark:bg-gold/20 border border-mint dark:border-gold"
+                      : "bg-beige/30 dark:bg-dark-border/30"
+                  }`}
+                  activeOpacity={0.7}
+                >
+                  <FontAwesome
+                    name={tab.icon as any}
+                    size={11}
+                    color={isActive ? "#ACD6B8" : "#9CA3AF"}
+                    style={{ marginRight: 3 }}
+                  />
+                  <Text
+                    className={`text-xs font-semibold ${
+                      isActive
+                        ? "text-mint dark:text-gold"
+                        : "text-light-textSecondary dark:text-dark-textSecondary"
+                    }`}
+                  >
+                    {tab.label}
+                  </Text>
+                  {count > 0 && (
+                    <View
+                      className={`ml-1 min-w-[18px] h-[18px] px-1 rounded-full items-center justify-center ${
+                        isActive ? "bg-mint dark:bg-gold" : "bg-gray-300 dark:bg-gray-600"
+                      }`}
+                    >
+                      <Text className="text-[10px] font-bold text-white leading-none">
+                        {count}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Content */}
       {isLoading ? (
         renderLoading()
       ) : isError ? (
         renderError()
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         renderEmptyState()
       ) : (
         <ScrollView
@@ -498,7 +565,7 @@ export function ShopOrdersScreen({ navigation }: any) {
             />
           }
         >
-          {orders.map((order) => renderOrderCard(order))}
+          {filteredOrders.map((order) => renderOrderCard(order))}
         </ScrollView>
       )}
     </SafeAreaView>

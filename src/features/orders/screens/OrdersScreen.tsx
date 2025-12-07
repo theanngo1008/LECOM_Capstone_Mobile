@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { OrdersStackParamList } from "@/navigation/types";
+import { useCancelOrder } from "../hooks/useCancelOrder";
 import { useConfirmOrder } from "../hooks/useConfirmOrder";
 import { useMyOrders } from "../hooks/useMyOrders";
 
@@ -22,6 +24,7 @@ export function OrdersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { data: ordersResponse, isLoading, isError, refetch } = useMyOrders();
   const { mutate: confirmOrder, isPending: confirming } = useConfirmOrder();
+  const { cancelOrder, isLoading: canceling } = useCancelOrder();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -59,10 +62,6 @@ export function OrdersScreen() {
         return "bg-green-100 dark:bg-green-900/30";
       case "Cancelled":
         return "bg-red-100 dark:bg-red-900/30";
-      case "Refunded":
-        return "bg-gray-100 dark:bg-gray-900/30";
-      case "PaymentFailed":
-        return "bg-red-100 dark:bg-red-900/30";
       default:
         return "bg-gray-100 dark:bg-gray-900/30";
     }
@@ -82,10 +81,6 @@ export function OrdersScreen() {
         return "text-green-600 dark:text-green-400";
       case "Cancelled":
         return "text-red-600 dark:text-red-400";
-      case "Refunded":
-        return "text-gray-600 dark:text-gray-400";
-      case "PaymentFailed":
-        return "text-red-600 dark:text-red-400";
       default:
         return "text-gray-600 dark:text-gray-400";
     }
@@ -103,67 +98,6 @@ export function OrdersScreen() {
         return "Đang giao";
       case "Completed":
         return "Hoàn thành";
-      case "Cancelled":
-        return "Đã hủy";
-      case "Refunded":
-        return "Đã hoàn tiền";
-      case "PaymentFailed":
-        return "Thanh toán thất bại";
-      default:
-        return status;
-    }
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "bg-yellow-100 dark:bg-yellow-900/30";
-      case "Paid":
-        return "bg-green-100 dark:bg-green-900/30";
-      case "Failed":
-        return "bg-red-100 dark:bg-red-900/30";
-      case "PartiallyRefunded":
-        return "bg-purple-100 dark:bg-purple-900/30";
-      case "Refunded":
-        return "bg-gray-100 dark:bg-gray-900/30";
-      case "Cancelled":
-        return "bg-red-100 dark:bg-red-900/30";
-      default:
-        return "bg-gray-100 dark:bg-gray-900/30";
-    }
-  };
-
-  const getPaymentStatusTextColor = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "text-yellow-600 dark:text-yellow-400";
-      case "Paid":
-        return "text-green-600 dark:text-green-400";
-      case "Failed":
-        return "text-red-600 dark:text-red-400";
-      case "PartiallyRefunded":
-        return "text-purple-600 dark:text-purple-400";
-      case "Refunded":
-        return "text-gray-600 dark:text-gray-400";
-      case "Cancelled":
-        return "text-red-600 dark:text-red-400";
-      default:
-        return "text-gray-600 dark:text-gray-400";
-    }
-  };
-
-  const getPaymentStatusText = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "Chờ thanh toán";
-      case "Paid":
-        return "Đã thanh toán";
-      case "Failed":
-        return "Thanh toán thất bại";
-      case "PartiallyRefunded":
-        return "Hoàn tiền một phần";
-      case "Refunded":
-        return "Đã hoàn tiền";
       case "Cancelled":
         return "Đã hủy";
       default:
@@ -185,14 +119,41 @@ export function OrdersScreen() {
     });
   };
 
+  const handleCancelOrder = (orderId: string) => {
+    Alert.alert(
+      "Hủy đơn hàng",
+      "Bạn có chắc chắn muốn hủy đơn hàng này?",
+      [
+        {
+          text: "Không",
+          style: "cancel",
+        },
+        {
+          text: "Hủy đơn",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelOrder({ orderId, reason: "Khách hàng yêu cầu hủy" });
+              refetch();
+            } catch (error) {
+              Alert.alert("Lỗi", "Không thể hủy đơn hàng");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleReview = (orderId: string) => {
-    // TODO: Navigate to review screen
     console.log("Đánh giá đơn hàng:", orderId);
-    // navigation.navigate("ReviewOrder", { orderId });
   };
 
   const handleNavigateToDetail = (orderId: string) => {
     navigation.navigate("OrderDetail", { orderId });
+  };
+
+  const canCancelOrder = (status: string) => {
+    return ["Pending", "Paid", "Processing"].includes(status);
   };
 
   const renderEmptyState = () => (
@@ -245,65 +206,87 @@ export function OrdersScreen() {
   const renderActionButtons = (order: any) => {
     const { status, id } = order;
 
-    if (status === "Shipping" || status === "Completed") {
-      return (
-        <View className="px-5 py-4 bg-white dark:bg-dark-card border-t-2 border-beige/50 dark:border-dark-border/50">
-          <View className="flex-row gap-3">
-            {status === "Shipping" && (
-              <TouchableOpacity
-                className="flex-1 py-3.5 rounded-xl bg-mint dark:bg-gold flex-row items-center justify-center"
-                onPress={() => handleConfirmReceived(id)}
-                activeOpacity={0.7}
-                disabled={confirming}
-              >
-                {confirming ? (
-                  <ActivityIndicator size={16} color="#fff" />
-                ) : (
-                  <>
-                    <FontAwesome name="check-circle" size={18} color="#fff" />
-                    <Text className="text-white font-bold text-sm ml-2">
-                      Đã nhận hàng
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {status === "Completed" && (
-              <TouchableOpacity
-                className="flex-1 py-3.5 rounded-xl bg-lavender dark:bg-lavender/80 flex-row items-center justify-center"
-                onPress={() => handleReview(id)}
-                activeOpacity={0.7}
-              >
-                <FontAwesome name="star" size={18} color="#fff" />
-                <Text className="text-white font-bold text-sm ml-2">
-                  Đánh giá
-                </Text>
-              </TouchableOpacity>
-            )}
-
+    return (
+      <View className="px-4 py-3 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row gap-2">
+          {/* Cancel Order Button - Only show if status is Pending/Paid/Processing */}
+          {canCancelOrder(status) && (
             <TouchableOpacity
-              className="flex-1 py-3.5 rounded-xl bg-beige/50 dark:bg-dark-border/50 border-2 border-beige dark:border-dark-border flex-row items-center justify-center"
-              onPress={() => handleNavigateToDetail(id)}
+              className="flex-1 py-2.5 rounded-xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 flex-row items-center justify-center"
+              onPress={() => handleCancelOrder(id)}
+              activeOpacity={0.7}
+              disabled={canceling}
+            >
+              {canceling ? (
+                <ActivityIndicator size={14} color="#EF4444" />
+              ) : (
+                <>
+                  <FontAwesome name="times-circle" size={14} color="#EF4444" />
+                  <Text className="text-red-600 dark:text-red-400 font-bold text-xs ml-1.5">
+                    Hủy đơn
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Confirm Received Button - Only for Shipping status */}
+          {status === "Shipping" && (
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-xl bg-mint dark:bg-gold flex-row items-center justify-center"
+              onPress={() => handleConfirmReceived(id)}
+              activeOpacity={0.7}
+              disabled={confirming}
+            >
+              {confirming ? (
+                <ActivityIndicator size={14} color="#fff" />
+              ) : (
+                <>
+                  <FontAwesome name="check-circle" size={14} color="#fff" />
+                  <Text className="text-white font-bold text-xs ml-1.5">
+                    Đã nhận
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Review Button - Only for Completed status */}
+          {status === "Completed" && (
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-xl bg-lavender dark:bg-lavender/80 flex-row items-center justify-center"
+              onPress={() => handleReview(id)}
               activeOpacity={0.7}
             >
-              <FontAwesome name="info-circle" size={18} color="#ACD6B8" />
-              <Text className="text-mint dark:text-gold font-bold text-sm ml-2">
-                Chi tiết
+              <FontAwesome name="star" size={14} color="#fff" />
+              <Text className="text-white font-bold text-xs ml-1.5">
+                Đánh giá
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
+          )}
 
-    return null;
+          {/* Detail Button - Always show */}
+          <TouchableOpacity
+            className="flex-1 py-2.5 rounded-xl bg-beige/50 dark:bg-dark-border/50 border border-mint/30 dark:border-gold/30 flex-row items-center justify-center"
+            onPress={() => handleNavigateToDetail(id)}
+            activeOpacity={0.7}
+          >
+            <FontAwesome name="info-circle" size={14} color="#ACD6B8" />
+            <Text className="text-mint dark:text-gold font-bold text-xs ml-1.5">
+              Chi tiết
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
+
+  // ...existing code...
 
   const renderOrderCard = (order: any) => (
     <TouchableOpacity
       key={order.id}
-      className="bg-white dark:bg-dark-card rounded-2xl mb-6 overflow-hidden border-2 border-beige/50 dark:border-dark-border/50 shadow-lg"
+      className="bg-white dark:bg-dark-card rounded-2xl mb-4 overflow-hidden shadow-lg"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
@@ -315,92 +298,79 @@ export function OrdersScreen() {
       activeOpacity={0.7}
     >
       {/* Order Header */}
-      <View className="p-5 bg-beige/30 dark:bg-dark-border/30 border-b-2 border-beige/50 dark:border-dark-border/50">
-        <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-1">
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1">
+      <View className="p-4 bg-beige/20 dark:bg-dark-border/20 border-b border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row items-start justify-between mb-2">
+          <View className="flex-1 mr-3">
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-0.5">
               Mã đơn hàng
             </Text>
-            <Text className="text-base font-bold text-light-text dark:text-dark-text">
-              {order.orderCode}
+            <Text className="text-sm font-bold text-light-text dark:text-dark-text" numberOfLines={1}>
+              #{order.orderCode}
             </Text>
           </View>
           <View
-            className={`px-4 py-2 rounded-full ${getStatusColor(order.status)}`}
+            className={`px-2.5 py-1 rounded-full ${getStatusColor(order.status)}`}
+            style={{ minWidth: 90 }}
           >
             <Text
-              className={`text-xs font-bold ${getStatusTextColor(
-                order.status
-              )}`}
+              className={`text-xs font-bold ${getStatusTextColor(order.status)} text-center`}
+              numberOfLines={1}
             >
               {getStatusText(order.status)}
             </Text>
           </View>
         </View>
 
-        <View className="flex-row items-center justify-between pt-3 border-t border-beige/30 dark:border-dark-border/30">
-          <View className="flex-row items-center flex-1">
-            <FontAwesome name="shopping-cart" size={16} color="#ACD6B8" />
-            <Text
-              className="text-sm font-semibold text-light-text dark:text-dark-text ml-2 flex-1"
-              numberOfLines={1}
-            >
-              {order.shopName}
-            </Text>
-          </View>
-          <View
-            className={`px-3 py-1.5 rounded-full ${getPaymentStatusColor(
-              order.paymentStatus
-            )} ml-2`}
+        <View className="flex-row items-center">
+          <FontAwesome name="shopping-bag" size={12} color="#9CA3AF" />
+          <Text
+            className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1.5 flex-1"
+            numberOfLines={1}
           >
-            <Text
-              className={`text-xs font-bold ${getPaymentStatusTextColor(
-                order.paymentStatus
-              )}`}
-            >
-              {getPaymentStatusText(order.paymentStatus)}
-            </Text>
-          </View>
+            {order.shopName}
+          </Text>
         </View>
       </View>
 
-      {/* Order Items Preview */}
-      <View className="p-5">
+      {/* Order Items Preview - Compact */}
+      <View className="p-4">
         {order.details.slice(0, 2).map((item: any, index: number) => (
           <View
             key={index}
-            className="flex-row items-center mb-4 last:mb-0 pb-4 last:pb-0 border-b border-beige/30 dark:border-dark-border/30 last:border-b-0"
+            className={`flex-row items-center ${
+              index < order.details.slice(0, 2).length - 1 ? "mb-3 pb-3 border-b border-beige/30 dark:border-dark-border/30" : ""
+            }`}
           >
             {item.productImage ? (
               <Image
                 source={{ uri: item.productImage }}
-                className="w-20 h-20 rounded-xl mr-4 border border-beige/30 dark:border-dark-border/30"
+                className="w-16 h-16 rounded-lg mr-3"
                 resizeMode="cover"
               />
             ) : (
-              <View className="w-20 h-20 rounded-xl bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-4 border border-beige/30 dark:border-dark-border/30">
-                <FontAwesome name="image" size={28} color="#D1D5DB" />
+              <View className="w-16 h-16 rounded-lg bg-beige/30 dark:bg-dark-border/30 items-center justify-center mr-3">
+                <FontAwesome name="image" size={24} color="#D1D5DB" />
               </View>
             )}
-            <View className="flex-1">
+            <View className="flex-1 mr-2">
               <Text
-                className="text-sm font-bold text-light-text dark:text-dark-text mb-2"
+                className="text-sm font-semibold text-light-text dark:text-dark-text mb-1"
                 numberOfLines={2}
               >
                 {item.productName}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {formatPrice(item.unitPrice)} × {item.quantity}
+                x{item.quantity}
               </Text>
             </View>
-            <Text className="text-base font-bold text-mint dark:text-gold ml-2">
+            <Text className="text-sm font-bold text-mint dark:text-gold">
               {formatPrice(item.lineTotal)}
             </Text>
           </View>
         ))}
 
         {order.details.length > 2 && (
-          <View className="mt-3 pt-3 border-t border-beige/30 dark:border-dark-border/30">
+          <View className="mt-2 pt-2 border-t border-beige/30 dark:border-dark-border/30">
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-center">
               +{order.details.length - 2} sản phẩm khác
             </Text>
@@ -408,62 +378,32 @@ export function OrdersScreen() {
         )}
       </View>
 
-      {/* Order Summary */}
-      <View className="p-5 bg-beige/20 dark:bg-dark-border/20 border-t-2 border-beige/50 dark:border-dark-border/50">
-        <View className="flex-row justify-between items-center mb-3">
-          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-            Tạm tính
-          </Text>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            {formatPrice(order.subtotal)}
-          </Text>
-        </View>
-        <View className="flex-row justify-between items-center mb-3">
-          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-            Phí vận chuyển
-          </Text>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            {formatPrice(order.shippingFee)}
-          </Text>
-        </View>
-        {order.discount > 0 && (
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-              Giảm giá
-            </Text>
-            <Text className="text-sm font-semibold text-coral">
-              -{formatPrice(order.discount)}
+      {/* Order Summary - Compact */}
+      <View className="px-4 py-3 bg-beige/10 dark:bg-dark-border/10 border-t border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row justify-between items-center">
+          <View className="flex-row items-center flex-1 mr-3">
+            <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1.5" numberOfLines={1}>
+              {formatDate(order.createdAt)}
             </Text>
           </View>
-        )}
-        <View className="h-px bg-beige/50 dark:bg-dark-border/50 my-3" />
-        <View className="flex-row justify-between items-center">
-          <Text className="text-base font-bold text-light-text dark:text-dark-text">
-            Tổng cộng
-          </Text>
-          <Text className="text-xl font-bold text-mint dark:text-gold">
-            {formatPrice(order.total)}
-          </Text>
+          <View className="flex-row items-center flex-shrink-0">
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mr-2">
+              Tổng:
+            </Text>
+            <Text className="text-base font-bold text-mint dark:text-gold" numberOfLines={1}>
+              {formatPrice(order.total)}
+            </Text>
+          </View>
         </View>
       </View>
 
       {/* Action Buttons */}
       {renderActionButtons(order)}
-
-      {/* Order Date */}
-      <View className="px-5 py-4 border-t-2 border-beige/50 dark:border-dark-border/50 bg-beige/10 dark:bg-dark-border/10">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <FontAwesome name="clock-o" size={14} color="#9CA3AF" />
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2">
-              {formatDate(order.createdAt)}
-            </Text>
-          </View>
-          <FontAwesome name="chevron-right" size={14} color="#ACD6B8" />
-        </View>
-      </View>
     </TouchableOpacity>
   );
+
+  // ...existing code...
 
   return (
     <SafeAreaView
@@ -471,12 +411,12 @@ export function OrdersScreen() {
       edges={["top"]}
     >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b-2 border-beige/50 dark:border-dark-border/50">
+      <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-12 h-12 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
         >
-          <FontAwesome name="arrow-left" size={20} color="#ACD6B8" />
+          <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
         </TouchableOpacity>
 
         <View className="flex-1 items-center">
@@ -491,10 +431,10 @@ export function OrdersScreen() {
         </View>
 
         <TouchableOpacity
-          className="w-12 h-12 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
           onPress={() => refetch()}
         >
-          <FontAwesome name="refresh" size={20} color="#ACD6B8" />
+          <FontAwesome name="refresh" size={18} color="#ACD6B8" />
         </TouchableOpacity>
       </View>
 

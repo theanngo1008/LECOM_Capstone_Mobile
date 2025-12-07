@@ -5,9 +5,9 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Modal,
-  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -19,21 +19,29 @@ import { useRecommendedProducts } from "../hooks/useRecommendedProducts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useStartChat } from "@/features/chat/hooks/useStartChat";
 import { useStartAIChat } from "@/features/chat/hooks/useStartAIChat";
+import { FeedbackSection } from "./FeedbackSection";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export function ProductDetailScreen({ navigation, route }: any) {
   const { slug } = route.params;
   const { product, isLoading, isError, refetch } = useProductBySlug(slug);
-  const { data: recommendedData, isLoading: isLoadingRecommended } = useRecommendedProducts(slug);
+  const { data: recommendedData, isLoading: isLoadingRecommended } =
+    useRecommendedProducts(slug);
   const addToCart = useAddToCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const startChat = useStartChat();
+  const startAIChat = useStartAIChat();
 
   // ✅ Lấy giỏ hàng để đếm số lượng
   const { items: cartShopGroups } = useCart();
-  
+
   // ✅ Tính tổng số lượng sản phẩm từ tất cả shop
   const cartItemCount = cartShopGroups.reduce((total, shopGroup) => {
-    const shopTotal = shopGroup.items.reduce((sum, item) => sum + item.quantity, 0);
+    const shopTotal = shopGroup.items.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
     return total + shopTotal;
   }, 0);
 
@@ -67,14 +75,13 @@ export function ProductDetailScreen({ navigation, route }: any) {
         onError: (err: any) => {
           Alert.alert(
             "Lỗi",
-            err?.response?.data?.message || "Không thể bắt đầu cuộc trò chuyện."
+            err?.response?.data?.message ||
+              "Không thể bắt đầu cuộc trò chuyện."
           );
         },
       }
     );
   };
-
-  const startAIChat = useStartAIChat();
 
   const handleAskAI = () => {
     if (!product?.id) {
@@ -101,7 +108,8 @@ export function ProductDetailScreen({ navigation, route }: any) {
         onError: (err: any) => {
           Alert.alert(
             "Lỗi",
-            err?.response?.data?.message || "Không thể bắt đầu trò chuyện với AI."
+            err?.response?.data?.message ||
+              "Không thể bắt đầu trò chuyện với AI."
           );
         },
       }
@@ -236,7 +244,10 @@ export function ProductDetailScreen({ navigation, route }: any) {
   // ✅ Handle Add to Cart
   const handleAddToCart = () => {
     if (product.status !== "Published" || product.stock === 0) {
-      Alert.alert("Không khả dụng", "Sản phẩm này không thể thêm vào giỏ hàng");
+      Alert.alert(
+        "Không khả dụng",
+        "Sản phẩm này không thể thêm vào giỏ hàng"
+      );
       return;
     }
 
@@ -318,7 +329,7 @@ export function ProductDetailScreen({ navigation, route }: any) {
             {cartItemCount > 0 && (
               <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
                 <Text className="text-white text-[10px] font-bold">
-                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                  {cartItemCount > 99 ? "99+" : cartItemCount}
                 </Text>
               </View>
             )}
@@ -389,9 +400,7 @@ export function ProductDetailScreen({ navigation, route }: any) {
 
             {(product.status === "OutOfStock" || product.stock === 0) && (
               <View className="absolute top-4 left-4 px-4 py-2 rounded-full bg-coral/90">
-                <Text className="text-white text-xs font-bold">
-                  Hết hàng
-                </Text>
+                <Text className="text-white text-xs font-bold">Hết hàng</Text>
               </View>
             )}
           </View>
@@ -535,13 +544,19 @@ export function ProductDetailScreen({ navigation, route }: any) {
               </View>
             </View>
 
+            {/* ✨ FEEDBACK SECTION - Using Component */}
+            <FeedbackSection productId={product.id} />
+
             {/* 🎯 RECOMMENDED PRODUCTS */}
             {!isLoadingRecommended && recommendedProducts.length > 0 && (
               <View className="mb-6">
                 <View className="flex-row items-center justify-between mb-4">
                   <View>
-                    <Text className="text-lg font-bold text-light-text dark:text-dark-text" numberOfLines={1}>
-                      Sản phẩm tương{'\u00A0'}tự
+                    <Text
+                      className="text-lg font-bold text-light-text dark:text-dark-text"
+                      numberOfLines={1}
+                    >
+                      Sản phẩm tương{"\u00A0"}tự
                     </Text>
                     <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
                       Có thể bạn sẽ thích
@@ -591,7 +606,11 @@ export function ProductDetailScreen({ navigation, route }: any) {
                             />
                           ) : (
                             <View className="w-5 h-5 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-2">
-                              <FontAwesome name="shopping-bag" size={8} color="#ACD6B8" />
+                              <FontAwesome
+                                name="shopping-bag"
+                                size={8}
+                                color="#ACD6B8"
+                              />
                             </View>
                           )}
                           <Text
@@ -655,7 +674,9 @@ export function ProductDetailScreen({ navigation, route }: any) {
                       }
                       style={{ marginRight: 4 }}
                     />
-                    <Text className={`font-semibold ${statusConfig.textColor}`}>
+                    <Text
+                      className={`font-semibold ${statusConfig.textColor}`}
+                    >
                       {statusConfig.label}
                     </Text>
                   </View>
@@ -691,7 +712,9 @@ export function ProductDetailScreen({ navigation, route }: any) {
             <TouchableOpacity
               className="flex-3 bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
               onPress={handleAddToCart}
-              disabled={product.status !== "Published" || product.stock === 0}
+              disabled={
+                product.status !== "Published" || product.stock === 0
+              }
             >
               <FontAwesome name="shopping-cart" size={20} color="white" />
               <Text className="text-white text-base font-bold ml-2">
@@ -718,7 +741,9 @@ export function ProductDetailScreen({ navigation, route }: any) {
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
                   Chọn số lượng
                 </Text>
-                <TouchableOpacity onPress={() => setShowQuantityModal(false)}>
+                <TouchableOpacity
+                  onPress={() => setShowQuantityModal(false)}
+                >
                   <FontAwesome name="times" size={24} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
@@ -785,7 +810,9 @@ export function ProductDetailScreen({ navigation, route }: any) {
                     <FontAwesome
                       name="plus"
                       size={20}
-                      color={quantity >= product.stock ? "#9CA3AF" : "#ACD6B8"}
+                      color={
+                        quantity >= product.stock ? "#9CA3AF" : "#ACD6B8"
+                      }
                     />
                   </TouchableOpacity>
                 </View>
@@ -820,7 +847,11 @@ export function ProductDetailScreen({ navigation, route }: any) {
                   <ActivityIndicator color="white" />
                 ) : (
                   <>
-                    <FontAwesome name="shopping-cart" size={20} color="white" />
+                    <FontAwesome
+                      name="shopping-cart"
+                      size={20}
+                      color="white"
+                    />
                     <Text className="text-white text-base font-bold ml-2">
                       Thêm {quantity} vào giỏ
                     </Text>

@@ -101,6 +101,9 @@ export type ShopStackParamList = {
     courseId: string;
   };
   ShopOrdersMain: undefined;
+  ShopOrderDetail: {
+    orderId: string;
+  };
   SellerChatList: undefined;
   ChatDetail: {
     conversationId: string;
@@ -110,6 +113,7 @@ export type ShopStackParamList = {
   ShopWalletTransactions: undefined;
   ShopWithdrawals: undefined;
   ShopDashboard: undefined;
+  ShopRefundsMain: undefined;
 };
 export type ShopStackScreenProps<T extends keyof ShopStackParamList> =
   CompositeScreenProps<

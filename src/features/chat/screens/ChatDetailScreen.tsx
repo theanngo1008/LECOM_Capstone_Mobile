@@ -1,4 +1,4 @@
-import type { ConversationItem } from "@/api/chat";
+import type { ChatMessage, ConversationItem } from "@/api/chat";
 import type { ChatStackParamList } from "@/navigation/ChatStackNavigator";
 import { useAuthStore } from "@/store/auth-store";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -29,14 +30,6 @@ type ChatDetailScreenProps = NativeStackScreenProps<
   ChatStackParamList,
   "ChatDetail"
 >;
-
-interface SimpleMessage {
-  id: string;
-  senderId: string;
-  content: string;
-  isRead: boolean;
-  createdAt: string;
-}
 
 export function ChatDetailScreen() {
   const navigation =
@@ -81,7 +74,7 @@ export function ChatDetailScreen() {
     refetch,
   } = useConversationMessages(conversationId);
 
-  const serverMessages = (data?.result || []) as SimpleMessage[];
+  const serverMessages = (data?.result || []) as ChatMessage[];
 
   // ❗ Mỗi lần vào lại màn detail → refetch messages từ BE
   useFocusEffect(
@@ -93,10 +86,8 @@ export function ChatDetailScreen() {
   // -------------------------------
   // Local realtime + optimistic
   // -------------------------------
-  const [liveMessages, setLiveMessages] = useState<SimpleMessage[]>([]);
-  const [optimisticMessages, setOptimisticMessages] = useState<
-    SimpleMessage[]
-  >([]);
+  const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState("");
 
   // -------------------------------
@@ -111,7 +102,7 @@ export function ChatDetailScreen() {
   // -------------------------------
   // Realtime append
   // -------------------------------
-  const appendMessage = (msg: SimpleMessage) => {
+  const appendMessage = (msg: ChatMessage) => {
     setLiveMessages((prev) => {
       const exists =
         prev.some((m) => m.id === msg.id) ||
@@ -135,7 +126,7 @@ export function ChatDetailScreen() {
     conversationId,
     onMessage: (msg) => {
       console.log("🔥 Detail received realtime:", msg);
-      appendMessage(msg as SimpleMessage);
+      appendMessage(msg as ChatMessage);
     },
   });
 
@@ -165,40 +156,42 @@ export function ChatDetailScreen() {
     setMessageText("");
 
     // AI optimistic
-    if (isAIChat) {
-      const tempMsg: SimpleMessage = {
-        id: `temp-${Date.now()}`,
-        senderId: userId!,
-        content,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      };
-
-      setOptimisticMessages((prev) => [...prev, tempMsg]);
-
-      sendAIMessage(
-        { content },
-        {
-          onSuccess: () => {
-            setOptimisticMessages([]);
-            queryClient.invalidateQueries({
-              queryKey: ["chat", "messages", conversationId],
-            });
-            // ⭐ Scroll to top after sending
-            setTimeout(() => {
-              flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-            }, 100);
-          },
-          onError: () => {
-            setOptimisticMessages((prev) =>
-              prev.filter((m) => !m.id.startsWith("temp-"))
-            );
-          },
+        if (isAIChat) {
+          const tempMsg: ChatMessage = {
+            id: `temp-${Date.now()}`,
+            senderId: userId!,
+            senderName: "You",
+            senderAvatar: null,
+            content,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          };
+    
+          setOptimisticMessages((prev) => [...prev, tempMsg]);
+    
+          sendAIMessage(
+            { content },
+            {
+              onSuccess: () => {
+                setOptimisticMessages([]);
+                queryClient.invalidateQueries({
+                  queryKey: ["chat", "messages", conversationId],
+                });
+                // ⭐ Scroll to top after sending
+                setTimeout(() => {
+                  flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+                }, 100);
+              },
+              onError: () => {
+                setOptimisticMessages((prev) =>
+                  prev.filter((m) => !m.id.startsWith("temp-"))
+                );
+              },
+            }
+          );
+    
+          return;
         }
-      );
-
-      return;
-    }
 
     // Normal message
     sendNormalMessage(
@@ -230,53 +223,100 @@ export function ChatDetailScreen() {
   // -------------------------------
   // Message bubble
   // -------------------------------
-  const renderMessage = ({ item }: { item: SimpleMessage }) => {
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isMine = item.senderId === userId;
     const isTemp = item.id.startsWith("temp-");
 
     return (
-      <View className="w-full px-4 mb-2">
+      <View className="w-full px-4 mb-3">
         <View
           className={`flex-row ${
             isMine ? "justify-end" : "justify-start"
           }`}
         >
-          <View
-            className={`max-w-[75%] px-4 py-3 rounded-2xl shadow-sm ${
-              isMine
-                ? "bg-mint dark:bg-gold rounded-br-md"
-                : "bg-white dark:bg-dark-card border border-beige/30 dark:border-dark-border/30 rounded-bl-md"
-            }`}
-            style={{ opacity: isTemp ? 0.6 : 1 }}
-          >
-            <Text
-              className={`text-base ${
-                isMine ? "text-white" : "text-light-text dark:text-dark-text"
-              }`}
-            >
-              {item.content}
-            </Text>
-
-            <View className="flex-row justify-between mt-1">
-              <Text
-                className={`text-xs ${
-                  isMine
-                    ? "text-white/70"
-                    : "text-light-textSecondary dark:text-dark-textSecondary"
-                }`}
-              >
-                {formatTime(item.createdAt)}
-              </Text>
-
-              {isMine && (
-                <FontAwesome5
-                  name={isTemp ? "clock" : item.isRead ? "check-circle" : "check"}
-                  size={12}
-                  color="#fff"
+          {/* Avatar cho người gửi (bên trái nếu không phải mình) */}
+          {!isMine && (
+            <View className="mr-2 mt-1">
+              {item.senderAvatar ? (
+                <Image
+                  source={{ uri: item.senderAvatar }}
+                  className="w-8 h-8 rounded-full"
                 />
+              ) : (
+                <View className={`w-8 h-8 rounded-full items-center justify-center ${
+                  isAIChat ? "bg-purple-500" : "bg-skyBlue"
+                }`}>
+                  <Text className="text-white text-xs font-bold">
+                    {isAIChat ? "🤖" : item.senderName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
               )}
             </View>
+          )}
+
+          {/* Message bubble */}
+          <View className="max-w-[70%]">
+            {/* Sender name (nếu không phải mình) */}
+            {!isMine && (
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1 ml-1">
+                {item.senderName}
+              </Text>
+            )}
+
+            <View
+              className={`px-4 py-3 rounded-2xl shadow-sm ${
+                isMine
+                  ? isAIChat
+                    ? "bg-purple-500 rounded-br-md"
+                    : "bg-mint dark:bg-gold rounded-br-md"
+                  : "bg-white dark:bg-dark-card border border-beige/30 dark:border-dark-border/30 rounded-bl-md"
+              }`}
+              style={{ opacity: isTemp ? 0.6 : 1 }}
+            >
+              <Text
+                className={`text-base leading-5 ${
+                  isMine ? "text-white" : "text-light-text dark:text-dark-text"
+                }`}
+              >
+                {item.content}
+              </Text>
+
+              <View className="flex-row items-center justify-between mt-2">
+                <Text
+                  className={`text-xs ${
+                    isMine
+                      ? "text-white/70"
+                      : "text-light-textSecondary dark:text-dark-textSecondary"
+                  }`}
+                >
+                  {formatTime(item.createdAt)}
+                </Text>
+
+                {isMine && (
+                  <View className="ml-2">
+                    <FontAwesome5
+                      name={isTemp ? "clock" : item.isRead ? "check-double" : "check"}
+                      size={12}
+                      color="rgba(255,255,255,0.7)"
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
+
+          {/* Avatar cho mình (bên phải) */}
+          {isMine && (
+            <View className="ml-2 mt-1">
+              <View className={`w-8 h-8 rounded-full items-center justify-center ${
+                isAIChat ? "bg-purple-600" : "bg-mint dark:bg-gold"
+              }`}>
+                <Text className="text-white text-xs font-bold">
+                  {item.senderName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -290,35 +330,50 @@ export function ChatDetailScreen() {
       <View className="flex-row items-center">
         <Pressable
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 bg-beige/20 dark:bg-dark-border/20 rounded-xl items-center justify-center mr-3"
+          className="w-10 h-10 bg-beige/20 dark:bg-dark-border/20 rounded-xl items-center justify-center mr-3 active:scale-95"
         >
           <FontAwesome5 name="arrow-left" size={16} color="#333" />
         </Pressable>
 
         <View className="flex-row items-center flex-1">
-          <View
-            className={`w-12 h-12 rounded-xl items-center justify-center mr-3 ${
-              isAIChat ? "bg-lavender/10" : "bg-mint/10"
-            }`}
-          >
-            <FontAwesome5
-              name={isAIChat ? "robot" : "comments"}
-              size={20}
-              color={isAIChat ? "#B19CD9" : "#ACD6B8"}
+          {/* Avatar/Icon */}
+          {isAIChat ? (
+            <View className="w-12 h-12 rounded-xl bg-purple-500 items-center justify-center mr-3">
+              <Text className="text-xl">🤖</Text>
+            </View>
+          ) : currentConversation?.displayAvatar ? (
+            <Image
+              source={{ uri: currentConversation.displayAvatar }}
+              className="w-12 h-12 rounded-xl mr-3"
             />
-          </View>
+          ) : (
+            <View className="w-12 h-12 rounded-xl bg-mint/10 items-center justify-center mr-3">
+              <FontAwesome5 name="user" size={20} color="#ACD6B8" />
+            </View>
+          )}
 
           <View className="flex-1">
             <Text className="text-base font-bold text-light-text dark:text-dark-text">
               {isAIChat
                 ? "🤖 AI Assistant"
-                : currentConversation?.product?.name || "Chat"}
+                : currentConversation?.displayName || "Chat"}
             </Text>
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              {messages.length} messages
+              {isAIChat ? "Hỗ trợ tự động" : currentConversation?.product?.name || `${messages.length} tin nhắn`}
             </Text>
           </View>
         </View>
+
+        {/* Info button */}
+        <Pressable
+          onPress={() => {
+            // TODO: Show conversation info
+            console.log("Show info", currentConversation);
+          }}
+          className="w-10 h-10 bg-beige/20 dark:bg-dark-border/20 rounded-xl items-center justify-center ml-2 active:scale-95"
+        >
+          <FontAwesome5 name="info-circle" size={16} color="#333" />
+        </Pressable>
       </View>
     </View>
   );
@@ -331,7 +386,12 @@ export function ChatDetailScreen() {
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
         {renderHeader()}
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#ACD6B8" />
+          <View className="w-20 h-20 rounded-full bg-mint/10 items-center justify-center mb-4">
+            <ActivityIndicator size="large" color="#ACD6B8" />
+          </View>
+          <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary font-medium">
+            Đang tải tin nhắn...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -340,8 +400,27 @@ export function ChatDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
         {renderHeader()}
-        <View className="flex-1 justify-center items-center">
-          <Text className="text-light-text dark:text-dark-text">Error loading messages</Text>
+        <View className="flex-1 justify-center items-center px-8">
+          <View className="w-24 h-24 rounded-full bg-red-50 dark:bg-red-900/20 items-center justify-center mb-6">
+            <FontAwesome5 name="exclamation-circle" size={48} color="#EF4444" />
+          </View>
+          <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
+            Không thể tải
+          </Text>
+          <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center mb-8">
+            Không thể tải tin nhắn.{"\n"}Vui lòng thử lại.
+          </Text>
+          <Pressable
+            className="bg-mint dark:bg-gold px-8 py-4 rounded-2xl active:scale-95 shadow-lg"
+            onPress={() => refetch()}
+          >
+            <View className="flex-row items-center">
+              <FontAwesome5 name="redo" size={18} color="white" />
+              <Text className="text-white font-bold text-base ml-2">
+                Thử lại
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -353,6 +432,7 @@ export function ChatDetailScreen() {
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         className="flex-1"
       >
         {renderHeader()}
@@ -364,9 +444,7 @@ export function ChatDetailScreen() {
           renderItem={renderMessage}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 16 }}
           showsVerticalScrollIndicator={false}
-          // ⭐ Inverted to show newest first at top
           inverted
-          // ⭐ Optional: Add pull-to-refresh for loading older messages
           onEndReached={() => {
             // TODO: Load more old messages (pagination)
             console.log("📜 Load more old messages");
@@ -374,34 +452,36 @@ export function ChatDetailScreen() {
           onEndReachedThreshold={0.5}
         />
 
+        {/* Input area */}
         <View className="px-4 py-3 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
-          <View className="flex-row items-center">
-            <View className="flex-1 bg-beige/20 dark:bg-dark-border/20 rounded-xl px-4 py-2 mr-2">
+          <View className="flex-row items-end">
+            <View className="flex-1 bg-beige/20 dark:bg-dark-border/20 rounded-2xl px-4 py-3 mr-2">
               <TextInput
                 value={messageText}
                 onChangeText={setMessageText}
-                placeholder={isAIChat ? "Ask AI..." : "Type a message..."}
+                placeholder={isAIChat ? "Hỏi AI về sản phẩm..." : "Nhập tin nhắn..."}
                 placeholderTextColor="#9CA3AF"
-                className="text-base text-light-text dark:text-dark-text"
+                className="text-base text-light-text dark:text-dark-text min-h-[20px] max-h-[100px]"
                 multiline
+                maxLength={1000}
               />
             </View>
 
             <Pressable
               onPress={handleSendMessage}
               disabled={!messageText.trim() || isSending}
-              className={`w-10 h-10 rounded-xl items-center justify-center ${
+              className={`w-12 h-12 rounded-2xl items-center justify-center shadow-sm active:scale-95 ${
                 messageText.trim()
                   ? isAIChat
-                    ? "bg-lavender"
-                    : "bg-mint"
+                    ? "bg-purple-500"
+                    : "bg-mint dark:bg-gold"
                   : "bg-gray-300"
               }`}
             >
               {isSending ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <FontAwesome5 name="send" size={16} color="#fff" />
+                <FontAwesome5 name="paper-plane" size={16} color="#fff" />
               )}
             </Pressable>
           </View>

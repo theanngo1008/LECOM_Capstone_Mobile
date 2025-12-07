@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { ordersApi } from "@/api/orders"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 export const useConfirmOrder = () => {
   const queryClient = useQueryClient()
@@ -9,6 +9,7 @@ export const useConfirmOrder = () => {
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-orders"] })
+      queryClient.invalidateQueries({ queryKey: ["order-details"] })
     },
   })
 }

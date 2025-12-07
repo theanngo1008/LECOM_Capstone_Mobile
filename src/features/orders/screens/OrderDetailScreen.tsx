@@ -4,17 +4,18 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useCreateFeedback } from "../hooks/useCreateFeedback";
 import { useCreateRefund } from "../hooks/useCreateRefund";
 import { useOrderDetail } from "../hooks/useOrderDetail";
 
@@ -46,12 +47,20 @@ export function OrderDetailScreen({ route, navigation }: Props) {
   const { orderId } = route.params;
   const { data, isLoading, isError, refetch } = useOrderDetail(orderId);
   const { mutate: createRefund, isPending: isCreatingRefund } = useCreateRefund();
-  const { uploadFile, isLoading: isUploading } = useUploadFile();
+  const { mutate: createFeedback, isPending: isCreatingFeedback } = useCreateFeedback();
+  const { uploadFile, isLoading: isUploading } = useUploadFile(); // Only for refund
 
+  // Refund Modal States
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+
+  // ✨ Feedback Modal States (No upload URLs needed - API handles it)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackImages, setFeedbackImages] = useState<any[]>([]); // Store RN file objects
 
   const order = data?.result;
 
@@ -72,37 +81,39 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     });
   };
 
-const isRefundAllowed = () => {
-  if (!order || order.status !== "Completed") return false;
-  if (!order.completedAt) return false; // thêm check null
+  const isRefundAllowed = () => {
+    if (!order || order.status !== "Completed") return false;
+    if (!order.completedAt) return false;
 
-  const completedDate = new Date(order.completedAt);
-  if (isNaN(completedDate.getTime())) return false; // tránh 'Invalid Date'
+    const completedDate = new Date(order.completedAt);
+    if (isNaN(completedDate.getTime())) return false;
 
-  const now = new Date();
-  const daysDiff = Math.floor(
-    (now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+    const now = new Date();
+    const daysDiff = Math.floor(
+      (now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
-  return daysDiff <= 5;
-};
+    return daysDiff <= 5;
+  };
 
-const getRemainingRefundDays = () => {
-  if (!order || order.status !== "Completed") return 0;
-  if (!order.completedAt) return 0; // thêm check null
+  const getRemainingRefundDays = () => {
+    if (!order || order.status !== "Completed") return 0;
+    if (!order.completedAt) return 0;
 
-  const completedDate = new Date(order.completedAt);
-  if (isNaN(completedDate.getTime())) return 0;
+    const completedDate = new Date(order.completedAt);
+    if (isNaN(completedDate.getTime())) return 0;
 
-  const now = new Date();
-  const daysDiff = Math.floor(
-    (now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+    const now = new Date();
+    const daysDiff = Math.floor(
+      (now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
-  return Math.max(0, 5 - daysDiff);
-};
+    return Math.max(0, 5 - daysDiff);
+  };
 
-
+  // ================================
+  // REFUND HANDLERS
+  // ================================
   const handlePickImage = async () => {
     try {
       const { status: permissionStatus } =
@@ -128,10 +139,8 @@ const getRemainingRefundDays = () => {
         type: asset.mimeType || "image/jpeg",
       };
 
-      // Add image to preview immediately
       setSelectedImage(asset.uri);
 
-      // Upload image
       const uploaded = await uploadFile(file, "image");
       const uploadedUrl = typeof uploaded === "string" ? uploaded : uploaded?.url;
       
@@ -144,7 +153,6 @@ const getRemainingRefundDays = () => {
     } catch (err: any) {
       console.error("Upload error:", err);
       Alert.alert("Lỗi", err.message || "Không thể tải ảnh lên. Vui lòng thử lại.");
-      // Remove the failed image from preview
       setSelectedImage(null);
       setUploadedUrl(null);
     }
@@ -159,7 +167,7 @@ const getRemainingRefundDays = () => {
     if (!isRefundAllowed()) {
       Alert.alert(
         "Không thể hoàn tiền",
-        "Thời gian yêu cầu hoàn tiền đã hết. Bạn chỉ có thể yêu cầu hoàn tiền trong vòng 7 ngày sau khi nhận hàng.",
+        "Thời gian yêu cầu hoàn tiền đã hết. Bạn chỉ có thể yêu cầu hoàn tiền trong vòng 5 ngày sau khi nhận hàng.",
         [{ text: "Đã hiểu" }]
       );
       return;
@@ -189,11 +197,6 @@ const getRemainingRefundDays = () => {
       attachmentUrls: uploadedUrl,
     };
 
-    // 🔍 LOG PAYLOAD
-    console.log("=== REFUND REQUEST PAYLOAD ===");
-    console.log(JSON.stringify(payload, null, 2));
-    console.log("==============================");
-
     createRefund(payload, {
       onSuccess: () => {
         setShowRefundModal(false);
@@ -203,24 +206,10 @@ const getRemainingRefundDays = () => {
         Alert.alert(
           "Thành công",
           "Yêu cầu hoàn tiền đã được gửi. Chúng tôi sẽ xử lý trong vòng 24-48 giờ.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                refetch();
-              },
-            },
-          ]
+          [{ text: "OK", onPress: () => refetch() }]
         );
       },
       onError: (error: any) => {
-        // 🔍 LOG ERROR
-        console.error("=== REFUND ERROR ===");
-        console.error("Status:", error?.response?.status);
-        console.error("Data:", JSON.stringify(error?.response?.data, null, 2));
-        console.error("Message:", error?.message);
-        console.error("====================");
-
         Alert.alert(
           "Lỗi",
           error?.response?.data?.message || "Không thể gửi yêu cầu hoàn tiền"
@@ -229,6 +218,114 @@ const getRemainingRefundDays = () => {
     });
   };
 
+  // ================================
+  // ✨ FEEDBACK HANDLERS (Simplified)
+  // ================================
+  const handlePickFeedbackImages = async () => {
+    try {
+      if (feedbackImages.length >= 5) {
+        Alert.alert("Thông báo", "Bạn chỉ có thể tải lên tối đa 5 ảnh");
+        return;
+      }
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Lỗi", "Vui lòng cấp quyền truy cập thư viện ảnh");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        selectionLimit: 5 - feedbackImages.length,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      // ✅ Convert to RN file format directly - no manual upload
+      const newFiles = result.assets.map((asset) => ({
+        uri: asset.uri,
+        name: asset.fileName || `feedback_${Date.now()}_${Math.random()}.jpg`,
+        type: asset.mimeType || "image/jpeg",
+      }));
+
+      setFeedbackImages((prev) => [...prev, ...newFiles]);
+    } catch (err: any) {
+      console.error("Pick feedback images error:", err);
+      Alert.alert("Lỗi", "Không thể chọn ảnh. Vui lòng thử lại.");
+    }
+  };
+
+  const handleRemoveFeedbackImage = (index: number) => {
+    setFeedbackImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleFeedbackButtonPress = () => {
+    setShowFeedbackModal(true);
+  };
+
+  const handleSubmitFeedback = () => {
+    if (!feedbackComment.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập nhận xét của bạn");
+      return;
+    }
+
+    if (!order) return;
+
+    const productId = order.details[0]?.productId;
+    if (!productId) {
+      Alert.alert("Lỗi", "Không tìm thấy thông tin sản phẩm");
+      return;
+    }
+
+    // ✅ Send RN file objects directly - API handles upload via multipart/form-data
+    const payload = {
+      productId,
+      orderId: order.id,
+      rating,
+      content: feedbackComment.trim(),
+      images: feedbackImages.length > 0 ? feedbackImages : undefined,
+    };
+
+    console.log("=== FEEDBACK PAYLOAD ===");
+    console.log(`Product: ${productId}, Order: ${order.id}, Rating: ${rating}`);
+    console.log(`Images: ${feedbackImages.length} files`);
+
+    createFeedback(payload, {
+      onSuccess: () => {
+        setShowFeedbackModal(false);
+        setRating(5);
+        setFeedbackComment("");
+        setFeedbackImages([]);
+        Alert.alert(
+          "Thành công",
+          "Cảm ơn bạn đã đánh giá sản phẩm!",
+          [{ text: "OK", onPress: () => refetch() }]
+        );
+      },
+      onError: (error: any) => {
+        console.error("=== FEEDBACK ERROR ===");
+        console.error("Status:", error?.response?.status);
+        console.error("Data:", JSON.stringify(error?.response?.data, null, 2));
+        Alert.alert(
+          "Lỗi",
+          error?.response?.data?.message || "Không thể gửi đánh giá"
+        );
+      },
+    });
+  };
+
+  const resetFeedbackModal = () => {
+    setShowFeedbackModal(false);
+    setRating(5);
+    setFeedbackComment("");
+    setFeedbackImages([]);
+  };
+
+  // ================================
+  // LOADING & ERROR STATES
+  // ================================
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
@@ -267,7 +364,6 @@ const getRemainingRefundDays = () => {
   const statusInfo = ORDER_STATUS_MAP[order.status] || ORDER_STATUS_MAP.Pending;
   const paymentInfo = PAYMENT_STATUS_MAP[order.paymentStatus] || PAYMENT_STATUS_MAP.Pending;
 
-  // Order status steps
   const statusSteps = [
     { key: "Pending", label: "Chờ thanh toán", icon: "clock-o" },
     { key: "Paid", label: "Đã thanh toán", icon: "check-circle" },
@@ -283,33 +379,44 @@ const getRemainingRefundDays = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
-      {/* Header */}
+      {/* Header - Fixed Layout */}
       <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center flex-1">
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
             >
               <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
             </TouchableOpacity>
-            <Text className="text-lg font-bold text-light-text dark:text-dark-text">
+            <Text className="text-lg font-bold text-light-text dark:text-dark-text ml-3">
               Trở về
             </Text>
           </View>
 
           <View
             className="px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: statusInfo.bgColor }}
+            style={{ 
+              backgroundColor: statusInfo.bgColor, 
+              minWidth: 85,
+              alignSelf: 'flex-start'
+            }}
           >
-            <Text className="text-xs font-semibold" style={{ color: statusInfo.color }}>
+            <Text 
+              className="text-xs font-semibold text-center" 
+              style={{ color: statusInfo.color }}
+              numberOfLines={1}
+            >
               {statusInfo.label}
             </Text>
           </View>
         </View>
 
-        <View>
-          <Text className="text-base font-bold text-light-text dark:text-dark-text">
+        <View className="mt-1">
+          <Text 
+            className="text-base font-bold text-light-text dark:text-dark-text" 
+            numberOfLines={1}
+          >
             Mã đơn hàng: {order.orderCode}
           </Text>
           <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
@@ -317,7 +424,6 @@ const getRemainingRefundDays = () => {
           </Text>
         </View>
       </View>
-
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Order Status Timeline */}
         {!isCancelled && !isRefunded && !isPaymentFailed && (
@@ -369,7 +475,6 @@ const getRemainingRefundDays = () => {
               />
             </View>
 
-            {/* ✅ Refund Timer - Only show when Completed */}
             {order.status === "Completed" && (
               <View className="mt-4 pt-4 border-t border-beige/20 dark:border-dark-border/20">
                 <View className="flex-row items-center">
@@ -385,7 +490,7 @@ const getRemainingRefundDays = () => {
                       </>
                     ) : (
                       <Text className="text-red-500 font-semibold">
-                        Đã hết thời gian yêu cầu hoàn tiền (7 ngày)
+                        Đã hết thời gian yêu cầu hoàn tiền (5 ngày)
                       </Text>
                     )}
                   </Text>
@@ -395,36 +500,70 @@ const getRemainingRefundDays = () => {
           </View>
         )}
 
-        {/* Cancelled/Refunded/Failed Status */}
+
+
+        {/* Cancelled/Refunded/Failed Status - Optimized */}
         {(isCancelled || isRefunded || isPaymentFailed) && (
-          <View className="bg-white dark:bg-dark-card mx-6 mt-6 rounded-2xl p-6 border border-beige/30 dark:border-dark-border/30">
-            <View className="items-center py-4">
-              <View
-                className={`w-16 h-16 rounded-full items-center justify-center ${
-                  isRefunded ? "bg-gray-100" : "bg-red-100"
-                }`}
-              >
-                <FontAwesome
-                  name={isRefunded ? "undo" : isPaymentFailed ? "times-circle" : "ban"}
-                  size={32}
-                  color={isRefunded ? "#6B7280" : "#EF4444"}
-                />
-              </View>
-              <Text className="text-lg font-bold text-light-text dark:text-dark-text mt-4">
-                {statusInfo.label}
-              </Text>
-              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center mt-2">
+          <View className="bg-white dark:bg-dark-card mx-6 mt-6 rounded-2xl overflow-hidden border border-beige/30 dark:border-dark-border/30">
+            {/* Header with gradient */}
+            <View 
+              className="px-6 py-4"
+              style={{
+                backgroundColor: isRefunded 
+                  ? '#F9FAFB' 
+                  : isPaymentFailed 
+                  ? '#FEF2F2' 
+                  : '#FEE2E2'
+              }}
+            >
+              <View className="flex-row items-center justify-center">
+                    <View
+                      className={`w-12 h-12 rounded-full items-center justify-center mr-3 ${
+                        isRefunded 
+                          ? "bg-gray-200 dark:bg-gray-700" 
+                          : isPaymentFailed
+                          ? "bg-red-200 dark:bg-red-900/50"
+                          : "bg-red-200 dark:bg-red-900/50"
+                      }`}
+                    >
+                      <FontAwesome
+                        name={isRefunded ? "undo" : isPaymentFailed ? "times-circle" : "ban"}
+                        size={24}
+                        color={isRefunded ? "#6B7280" : "#EF4444"}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-lg font-bold text-light-text dark:text-dark-text">
+                        {statusInfo.label}
+                      </Text>
+                      <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-0.5">
+                        {isRefunded
+                          ? formatDate((order as any).updatedAt || order.createdAt)
+                          : isPaymentFailed
+                          ? "Vui lòng kiểm tra phương thức thanh toán"
+                          : formatDate((order as any).updatedAt || order.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+            </View>
+
+            {/* Content */}
+            <View className="px-6 py-4">
+              <Text className="text-sm text-light-text dark:text-dark-text text-center leading-5">
                 {isRefunded
-                  ? "Đơn hàng đã được hoàn tiền thành công"
+                  ? "Đơn hàng đã được hoàn tiền thành công. Số tiền sẽ được hoàn về ví của bạn ."
                   : isPaymentFailed
-                  ? "Thanh toán không thành công, vui lòng thử lại"
-                  : "Đơn hàng đã bị hủy"}
+                  ? "Thanh toán không thành công. Vui lòng kiểm tra lại thông tin thanh toán hoặc thử phương thức khác."
+                  : "Đơn hàng đã bị hủy. Nếu bạn đã thanh toán, số tiền sẽ được hoàn lại vào ví của bạn."}
               </Text>
+
+             
             </View>
           </View>
         )}
 
-        {/* ...existing code for Payment Status, Product List, Shipping Info, Order Summary... */}
+
+
         {/* Payment Status */}
         <View className="bg-white dark:bg-dark-card mx-6 mt-4 rounded-2xl p-6 border border-beige/30 dark:border-dark-border/30">
           <Text className="text-base font-bold text-light-text dark:text-dark-text mb-4">
@@ -679,7 +818,10 @@ const getRemainingRefundDays = () => {
                 Hoàn tiền
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity className="flex-1 py-3 rounded-xl border-2 border-mint dark:border-gold items-center">
+            <TouchableOpacity 
+              className="flex-1 py-3 rounded-xl border-2 border-mint dark:border-gold items-center"
+              onPress={handleFeedbackButtonPress}
+            >
               <Text className="text-mint dark:text-gold font-bold">Đánh giá</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-1 py-3 rounded-xl bg-mint dark:bg-gold items-center">
@@ -716,7 +858,6 @@ const getRemainingRefundDays = () => {
             showsVerticalScrollIndicator={false}
           >
             <View className="bg-white dark:bg-dark-card rounded-2xl p-6">
-              {/* Header */}
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
                   Yêu cầu hoàn tiền
@@ -734,12 +875,10 @@ const getRemainingRefundDays = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Description */}
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mb-4">
                 Vui lòng cung cấp hình ảnh và mô tả chi tiết về sản phẩm bị lỗi.
               </Text>
 
-              {/* Order Info */}
               <View className="bg-beige/20 dark:bg-dark-border/20 rounded-xl p-4 mb-4">
                 <View className="flex-row justify-between mb-2">
                   <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
@@ -759,7 +898,6 @@ const getRemainingRefundDays = () => {
                 </View>
               </View>
 
-              {/* Image Upload Section */}
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
                   Hình ảnh minh chứng <Text className="text-coral">*</Text>
@@ -813,7 +951,6 @@ const getRemainingRefundDays = () => {
                 )}
               </View>
 
-              {/* Reason Input */}
               <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
                 Mô tả chi tiết <Text className="text-coral">*</Text>
               </Text>
@@ -833,7 +970,6 @@ const getRemainingRefundDays = () => {
                 {refundReason.length}/500
               </Text>
 
-              {/* Info Note */}
               <View className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 mb-4 flex-row">
                 <FontAwesome
                   name="info-circle"
@@ -847,7 +983,6 @@ const getRemainingRefundDays = () => {
                 </Text>
               </View>
 
-              {/* Buttons */}
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   className="flex-1 py-3 rounded-xl border-2 border-beige dark:border-dark-border items-center"
@@ -886,6 +1021,198 @@ const getRemainingRefundDays = () => {
                     <ActivityIndicator size={20} color="#fff" />
                   ) : (
                     <Text className="text-white font-bold">Gửi yêu cầu</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ✨ Feedback Modal */}
+      <Modal
+        visible={showFeedbackModal}
+        transparent
+        animationType="fade"
+        onRequestClose={resetFeedbackModal}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <ScrollView
+            className="w-full max-w-md"
+            contentContainerStyle={{ paddingVertical: 20 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="bg-white dark:bg-dark-card rounded-2xl p-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                  Đánh giá sản phẩm
+                </Text>
+                <TouchableOpacity
+                  onPress={resetFeedbackModal}
+                  className="w-8 h-8 rounded-full bg-beige/30 dark:bg-dark-border/30 items-center justify-center"
+                >
+                  <FontAwesome name="times" size={16} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              <View className="flex-row items-center bg-beige/20 dark:bg-dark-border/20 rounded-xl p-4 mb-6">
+                <View className="w-16 h-16 bg-beige/30 dark:bg-dark-border/30 rounded-xl overflow-hidden mr-3">
+                  {order.details[0]?.productImage ? (
+                    <Image
+                      source={{ uri: order.details[0].productImage }}
+                      className="w-full h-full"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View className="w-full h-full items-center justify-center">
+                      <FontAwesome name="image" size={20} color="#9CA3AF" />
+                    </View>
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
+                    numberOfLines={2}
+                  >
+                    {order.details[0]?.productName}
+                  </Text>
+                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                    {formatCurrency(order.details[0]?.unitPrice || 0)}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="items-center mb-6">
+                <Text className="text-base font-semibold text-light-text dark:text-dark-text mb-3">
+                  Đánh giá của bạn
+                </Text>
+                <View className="flex-row gap-3">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setRating(star)}
+                      activeOpacity={0.7}
+                    >
+                      <FontAwesome
+                        name={star <= rating ? "star" : "star-o"}
+                        size={40}
+                        color={star <= rating ? "#F59E0B" : "#D1D5DB"}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-2">
+                  {rating === 5 && "Tuyệt vời!"}
+                  {rating === 4 && "Rất tốt!"}
+                  {rating === 3 && "Khá ổn"}
+                  {rating === 2 && "Tạm được"}
+                  {rating === 1 && "Không hài lòng"}
+                </Text>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                  Nhận xét <Text className="text-coral">*</Text>
+                </Text>
+                <TextInput
+                  className="bg-beige/20 dark:bg-dark-border/20 rounded-xl p-4 text-light-text dark:text-dark-text min-h-[120px]"
+                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={5}
+                  textAlignVertical="top"
+                  value={feedbackComment}
+                  onChangeText={setFeedbackComment}
+                  maxLength={500}
+                />
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary text-right mt-1">
+                  {feedbackComment.length}/500
+                </Text>
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                  Thêm ảnh (tùy chọn)
+                </Text>
+                
+                {feedbackImages.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mb-3"
+                  >
+                    <View className="flex-row gap-2">
+                      {feedbackImages.map((file, index) => (
+                        <View key={index} className="relative">
+                          <Image
+                            source={{ uri: file.uri }}
+                            className="w-20 h-20 rounded-xl"
+                            resizeMode="cover"
+                          />
+                          <TouchableOpacity
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full items-center justify-center border-2 border-white"
+                            onPress={() => handleRemoveFeedbackImage(index)}
+                          >
+                            <FontAwesome name="times" size={10} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  </ScrollView>
+                )}
+
+                {feedbackImages.length < 5 && (
+                  <TouchableOpacity
+                    className="w-full h-32 rounded-xl border-2 border-dashed border-beige dark:border-dark-border items-center justify-center bg-beige/10 dark:bg-dark-border/10"
+                    onPress={handlePickFeedbackImages}
+                    activeOpacity={0.7}
+                  >
+                    <FontAwesome name="image" size={40} color="#ACD6B8" />
+                    <Text className="text-sm text-mint dark:text-gold mt-2 font-semibold">
+                      Thêm ảnh sản phẩm
+                    </Text>
+                    <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
+                      Tối đa 5 ảnh ({feedbackImages.length}/5)
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 mb-4 flex-row">
+                <FontAwesome
+                  name="info-circle"
+                  size={16}
+                  color="#3B82F6"
+                  style={{ marginTop: 2 }}
+                />
+                <Text className="text-xs text-blue-700 dark:text-blue-400 ml-2 flex-1">
+                  Đánh giá của bạn sẽ giúp người mua khác có thêm thông tin tham khảo.
+                </Text>
+              </View>
+
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  className="flex-1 py-3 rounded-xl border-2 border-beige dark:border-dark-border items-center"
+                  onPress={resetFeedbackModal}
+                  activeOpacity={0.7}
+                  disabled={isCreatingFeedback}
+                >
+                  <Text className="text-light-text dark:text-dark-text font-bold">Hủy</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 py-3 rounded-xl bg-mint dark:bg-gold items-center"
+                  onPress={handleSubmitFeedback}
+                  disabled={isCreatingFeedback || !feedbackComment.trim()}
+                  activeOpacity={0.7}
+                  style={{
+                    opacity: isCreatingFeedback || !feedbackComment.trim() ? 0.5 : 1,
+                  }}
+                >
+                  {isCreatingFeedback ? (
+                    <ActivityIndicator size={20} color="#fff" />
+                  ) : (
+                    <Text className="text-white font-bold">Gửi đánh giá</Text>
                   )}
                 </TouchableOpacity>
               </View>

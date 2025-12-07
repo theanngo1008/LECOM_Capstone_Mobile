@@ -4,10 +4,12 @@ import { ShopDashboardScreen } from "@/features/shop/screens/SelletDashboardScre
 import { CreateShopCourseScreen } from "@/features/shopCourses/screens/CreateShopCourseScreen";
 import { ShopCourseDetailScreen } from "@/features/shopCourses/screens/ShopCourseDetailScreen";
 import { ShopCoursesScreen } from "@/features/shopCourses/screens/ShopCoursesScreen";
+import { ShopOrderDetailScreen } from "@/features/shopOrders/screens/ShopOrderDetailScreen";
 import { ShopOrdersScreen } from "@/features/shopOrders/screens/ShopOrdersScreen";
 import { CreateShopProductScreen } from "@/features/shopProducts/screens/CreateShopProductScreen";
 import { EditProductScreen } from "@/features/shopProducts/screens/EditProductScreen";
 import { ProductDetailScreen } from "@/features/shopProducts/screens/ShopProductDetailScreen";
+import { ShopRefundListScreen } from "@/features/shopRefund/screens/ShopRefundListScreen";
 import { ShopWalletScreen } from "@/features/shopWallet/screens/ShopWalletScreen";
 import { ShopWalletTransactionsScreen } from "@/features/shopWallet/screens/ShopWalletTransactionsScreen";
 import { ShopWithdrawalsScreen } from "@/features/shopWallet/screens/ShopWithdrawalsScreen";
@@ -43,6 +45,10 @@ export type ShopStackParamList = {
   ShopWalletTransactions: undefined;  
   ShopWithdrawals: undefined;
   ShopDashboard: undefined;
+  ShopOrderDetail: {
+    orderId: string;
+  };
+  ShopRefundsMain: undefined;
 };
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
@@ -148,6 +154,16 @@ export function ShopStackNavigator() {
         component={ShopDashboardScreen}
         options={{ title: "Shop Dashboard", presentation: "card" }}
       />
+      <Stack.Screen
+        name="ShopOrderDetail"
+        component={ShopOrderDetailScreen}
+        options={{ title: "Order Detail", presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="ShopRefundsMain"
+        component={ShopRefundListScreen}
+        options={{ title: "Shop Refunds", presentation: "card" }}
+      />  
     </Stack.Navigator>
   );
 }

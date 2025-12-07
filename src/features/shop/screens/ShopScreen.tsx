@@ -425,8 +425,7 @@ export function ShopScreen({ navigation }: any) {
               <TouchableOpacity
                 className="flex-1 bg-beige rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
                 onPress={() => {
-                  // navigation.navigate("ShopRefunds");
-                  Alert.alert("Hoàn tiền", "Chức năng yêu cầu hoàn tiền đang được phát triển");
+               navigation.navigate("ShopRefundsMain");
                 }}
               >
                 <FontAwesome name="undo" size={20} color="white" />

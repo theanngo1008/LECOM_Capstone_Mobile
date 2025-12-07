@@ -68,6 +68,21 @@ export const ordersApi = {
       `/orders/${orderId}/confirm`
     )
     return data
+  },
+
+  // ============================
+  // POST /orders/{orderId}/cancel
+  // ============================
+  cancelOrder: async (
+    orderId: string,
+    cancelReason: string
+  ): Promise<OrderResponse> => {
+    const { data } = await apiClient.post<OrderResponse>(
+      `/orders/${orderId}/cancel`,
+      { cancelReason }
+    )
+    return data
   }
 }
+
 

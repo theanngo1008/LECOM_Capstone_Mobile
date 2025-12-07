@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Text, Platform, View } from "react-native";
+import { Platform, View, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { CoursesStackNavigator } from "./CoursesStackNavigator";
 import { PostsStackNavigator } from "./PostsStackNavigator";
 import { ProfileStackNavigator } from "./ProfileStackNavigator";
@@ -10,6 +11,8 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+
 const Tab = createBottomTabNavigator<any>();
 
 export function MainTabNavigator() {
@@ -17,39 +20,51 @@ export function MainTabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#3B82F6",
+          backgroundColor: "#ACD6B8",
         },
         headerTintColor: "#fff",
         headerTitleStyle: {
           fontWeight: "bold",
         },
 
-        tabBarActiveTintColor: "#000000ff",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: "#237c72ff", // Teal-600 - đậm hơn để đọc được
+        tabBarInactiveTintColor: "#222428ff", // Slate-400 - nhạt hơn
 
-        // ➜ Phần quan trọng: tabBarBackground để đồng bộ màu SAFE AREA
+        // ✨ Gradient background
         tabBarBackground: () => (
-          <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />
+          <View style={StyleSheet.absoluteFill}>
+            <LinearGradient
+              colors={['#FFFFFF', '#F0FDFA']} // White → Teal-50
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          </View>
         ),
 
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "transparent",
           borderTopWidth: 1,
-          borderTopColor: "#F5F5DC",
-          paddingBottom: Platform.OS === "ios" ? 0 : 8,
-          paddingTop: 8,
-          height: Platform.OS === "ios" ? 60 : 68,
-          elevation: 8,
-          shadowColor: "#000",
+          borderTopColor: "rgba(20, 184, 166, 0.1)", // Teal border nhẹ
+          paddingBottom: Platform.OS === "android" ? 8 : 20, // ✅ iOS cần padding nhiều hơn
+          paddingTop: 12,
+          height: Platform.OS === "android" ? 70 : 88, // ✅ iOS cao hơn
+          elevation: 0,
+          shadowColor: "#14B8A6",
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 3,
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
         },
 
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-          marginBottom: Platform.OS === "ios" ? 0 : 4,
+          fontSize: 12,
+          fontWeight: "700", // Bold hơn
+          marginTop: 6,
+          marginBottom: 2,
+        },
+
+        tabBarIconStyle: {
+          marginTop: 2,
         },
       }}
     >
@@ -57,9 +72,20 @@ export function MainTabNavigator() {
         name="Home"
         component={HomeStackNavigator}
         options={{
-          title: "Home",
-          tabBarIcon: ({ focused }) => (
-            <AntDesign name="home" size={focused ? 26 : 24} />
+          title: "Trang chủ",
+          tabBarIcon: ({ focused, color }) => (
+            <View
+              style={[
+                styles.iconContainer,
+                focused && styles.iconContainerActive,
+              ]}
+            >
+              <AntDesign 
+                name="home" 
+                size={focused ? 26 : 24} 
+                color={focused ? "#14B8A6" : color}
+              />
+            </View>
           ),
           headerShown: false,
         }}
@@ -69,9 +95,20 @@ export function MainTabNavigator() {
         name="CoursesTab"
         component={CoursesStackNavigator}
         options={{
-          title: "Courses",
-          tabBarIcon: ({ focused }) => (
-            <MaterialCommunityIcons name="book-open" size={focused ? 26 : 24} />
+          title: "Khóa học",
+          tabBarIcon: ({ focused, color }) => (
+            <View
+              style={[
+                styles.iconContainer,
+                focused && styles.iconContainerActive,
+              ]}
+            >
+              <MaterialCommunityIcons 
+                name="book-open-variant" 
+                size={focused ? 26 : 24} 
+                color={focused ? "#14B8A6" : color}
+              />
+            </View>
           ),
           headerShown: false,
         }}
@@ -81,9 +118,20 @@ export function MainTabNavigator() {
         name="ProductsTab"
         component={ProductsStackNavigator}
         options={{
-          title: "Products",
-          tabBarIcon: ({ focused }) => (
-            <Fontisto name="shopping-store" size={focused ? 26 : 24} />
+          title: "Sản phẩm",
+          tabBarIcon: ({ focused, color }) => (
+            <View
+              style={[
+                styles.iconContainer,
+                focused && styles.iconContainerActive,
+              ]}
+            >
+              <Fontisto 
+                name="shopping-store" 
+                size={focused ? 24 : 22} 
+                color={focused ? "#14B8A6" : color}
+              />
+            </View>
           ),
           headerShown: false,
         }}
@@ -93,9 +141,20 @@ export function MainTabNavigator() {
         name="ProfileTab"
         component={ProfileStackNavigator}
         options={{
-          title: "Profile",
-          tabBarIcon: ({ focused }) => (
-            <Ionicons name="person" size={focused ? 26 : 24} />
+          title: "Cá nhân",
+          tabBarIcon: ({ focused, color }) => (
+            <View
+              style={[
+                styles.iconContainer,
+                focused && styles.iconContainerActive,
+              ]}
+            >
+              <Ionicons 
+                name={focused ? "person" : "person-outline"} 
+                size={focused ? 26 : 24} 
+                color={focused ? "#14B8A6" : color}
+              />
+            </View>
           ),
           headerShown: false,
         }}
@@ -103,3 +162,25 @@ export function MainTabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  iconContainerActive: {
+    backgroundColor: 'rgba(20, 184, 166, 0.12)', // Teal 12% - nhẹ hơn
+    borderWidth: 2,
+    borderColor: 'rgba(20, 184, 166, 0.3)', // Teal border 30%
+    // ✨ Shadow nhẹ nhàng hơn
+    shadowColor: "#14B8A6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+});
