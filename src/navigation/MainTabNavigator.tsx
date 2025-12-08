@@ -1,17 +1,15 @@
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import React from "react";
-import { Platform, View, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { CoursesStackNavigator } from "./CoursesStackNavigator";
-import { PostsStackNavigator } from "./PostsStackNavigator";
-import { ProfileStackNavigator } from "./ProfileStackNavigator";
-import { ProductsStackNavigator } from "./ProductsStackNavigator";
-import { HomeStackNavigator } from "./HomeStackNavigator";
 import AntDesign from '@expo/vector-icons/AntDesign';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Fontisto from '@expo/vector-icons/Fontisto';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { LinearGradient } from 'expo-linear-gradient';
+import React from "react";
+import { Platform, StyleSheet, View } from "react-native";
+import { CoursesStackNavigator } from "./CoursesStackNavigator";
+import { HomeStackNavigator } from "./HomeStackNavigator";
+import { ProductsStackNavigator } from "./ProductsStackNavigator";
+import { ProfileStackNavigator } from "./ProfileStackNavigator";
 
 const Tab = createBottomTabNavigator<any>();
 
@@ -95,7 +93,7 @@ export function MainTabNavigator() {
         name="CoursesTab"
         component={CoursesStackNavigator}
         options={{
-          title: "Khóa học",
+          title: "Học tập",
           tabBarIcon: ({ focused, color }) => (
             <View
               style={[
@@ -118,7 +116,7 @@ export function MainTabNavigator() {
         name="ProductsTab"
         component={ProductsStackNavigator}
         options={{
-          title: "Sản phẩm",
+          title: "Mua sắm",
           tabBarIcon: ({ focused, color }) => (
             <View
               style={[

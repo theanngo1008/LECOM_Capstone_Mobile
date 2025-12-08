@@ -17,7 +17,7 @@ import { useLandingPage } from "../hooks/useLandingPage";
 import { useBrowseProducts } from "../hooks/useBrowseProducts";
 import { useBrowseCourses } from "../hooks/useBrowseCourses";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
-
+import { Notifications } from "@/components/Notifications";
 export function HomeScreen() {
   const { data: landingData, isLoading: isLoadingLanding, isError: isErrorLanding } = useLandingPage();
   const { data: productsData, isLoading: isLoadingProducts } = useBrowseProducts();
@@ -99,6 +99,7 @@ export function HomeScreen() {
 
           {/* Right - Action Buttons */}
           <View className="flex-row gap-2">
+               <Notifications />
             <Pressable
               className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
               onPress={() => navigation.navigate("ChatList" as any)}

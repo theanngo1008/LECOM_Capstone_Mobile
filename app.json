@@ -26,25 +26,20 @@
       },
       "package": "com.yourcompany.lecom",
       "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "lecom-fe.vercel.app",
-              "pathPrefix": "/"
-            },
-            {
-              "scheme": "lecom"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ],
+  {
+    "action": "VIEW",
+    "autoVerify": false,
+    "data": [
+      {
+        "scheme": "https",
+        "host": "lecom-fe.vercel.app",
+        "pathPrefix": "/"
+      }
+    ],
+    "category": ["BROWSABLE", "DEFAULT"]
+  }
+]
+,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
