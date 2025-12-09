@@ -9,22 +9,24 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Slider from "@react-native-community/slider";
 import { useLearnCourse } from "../hooks/useLearnCourse";
 import { useCompleteLesson } from "../hooks/useCompleteLesson";
+import * as ScreenOrientation from 'expo-screen-orientation';
 
-const { width } = Dimensions.get("window");
-const VIDEO_HEIGHT = (width * 9) / 16; // 16:9 aspect ratio
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const VIDEO_HEIGHT = (SCREEN_WIDTH * 9) / 16; // 16:9 aspect ratio
 
 export function LessonPlayerScreen({ navigation, route }: any) {
   const { courseId, sectionId, lessonId } = route.params;
 
-  // ✅ Use Learn Course Hook
+
   const { data, isLoading, isError, refetch } = useLearnCourse(courseId);
 
-  // ✅ Use Complete Lesson Hook
+  
   const completeLessonMutation = useCompleteLesson();
 
   const videoRef = useRef<Video>(null);
@@ -33,16 +35,41 @@ export function LessonPlayerScreen({ navigation, route }: any) {
   const [showControls, setShowControls] = useState(true);
   const [playbackStatus, setPlaybackStatus] = useState<any>({});
   const [hasCompletedLesson, setHasCompletedLesson] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // ✅ Extract data from API response
+  
   const learnData = data?.result;
   const course = learnData?.course;
   const progress = learnData?.progress;
   const sections = learnData?.sections || [];
 
-  // ✅ Find current section and lesson
+ 
   const currentSection = sections.find((s) => s.id === sectionId);
-  const currentLesson = currentSection?.lessons.find((l) => l.id === lessonId);
+  const currentLesson = currentSection?.lessons?.find((l) => l.id === lessonId);
+
+ 
+  const toggleFullscreen = async () => {
+    if (isFullscreen) {
+      // Exit fullscreen
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      setIsFullscreen(false);
+      StatusBar.setHidden(false);
+    } else {
+      // Enter fullscreen
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      setIsFullscreen(true);
+      StatusBar.setHidden(true);
+    }
+  };
+
+  // ✅ Clean up orientation on unmount
+  useEffect(() => {
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      StatusBar.setHidden(false);
+    };
+  }, []);
 
   // ✅ Check if video is completed (watched 95% or more)
   useEffect(() => {
@@ -64,6 +91,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
         completeLessonMutation.mutate(lessonId, {
           onSuccess: () => {
             console.log("✅ Lesson marked as completed successfully");
+            refetch(); // Refresh data to update completion status
           },
           onError: (error) => {
             console.error("❌ Failed to mark lesson as completed:", error);
@@ -84,6 +112,8 @@ export function LessonPlayerScreen({ navigation, route }: any) {
   // ✅ Reset completion state when changing lessons
   useEffect(() => {
     setHasCompletedLesson(false);
+    setIsPlaying(false);
+    setIsVideoLoading(true);
   }, [lessonId]);
 
   const handlePlayPause = async () => {
@@ -105,7 +135,24 @@ export function LessonPlayerScreen({ navigation, route }: any) {
     }
   };
 
+  const handleSeek = async (value: number) => {
+    if (videoRef.current && playbackStatus.durationMillis) {
+      const seekPosition = value * playbackStatus.durationMillis;
+      await videoRef.current.setPositionAsync(seekPosition);
+    }
+  };
+
+  const handleSlidingStart = () => {
+    setIsSeeking(true);
+  };
+
+  const handleSlidingComplete = async (value: number) => {
+    await handleSeek(value);
+    setIsSeeking(false);
+  };
+
   const formatTime = (millis: number) => {
+    if (!millis || isNaN(millis)) return "0:00";
     const totalSeconds = Math.floor(millis / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -113,6 +160,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
   };
 
   const formatDuration = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return "0m";
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     if (hours > 0) {
@@ -140,7 +188,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-            Loading lesson...
+            Đang tải bài học...
           </Text>
         </View>
       </SafeAreaView>
@@ -153,22 +201,125 @@ export function LessonPlayerScreen({ navigation, route }: any) {
         <View className="flex-1 items-center justify-center px-6">
           <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
           <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-            Lesson Not Found
+            Không tìm thấy bài học
           </Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-            Unable to load lesson information
+            Không thể tải thông tin bài học
           </Text>
           <TouchableOpacity
             className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
             onPress={() => navigation.goBack()}
           >
-            <Text className="text-white font-semibold">Go Back</Text>
+            <Text className="text-white font-semibold">Quay lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  const currentPosition = playbackStatus.positionMillis || 0;
+  const duration = playbackStatus.durationMillis || 1;
+  const sliderValue = duration > 0 ? currentPosition / duration : 0;
+
+ 
+  if (isFullscreen) {
+    return (
+      <View className="flex-1 bg-black">
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={handleVideoPress}
+          className="relative flex-1"
+        >
+          <Video
+            ref={videoRef}
+            source={{ uri: currentLesson.contentUrl }}
+            style={{ width: SCREEN_HEIGHT, height: SCREEN_WIDTH }}
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay={isPlaying}
+            isLooping={false}
+            onPlaybackStatusUpdate={(status: any) => {
+              setPlaybackStatus(status);
+              if (status.isLoaded) {
+                setIsVideoLoading(false);
+                setIsPlaying(status.isPlaying);
+              }
+            }}
+          />
+
+          {/* Loading Overlay */}
+          {isVideoLoading && (
+            <View className="absolute inset-0 items-center justify-center bg-black/50">
+              <ActivityIndicator size="large" color="#ACD6B8" />
+              <Text className="text-white mt-2">Đang tải video...</Text>
+            </View>
+          )}
+
+          {/* Fullscreen Controls */}
+          {showControls && !isVideoLoading && (
+            <View className="absolute inset-0 bg-black/30">
+              {/* Top Bar */}
+              <View className="flex-row items-center justify-between p-4">
+                <TouchableOpacity
+                  onPress={toggleFullscreen}
+                  className="w-10 h-10 rounded-full bg-black/50 items-center justify-center"
+                >
+                  <FontAwesome name="compress" size={20} color="white" />
+                </TouchableOpacity>
+                
+                <Text className="text-white font-semibold" numberOfLines={1}>
+                  {currentLesson.title}
+                </Text>
+
+                <View className="w-10" />
+              </View>
+
+              {/* Center Play/Pause */}
+              <View className="flex-1 items-center justify-center">
+                <TouchableOpacity
+                  onPress={handlePlayPause}
+                  className="w-20 h-20 rounded-full bg-white/90 items-center justify-center"
+                >
+                  <FontAwesome
+                    name={isPlaying ? "pause" : "play"}
+                    size={32}
+                    color="#2D3748"
+                    style={{ marginLeft: isPlaying ? 0 : 4 }}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Bottom Controls */}
+              <View className="p-4">
+                <View className="flex-row items-center">
+                  <Text className="text-white text-xs w-12">
+                    {formatTime(currentPosition)}
+                  </Text>
+                  <View className="flex-1 mx-4">
+                    <Slider
+                      style={{ width: "100%", height: 40 }}
+                      minimumValue={0}
+                      maximumValue={1}
+                      value={sliderValue}
+                      onSlidingStart={handleSlidingStart}
+                      onSlidingComplete={handleSlidingComplete}
+                      minimumTrackTintColor="#ACD6B8"
+                      maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
+                      thumbTintColor="#ACD6B8"
+                    />
+                  </View>
+                  <Text className="text-white text-xs w-12 text-right">
+                    {formatTime(duration)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
       {/* Header */}
@@ -202,10 +353,10 @@ export function LessonPlayerScreen({ navigation, route }: any) {
           <View>
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                Course Progress
+                Tiến độ khóa học
               </Text>
               <Text className="text-xs font-bold text-mint dark:text-gold">
-                {progress.completedLessons}/{progress.totalLessons} lessons • {progress.percent}%
+                {progress.completedLessons}/{progress.totalLessons} bài • {progress.percent}%
               </Text>
             </View>
             <View className="h-2 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
@@ -250,7 +401,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
           {(currentLesson.isCompleted || hasCompletedLesson) && (
             <View className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-green-500 flex-row items-center">
               <FontAwesome name="check-circle" size={14} color="white" />
-              <Text className="text-white text-xs font-bold ml-1">Completed</Text>
+              <Text className="text-white text-xs font-bold ml-1">Hoàn thành</Text>
             </View>
           )}
 
@@ -258,7 +409,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
           {isVideoLoading && (
             <View className="absolute inset-0 items-center justify-center bg-black/50">
               <ActivityIndicator size="large" color="#ACD6B8" />
-              <Text className="text-white mt-2">Loading video...</Text>
+              <Text className="text-white mt-2">Đang tải video...</Text>
             </View>
           )}
 
@@ -282,31 +433,34 @@ export function LessonPlayerScreen({ navigation, route }: any) {
 
               {/* Bottom Controls */}
               <View className="p-4">
-                <View className="flex-row items-center">
-                  <Text className="text-white text-xs mr-2">
-                    {playbackStatus.positionMillis
-                      ? formatTime(playbackStatus.positionMillis)
-                      : "0:00"}
+                <View className="flex-row items-center mb-2">
+                  <Text className="text-white text-xs w-12">
+                    {formatTime(currentPosition)}
                   </Text>
-                  <View className="flex-1 h-1 bg-white/30 rounded-full">
-                    <View
-                      className="h-full bg-mint dark:bg-gold rounded-full"
-                      style={{
-                        width: `${
-                          playbackStatus.durationMillis
-                            ? (playbackStatus.positionMillis /
-                                playbackStatus.durationMillis) *
-                              100
-                            : 0
-                        }%`,
-                      }}
+                  <View className="flex-1 mx-2">
+                    <Slider
+                      style={{ width: "100%", height: 40 }}
+                      minimumValue={0}
+                      maximumValue={1}
+                      value={sliderValue}
+                      onSlidingStart={handleSlidingStart}
+                      onSlidingComplete={handleSlidingComplete}
+                      minimumTrackTintColor="#ACD6B8"
+                      maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
+                      thumbTintColor="#ACD6B8"
                     />
                   </View>
-                  <Text className="text-white text-xs ml-2">
-                    {playbackStatus.durationMillis
-                      ? formatTime(playbackStatus.durationMillis)
-                      : "0:00"}
+                  <Text className="text-white text-xs w-12 text-right">
+                    {formatTime(duration)}
                   </Text>
+                  
+                  {/* Fullscreen Button */}
+                  <TouchableOpacity
+                    onPress={toggleFullscreen}
+                    className="ml-2 w-8 h-8 items-center justify-center"
+                  >
+                    <FontAwesome name="expand" size={16} color="white" />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -351,25 +505,24 @@ export function LessonPlayerScreen({ navigation, route }: any) {
             <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary ml-2">
               {formatDuration(currentLesson.durationSeconds)}
             </Text>
-            {currentLesson.linkedProducts.length > 0 && (
+            {currentLesson.linkedProducts?.length > 0 && (
               <>
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mx-2">
                   •
                 </Text>
                 <FontAwesome name="shopping-bag" size={14} color="#ACD6B8" />
                 <Text className="text-sm text-mint dark:text-gold ml-2 font-semibold">
-                  {currentLesson.linkedProducts.length}{" "}
-                  {currentLesson.linkedProducts.length === 1 ? "product" : "products"}
+                  {currentLesson.linkedProducts.length} sản phẩm
                 </Text>
               </>
             )}
           </View>
 
           {/* Linked Products */}
-          {currentLesson.linkedProducts.length > 0 && (
+          {currentLesson.linkedProducts?.length > 0 && (
             <View className="mb-6">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-4">
-                Featured Products
+                Sản phẩm liên quan
               </Text>
 
               {currentLesson.linkedProducts.map((product: any) => (
@@ -407,7 +560,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
                       </Text>
 
                       <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                        by {product.shopName}
+                        bởi {product.shopName}
                       </Text>
                     </View>
 
@@ -424,7 +577,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
           {/* Course Lessons List */}
           <View className="mb-6">
             <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-4">
-              Course Lessons
+              Danh sách bài học
             </Text>
 
             {sections.map((section) => (
@@ -438,7 +591,7 @@ export function LessonPlayerScreen({ navigation, route }: any) {
                   </Text>
                 </View>
 
-                {section.lessons.map((lesson, index) => {
+                {section.lessons?.map((lesson, index) => {
                   const isCurrentLesson = lesson.id === lessonId;
                   const isLessonCompleted =
                     lesson.isCompleted || (isCurrentLesson && hasCompletedLesson);

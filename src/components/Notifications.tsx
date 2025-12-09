@@ -5,7 +5,7 @@ import { useNotificationsList } from "@/hooks/useNotificationsList";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -24,20 +24,37 @@ interface NotificationsProps {
   onNotificationPress?: (id: string) => void;
 }
 
+// ✅ Helper function to convert UTC to Vietnam time (+7 hours)
+const toVietnamTime = (utcDateString: string): Date => {
+  const utcDate = new Date(utcDateString);
+  const vietnamTime = new Date(utcDate.getTime() + 7 * 60 * 60 * 1000);
+  return vietnamTime;
+};
+
 export function Notifications({ onNotificationPress }: NotificationsProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [page, setPage] = useState(1);
   const slideAnim = useState(new Animated.Value(height))[0];
 
-  // SignalR Hub
-  const { unreadCount, latestNotification, setUnreadCount } = useNotificationsHub();
+  // SignalR Hub (chỉ dùng để trigger refetch)
+  const { latestNotification } = useNotificationsHub();
 
-  // REST API
+  // REST API - ✅ Fetch ngay khi mount
   const { data, isLoading, refetch, isFetching } = useNotificationsList(page, 20);
   const markAsReadMutation = useMarkAsRead();
   const markAllAsReadMutation = useMarkAllAsRead();
 
   const notifications = data?.result || [];
+
+  // ✅ Tính unreadCount từ danh sách thực tế
+  const unreadCount = useMemo(() => {
+    return notifications.filter(notif => !notif.isRead).length;
+  }, [notifications]);
+
+  // ✅ Fetch data ngay khi component mount
+  useEffect(() => {
+    refetch();
+  }, []);
 
   // Animate modal
   useEffect(() => {
@@ -57,7 +74,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
     }
   }, [isModalVisible]);
 
-  // Update unread count when new notification arrives
+  // Update when new notification arrives
   useEffect(() => {
     if (latestNotification) {
       refetch();
@@ -67,8 +84,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
   const handleMarkAsRead = async (id: string) => {
     try {
       await markAsReadMutation.mutateAsync(id);
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      refetch();
+      refetch(); // ✅ Refetch để cập nhật danh sách
     } catch (error) {
       console.error("❌ Error marking as read:", error);
     }
@@ -77,8 +93,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsReadMutation.mutateAsync();
-      setUnreadCount(0);
-      refetch();
+      refetch(); // ✅ Refetch để cập nhật danh sách
     } catch (error) {
       console.error("❌ Error marking all as read:", error);
     }
@@ -102,11 +117,26 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
       case "OrderStatus":
         return "#10B981";
       case "ChatMessage":
-        return "#3B82F6";
-      case "System":
         return "#F59E0B";
+      case "System":
+        return "#3B82F6";
       default:
         return "#6B7280";
+    }
+  };
+
+  const getNotificationBgColor = (type: string, isRead: boolean) => {
+    if (isRead) return '#FFFFFF';
+    
+    switch (type) {
+      case "OrderStatus":
+        return '#F0FDF4'; // green tint
+      case "ChatMessage":
+        return '#FEF3C7'; // yellow tint
+      case "System":
+        return '#EFF6FF'; // blue tint
+      default:
+        return '#F9FAFB';
     }
   };
 
@@ -135,16 +165,16 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
         onRequestClose={() => setIsModalVisible(false)}
         statusBarTranslucent
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Pressable
             style={{ flex: 1 }}
             onPress={() => setIsModalVisible(false)}
           />
           <Animated.View 
             style={{ 
-              backgroundColor: '#F5F5F5',
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
               height: height * 0.85,
               transform: [{ translateY: slideAnim }],
               overflow: 'hidden',
@@ -164,19 +194,21 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
             <View style={{ 
               paddingHorizontal: 20, 
               paddingVertical: 16,
-              backgroundColor: '#F5F5F5',
+              backgroundColor: '#FFFFFF',
+              borderBottomWidth: 1,
+              borderBottomColor: '#F3F4F6',
             }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <Text style={{ fontSize: 28, fontWeight: '700', color: '#1F2937', letterSpacing: -0.5 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 24, fontWeight: '700', color: '#111827', letterSpacing: -0.5 }}>
                   Thông báo
                 </Text>
                 <Pressable 
                   onPress={() => setIsModalVisible(false)}
                   style={({ pressed }) => ({
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: pressed ? '#E5E7EB' : '#F3F4F6',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: pressed ? '#F3F4F6' : 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
                   })}
@@ -185,35 +217,32 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                 </Pressable>
               </View>
               
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 13, color: '#9CA3AF', fontWeight: '500' }}>
-                  {unreadCount > 0 ? `${unreadCount} chưa đọc` : 'Tất cả đã đọc'}
-                </Text>
-                
-                {notifications.length > 0 && unreadCount > 0 && (
-                  <Pressable 
-                    onPress={handleMarkAllAsRead}
-                    style={({ pressed }) => ({
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      backgroundColor: pressed ? '#DBEAFE' : '#EFF6FF',
-                    })}
-                  >
-                    <Text style={{ fontSize: 13, color: '#3B82F6', fontWeight: '600' }}>
-                      Đọc tất cả
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
+              {notifications.length > 0 && unreadCount > 0 && (
+                <Pressable 
+                  onPress={handleMarkAllAsRead}
+                  style={({ pressed }) => ({
+                    alignSelf: 'flex-end',
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 20,
+                    backgroundColor: pressed ? '#D1FAE5' : '#ECFDF5',
+                    borderWidth: 1,
+                    borderColor: '#86EFAC',
+                  })}
+                >
+                  <Text style={{ fontSize: 13, color: '#059669', fontWeight: '600' }}>
+                    ✓ Đánh dấu tất cả đã đọc
+                  </Text>
+                </Pressable>
+              )}
             </View>
 
             {/* Content */}
             <ScrollView
-              style={{ flex: 1, backgroundColor: '#F5F5F5' }}
+              style={{ flex: 1, backgroundColor: '#F9FAFB' }}
               contentContainerStyle={{ 
                 paddingHorizontal: 16,
-                paddingTop: 8,
+                paddingTop: 12,
                 paddingBottom: 24,
               }}
               showsVerticalScrollIndicator={false}
@@ -221,13 +250,13 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                 <RefreshControl 
                   refreshing={isFetching} 
                   onRefresh={refetch}
-                  tintColor="#3B82F6"
+                  tintColor="#10B981"
                 />
               }
             >
               {isLoading ? (
                 <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
-                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <ActivityIndicator size="large" color="#10B981" />
                 </View>
               ) : notifications.length === 0 ? (
                 <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 100 }}>
@@ -260,16 +289,13 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                     <Pressable
                       key={notif.id}
                       style={({ pressed }) => ({
-                        marginBottom: 12,
-                        padding: 16,
-                        borderRadius: 20,
-                        backgroundColor: notif.isRead ? '#FFFFFF' : '#F0F9FF',
-                        opacity: pressed ? 0.9 : 1,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.08,
-                        shadowRadius: 8,
-                        elevation: 3,
+                        marginBottom: 10,
+                        padding: 14,
+                        borderRadius: 16,
+                        backgroundColor: getNotificationBgColor(notif.type, notif.isRead),
+                        opacity: pressed ? 0.95 : 1,
+                        borderWidth: 1,
+                        borderColor: notif.isRead ? '#F3F4F6' : 'transparent',
                       })}
                       onPress={() => {
                         if (!notif.isRead) {
@@ -281,18 +307,18 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <View
                           style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 24,
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginRight: 14,
+                            marginRight: 12,
                             backgroundColor: `${getNotificationColor(notif.type)}20`,
                           }}
                         >
                           <FontAwesome
                             name={getNotificationIcon(notif.type)}
-                            size={22}
+                            size={20}
                             color={getNotificationColor(notif.type)}
                           />
                         </View>
@@ -300,48 +326,86 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                         <View style={{ flex: 1, paddingRight: 4 }}>
                           <View style={{ 
                             flexDirection: 'row', 
-                            alignItems: 'flex-start',
-                            marginBottom: 5 
+                            alignItems: 'center',
+                            marginBottom: 4,
+                            gap: 6,
                           }}>
-                            <Text style={{ 
-                              fontSize: 15, 
-                              fontWeight: '700', 
-                              color: '#1F2937',
-                              flex: 1,
-                              lineHeight: 20,
-                              letterSpacing: -0.2,
+                            <View style={{
+                              paddingHorizontal: 8,
+                              paddingVertical: 3,
+                              borderRadius: 6,
+                              backgroundColor: `${getNotificationColor(notif.type)}15`,
                             }}>
-                              {notif.title}
+                              <Text style={{ 
+                                fontSize: 11, 
+                                fontWeight: '600',
+                                color: getNotificationColor(notif.type),
+                              }}>
+                                {notif.type === "ChatMessage" ? "ChatMessage" : 
+                                 notif.type === "OrderStatus" ? "OrderStatus" : "System"}
+                              </Text>
+                            </View>
+                            
+                            <Text style={{ 
+                              fontSize: 12, 
+                              color: '#9CA3AF',
+                              fontWeight: '500',
+                            }}>
+                              {formatDistanceToNow(toVietnamTime(notif.createdAt), {
+                                addSuffix: true,
+                                locale: vi,
+                              })}
                             </Text>
+
                             {!notif.isRead && (
                               <View style={{ 
-                                width: 8, 
-                                height: 8, 
-                                borderRadius: 4, 
-                                backgroundColor: '#3B82F6',
-                                marginLeft: 8,
-                                marginTop: 6,
+                                width: 7, 
+                                height: 7, 
+                                borderRadius: 3.5, 
+                                backgroundColor: getNotificationColor(notif.type),
                               }} />
                             )}
                           </View>
+
+                          <Text style={{ 
+                            fontSize: 15, 
+                            fontWeight: '700', 
+                            color: '#111827',
+                            marginBottom: 4,
+                            lineHeight: 20,
+                          }}>
+                            {notif.title}
+                          </Text>
+
                           <Text style={{ 
                             fontSize: 14, 
-                            color: '#6B7280',
-                            marginBottom: 8,
+                            color: '#4B5563',
                             lineHeight: 19,
                           }}>
                             {notif.content}
                           </Text>
-                          <Text style={{ 
-                            fontSize: 12, 
-                            color: '#9CA3AF',
-                            fontWeight: '500',
-                          }}>
-                            {formatDistanceToNow(new Date(notif.createdAt), {
-                              addSuffix: true,
-                              locale: vi,
-                            })}
-                          </Text>
+
+                          {!notif.isRead && (
+                            <View style={{ marginTop: 8 }}>
+                              <View style={{
+                                alignSelf: 'flex-start',
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 12,
+                                backgroundColor: '#ECFDF5',
+                                borderWidth: 1,
+                                borderColor: '#86EFAC',
+                              }}>
+                                <Text style={{ 
+                                  fontSize: 11, 
+                                  color: '#059669',
+                                  fontWeight: '600',
+                                }}>
+                                  ✓ Đánh dấu đã đọc
+                                </Text>
+                              </View>
+                            </View>
+                          )}
                         </View>
                       </View>
                     </Pressable>

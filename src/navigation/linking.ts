@@ -3,7 +3,7 @@ import { LinkingOptions } from "@react-navigation/native";
 export const linking: LinkingOptions<any> = {
   prefixes: [
     "lecom://",
-    "https://lecom-fe.vercel.app",
+    "https://lecom-fe.vercel.app/",
     
   ],
   config: {
@@ -12,7 +12,7 @@ export const linking: LinkingOptions<any> = {
       Welcome: "welcome",
       Login: "login",
       Register: "register",
-EmailConfirm: "/auth/email-confirmed",
+EmailConfirm: "auth/email-confirmed",
       // Drawer
       MainTabs: {
         screens: {

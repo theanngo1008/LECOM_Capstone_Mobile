@@ -44,7 +44,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error("❌ Client: Request interceptor error:", error);
+    console.log("❌ Client: Request interceptor error:", error.message);
     return Promise.reject(error);
   }
 );
@@ -52,8 +52,6 @@ apiClient.interceptors.request.use(
 // ========================
 // RESPONSE INTERCEPTOR
 // ========================
-// ...existing code...
-
 apiClient.interceptors.response.use(
   (response) => {
     console.log("📥 Client: Response success", {
@@ -67,15 +65,11 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
 
     console.log("🚨 Client: Response Error", {
-      url: originalRequest?.url,
-      status,
       message: error.message,
-      hasRefreshToken: !!useAuthStore.getState().refreshToken,
-      isRetry: originalRequest?._retry,
     });
 
     if (!originalRequest) {
-      console.error("❌ Client: No original request config");
+      console.log("❌ Client: No original request config");
       return Promise.reject(error);
     }
 
@@ -97,10 +91,7 @@ apiClient.interceptors.response.use(
 
       // ✅ Queue requests khi đang refresh
       if (isRefreshing) {
-        console.log("⏳ Client: Already refreshing, queueing request", {
-          url: originalRequest.url,
-          queuePosition: failedQueue.length + 1,
-        });
+        console.log("⏳ Client: Already refreshing, queueing request");
         
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -111,7 +102,7 @@ apiClient.interceptors.response.use(
             return apiClient(originalRequest);
           })
           .catch((err) => {
-            console.error("❌ Client: Queued request failed:", err);
+            console.error("❌ Client: Queued request failed:", err.message);
             return Promise.reject(err);
           });
       }
@@ -147,16 +138,13 @@ apiClient.interceptors.response.use(
           console.log("🔄 Client: Retrying original request");
           return apiClient(originalRequest);
         } else {
-          console.error("❌ Client: Invalid refresh response - logging out");
+          console.log("❌ Client: Invalid refresh response - logging out");
           processQueue(error, null);
           logout();
           return Promise.reject(error);
         }
       } catch (err: any) {
-        console.error("❌ Client: Refresh token failed:", {
-          status: err.response?.status,
-          message: err.message,
-        });
+        console.log("❌ Client: Refresh token failed:", err.message);
         processQueue(err, null);
         logout();
         return Promise.reject(err);
@@ -166,12 +154,8 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Log other errors
-    console.error("❌ Client: Error", {
-      status,
-      url: originalRequest?.url,
-      message: error.message,
-    });
+    // ✅ Log only error message
+    console.log("❌ Client: Error -", error.message);
     return Promise.reject(error);
   }
 );

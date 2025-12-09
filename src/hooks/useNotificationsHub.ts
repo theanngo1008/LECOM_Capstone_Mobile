@@ -38,7 +38,7 @@ export function useNotificationsHub() {
         setUnreadCount(count);
       });
     } catch (error) {
-      console.error("❌ Failed to connect:", error);
+      console.log("❌ Failed to connect:", error);
     }
   }, [userId, token]);
 

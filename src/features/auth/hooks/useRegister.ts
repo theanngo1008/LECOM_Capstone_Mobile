@@ -1,7 +1,6 @@
 // src/hooks/useRegister.ts
 import { authApi, RegisterRequest, RegisterResult } from "@/api/auth"
 import { useMutation } from "@tanstack/react-query"
-import { Alert } from "react-native"
 
 export const useRegister = () => {
   const registerMutation = useMutation<RegisterResult, Error, RegisterRequest>({
@@ -11,15 +10,6 @@ export const useRegister = () => {
         throw new Error(res.errorMessages?.[0] || "Đăng ký thất bại")
       }
       return res.result
-    },
-
-    onSuccess: (data) => {
-      Alert.alert("Thành công", data.message || "Đăng ký thành công, vui lòng kiểm tra email!")
-      
-    },
-
-    onError: (error) => {
-      Alert.alert("Đăng ký thất bại", error.message)
     },
   })
 

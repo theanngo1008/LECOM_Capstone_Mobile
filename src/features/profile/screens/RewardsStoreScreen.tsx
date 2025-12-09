@@ -13,14 +13,31 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGamificationProfile } from "../hooks/useGamificationProfile";
 import { useGamificationRewards } from "../hooks/useGamificationRewards";
+import { useRedeemReward } from "../hooks/useRedeemReward";
 
 type Props = ProfileStackScreenProps<"RewardsStore">;
 
 export function RewardsStoreScreen({ navigation }: Props) {
-  const { data: rewardsData, isLoading, isError, refetch } = useGamificationRewards();
-  const { data: profileData, isLoading: profileLoading } = useGamificationProfile();
+  const { 
+    data: rewardsData, 
+    isLoading, 
+    isError, 
+    refetch: refetchRewards 
+  } = useGamificationRewards();
+  
+  const { 
+    data: profileData, 
+    isLoading: profileLoading,
+    refetch: refetchProfile 
+  } = useGamificationProfile();
 
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  // ✅ Use redeem hook with callback to refresh data
+  const { redeem, isLoading: isRedeeming } = useRedeemReward(() => {
+    refetchRewards();
+    refetchProfile();
+  });
 
   const rewardsResult = rewardsData?.result;
   const profile = profileData?.result;
@@ -41,20 +58,34 @@ export function RewardsStoreScreen({ navigation }: Props) {
   const handleRedeem = (reward: any) => {
     if (!profile) return;
 
+    // ✅ Check balance
     if (profile.coins < reward.coinCost) {
       Alert.alert(
         "Không đủ xu",
         `Bạn cần ${reward.coinCost - profile.coins} xu nữa để đổi phần thưởng này.`,
-        [{ text: "OK" }]
+        [
+          {
+            text: "Hủy",
+            style: "cancel",
+          },
+          {
+            text: "Kiếm xu",
+            onPress: () => navigation.navigate("MissionsMain"),
+          },
+        ]
       );
       return;
     }
 
+    // ✅ Check redeemable
     if (!reward.redeemable) {
-      Alert.alert("Không khả dụng", "Phần thưởng này hiện không thể đổi.", [{ text: "OK" }]);
+      Alert.alert("Không khả dụng", "Phần thưởng này hiện không thể đổi.", [
+        { text: "OK" },
+      ]);
       return;
     }
 
+    // ✅ Confirm redeem
     Alert.alert(
       "Xác nhận đổi thưởng",
       `Bạn có chắc muốn đổi "${reward.title}" với ${reward.coinCost} xu?`,
@@ -64,8 +95,8 @@ export function RewardsStoreScreen({ navigation }: Props) {
           text: "Đổi ngay",
           style: "default",
           onPress: () => {
-            // TODO: Implement redeem API call
-            Alert.alert("Thành công", "Đã đổi phần thưởng thành công!");
+            // ✅ Call API to redeem
+            redeem({ rewardCode: reward.rewardCode });
           },
         },
       ]
@@ -78,7 +109,7 @@ export function RewardsStoreScreen({ navigation }: Props) {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-            Loading rewards...
+            Đang tải phần thưởng...
           </Text>
         </View>
       </SafeAreaView>
@@ -91,16 +122,16 @@ export function RewardsStoreScreen({ navigation }: Props) {
         <View className="flex-1 items-center justify-center px-6">
           <FontAwesome name="exclamation-circle" size={64} color="#F2A297" />
           <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-            Oops!
+            Đã xảy ra lỗi
           </Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-            Failed to load rewards
+            Không thể tải danh sách phần thưởng
           </Text>
           <TouchableOpacity
             className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
-            onPress={() => refetch()}
+            onPress={() => refetchRewards()}
           >
-            <Text className="text-white font-semibold">Retry</Text>
+            <Text className="text-white font-semibold">Thử lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -207,140 +238,141 @@ export function RewardsStoreScreen({ navigation }: Props) {
               </Text>
             </View>
           ) : (
-            filteredRewards.map((reward: any) => (
-              <View
-                key={reward.id}
-                className="bg-white dark:bg-dark-card rounded-2xl p-4 mb-3 border border-beige/30 dark:border-dark-border/30"
-              >
-                <View className="flex-row">
-                  {/* Reward Icon/Image */}
-                  <View className="mr-4">
-                    {reward.imageUrl ? (
-                      <View className="w-20 h-20 rounded-xl overflow-hidden">
-                        <Image
-                          source={{ uri: reward.imageUrl }}
-                          className="w-full h-full"
-                          resizeMode="cover"
-                        />
-                      </View>
-                    ) : (
-                      <View
-                        className={`w-20 h-20 rounded-xl items-center justify-center ${
-                          reward.type === "Voucher"
-                            ? "bg-coral/10"
-                            : "bg-skyBlue/10 dark:bg-lavender/10"
-                        }`}
-                      >
-                        <FontAwesome
-                          name={reward.type === "Voucher" ? "ticket" : "rocket"}
-                          size={28}
-                          color={reward.type === "Voucher" ? "#F2A297" : "#A5C4FB"}
-                        />
-                      </View>
-                    )}
+            filteredRewards.map((reward: any) => {
+              const canAfford = profile && profile.coins >= reward.coinCost;
+              const isDisabled = !profile || !canAfford || !reward.redeemable || isRedeeming;
 
-                    {/* Type Badge */}
-                    <View className="absolute -top-1 -right-1">
-                      <View
-                        className={`px-2 py-0.5 rounded-lg ${
-                          reward.type === "Voucher" ? "bg-coral" : "bg-skyBlue dark:bg-lavender"
-                        }`}
-                      >
-                        <Text className="text-white text-xs font-bold">
-                          {reward.type === "Voucher" ? "V" : "B"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Content */}
-                  <View className="flex-1">
-                    {/* Title & Code */}
-                    <View className="mb-2">
-                      <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
-                        {reward.title}
-                      </Text>
-                      <View className="bg-beige/50 dark:bg-dark-border/50 px-2 py-1 rounded self-start">
-                        <Text className="text-xs font-mono font-semibold text-mint dark:text-gold">
-                          {reward.rewardCode}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Description */}
-                    <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mb-2">
-                      {reward.description}
-                    </Text>
-
-                    {/* Duration */}
-                    <View className="flex-row items-center mb-3">
-                      <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
-                      <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
-                        {reward.durationDescription}
-                      </Text>
-                    </View>
-
-                    {/* Price & Action */}
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center">
-                        <FontAwesome name="money" size={16} color="#F2A297" />
-                        <Text className="text-coral text-xl font-bold ml-2">
-                          {reward.coinCost}
-                        </Text>
-                        <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm ml-1">
-                          xu
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => handleRedeem(reward)}
-                        disabled={
-                          !profile ||
-                          profile.coins < reward.coinCost ||
-                          !reward.redeemable
-                        }
-                        className={`px-6 py-2.5 rounded-xl ${
-                          !profile ||
-                          profile.coins < reward.coinCost ||
-                          !reward.redeemable
-                            ? "bg-beige/30 dark:bg-dark-border/30"
-                            : "bg-mint dark:bg-gold"
-                        }`}
-                      >
-                        <Text
-                          className={`text-sm font-bold ${
-                            !profile ||
-                            profile.coins < reward.coinCost ||
-                            !reward.redeemable
-                              ? "text-light-textSecondary dark:text-dark-textSecondary"
-                              : "text-white"
+              return (
+                <View
+                  key={reward.id}
+                  className="bg-white dark:bg-dark-card rounded-2xl p-4 mb-3 border border-beige/30 dark:border-dark-border/30"
+                >
+                  <View className="flex-row">
+                    {/* Reward Icon/Image */}
+                    <View className="mr-4">
+                      {reward.imageUrl ? (
+                        <View className="w-20 h-20 rounded-xl overflow-hidden">
+                          <Image
+                            source={{ uri: reward.imageUrl }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
+                        </View>
+                      ) : (
+                        <View
+                          className={`w-20 h-20 rounded-xl items-center justify-center ${
+                            reward.type === "Voucher"
+                              ? "bg-coral/10"
+                              : "bg-skyBlue/10 dark:bg-lavender/10"
                           }`}
                         >
-                          {!reward.redeemable
-                            ? "Không khả dụng"
-                            : reward.coinCost === 0
-                            ? "Miễn phí"
-                            : "Đổi ngay"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Insufficient Coins Warning */}
-                    {profile &&
-                      profile.coins < reward.coinCost &&
-                      reward.redeemable &&
-                      reward.coinCost > 0 && (
-                        <View className="mt-2 bg-coral/10 px-3 py-1.5 rounded-lg flex-row items-center">
-                          <FontAwesome name="info-circle" size={12} color="#F2A297" />
-                          <Text className="text-coral text-xs ml-2 font-semibold">
-                            Thiếu {reward.coinCost - profile.coins} xu
-                          </Text>
+                          <FontAwesome
+                            name={reward.type === "Voucher" ? "ticket" : "rocket"}
+                            size={28}
+                            color={reward.type === "Voucher" ? "#F2A297" : "#A5C4FB"}
+                          />
                         </View>
                       )}
+
+                      {/* Type Badge */}
+                      <View className="absolute -top-1 -right-1">
+                        <View
+                          className={`px-2 py-0.5 rounded-lg ${
+                            reward.type === "Voucher" ? "bg-coral" : "bg-skyBlue dark:bg-lavender"
+                          }`}
+                        >
+                          <Text className="text-white text-xs font-bold">
+                            {reward.type === "Voucher" ? "V" : "B"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Content */}
+                    <View className="flex-1">
+                      {/* Title & Code */}
+                      <View className="mb-2">
+                        <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
+                          {reward.title}
+                        </Text>
+                        <View className="bg-beige/50 dark:bg-dark-border/50 px-2 py-1 rounded self-start">
+                          <Text className="text-xs font-mono font-semibold text-mint dark:text-gold">
+                            {reward.rewardCode}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Description */}
+                      <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mb-2">
+                        {reward.description}
+                      </Text>
+
+                      {/* Duration */}
+                      <View className="flex-row items-center mb-3">
+                        <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
+                        <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
+                          {reward.durationDescription}
+                        </Text>
+                      </View>
+
+                      {/* Price & Action */}
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center">
+                          <FontAwesome name="money" size={16} color="#F2A297" />
+                          <Text className="text-coral text-xl font-bold ml-2">
+                            {reward.coinCost}
+                          </Text>
+                          <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm ml-1">
+                            xu
+                          </Text>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => handleRedeem(reward)}
+                          disabled={isDisabled}
+                          className={`px-6 py-2.5 rounded-xl ${
+                            isDisabled
+                              ? "bg-beige/30 dark:bg-dark-border/30"
+                              : "bg-mint dark:bg-gold"
+                          }`}
+                        >
+                          {isRedeeming ? (
+                            <ActivityIndicator size="small" color="#9CA3AF" />
+                          ) : (
+                            <Text
+                              className={`text-sm font-bold ${
+                                isDisabled
+                                  ? "text-light-textSecondary dark:text-dark-textSecondary"
+                                  : "text-white"
+                              }`}
+                            >
+                              {!reward.redeemable
+                                ? "Không khả dụng"
+                                : reward.coinCost === 0
+                                ? "Miễn phí"
+                                : "Đổi ngay"}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Insufficient Coins Warning */}
+                      {profile &&
+                        profile.coins < reward.coinCost &&
+                        reward.redeemable &&
+                        reward.coinCost > 0 && (
+                          <View className="mt-2 bg-coral/10 px-3 py-1.5 rounded-lg flex-row items-center">
+                            <FontAwesome name="info-circle" size={12} color="#F2A297" />
+                            <Text className="text-coral text-xs ml-2 font-semibold">
+                              Thiếu {reward.coinCost - profile.coins} xu
+                            </Text>
+                          </View>
+                        )}
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
 

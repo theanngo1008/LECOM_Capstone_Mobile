@@ -8,7 +8,6 @@
     "scheme": "lecom",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.lecom",
@@ -16,7 +15,6 @@
         "applinks:lecom-fe.vercel.app"
       ]
     },
-
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#3B82F6",
@@ -26,29 +24,29 @@
       },
       "package": "com.yourcompany.lecom",
       "intentFilters": [
-  {
-    "action": "VIEW",
-    "autoVerify": false,
-    "data": [
-      {
-        "scheme": "https",
-        "host": "lecom-fe.vercel.app",
-        "pathPrefix": "/"
-      }
-    ],
-    "category": ["BROWSABLE", "DEFAULT"]
-  }
-]
-,
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "lecom-fe.vercel.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -64,10 +62,15 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c2089564-a493-4577-9301-0e050571eaa1"
+      }
     }
   }
 }

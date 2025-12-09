@@ -43,6 +43,15 @@ export interface GamificationProfile {
   weeklyQuests: QuestDTO[]
   monthlyQuests: QuestDTO[]
 }
+// =============================
+// REDEEM REQUEST / RESPONSE
+// =============================
+export interface RedeemRequest {
+  rewardCode: string
+}
+
+export type RedeemResponse = ApiResponse<string | null>
+
 
 export type GamificationProfileResponse = ApiResponse<GamificationProfile>
 
@@ -91,4 +100,16 @@ export const gamificationApi = {
     )
     return data
   },
+
+  // POST /gamification/redeem
+  redeemReward: async (
+    payload: RedeemRequest
+  ): Promise<RedeemResponse> => {
+    const { data } = await apiClient.post<RedeemResponse>(
+      "/gamification/redeem",
+      payload
+    )
+    return data
+  },
 }
+

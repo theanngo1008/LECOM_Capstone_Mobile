@@ -19,7 +19,7 @@ export const useStartChat = () => {
     },
 
     onError: (err: any) => {
-      console.error("Start chat error:", err);
+      console.log("Start chat error:", err);
     },
   });
 };

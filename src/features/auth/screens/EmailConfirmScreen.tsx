@@ -34,7 +34,7 @@ export function EmailConfirmScreen() {
           
           {/* Title */}
           <Text className="text-3xl font-bold text-light-text dark:text-dark-text text-center mb-8">
-            Email Confirmed
+            Email đã được xác nhận!
           </Text>
 
           {/* Icon Illustration */}
@@ -58,7 +58,7 @@ export function EmailConfirmScreen() {
 
           {/* Message */}
           <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center mb-8 leading-6">
-            Your email has been confirmed, you can now login.
+            Email của bạn đã được xác nhận, bạn có thể đăng nhập ngay bây giờ.
           </Text>
 
           {/* Return to Login Button */}
@@ -67,7 +67,7 @@ export function EmailConfirmScreen() {
             className="bg-gold dark:bg-gold rounded-2xl py-4 items-center justify-center"
           >
             <Text className="text-white text-lg font-bold">
-              Return to login
+              Quay lại đăng nhập
             </Text>
           </Pressable>
         </View>
@@ -76,7 +76,7 @@ export function EmailConfirmScreen() {
         <View className="mt-8 flex-row items-center">
           <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
           <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-            Welcome to CourseHub
+            Chào mừng bạn đến với LECOM
           </Text>
           <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold ml-2" />
         </View>

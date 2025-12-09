@@ -20,10 +20,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useStartChat } from "@/features/chat/hooks/useStartChat";
 import { useStartAIChat } from "@/features/chat/hooks/useStartAIChat";
 import { FeedbackSection } from "./FeedbackSection";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-export function ProductDetailScreen({ navigation, route }: any) {
+// ✅ Type-safe props
+type Props = NativeStackScreenProps<ProductsStackParamList, "ProductDetail">;
+
+export function ProductDetailScreen({ navigation, route }: Props) {
   const { slug } = route.params;
   const { product, isLoading, isError, refetch } = useProductBySlug(slug);
   const { data: recommendedData, isLoading: isLoadingRecommended } =
@@ -68,6 +73,7 @@ export function ProductDetailScreen({ navigation, route }: any) {
             return;
           }
 
+          // ✅ Navigate with type safety
           navigation.navigate("ChatDetail", {
             conversationId: conversation.id,
           });
@@ -100,6 +106,7 @@ export function ProductDetailScreen({ navigation, route }: any) {
             return;
           }
 
+          // ✅ Navigate with type safety
           navigation.navigate("ChatDetail", {
             conversationId: conversation.id,
             isAIChat: conversation.isAIChat,
@@ -294,7 +301,6 @@ export function ProductDetailScreen({ navigation, route }: any) {
   const handleRecommendedProductPress = (recommendedSlug: string) => {
     navigation.push("ProductDetail", { slug: recommendedSlug });
   };
-
   return (
     <SafeAreaView
       edges={["top"]}
