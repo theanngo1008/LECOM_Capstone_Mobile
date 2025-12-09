@@ -100,14 +100,7 @@ export function WelcomeScreen({ navigation }: Props) {
           </Pressable>
 
           <View className="mt-6 items-center">
-            <Pressable
-              className="py-3 active:opacity-60"
-              onPress={() => {}}
-            >
-              <Text className="text-center text-light-textSecondary dark:text-dark-textSecondary font-medium">
-                Khám phá ngay →
-              </Text>
-            </Pressable>
+           
             
             <View className="mt-4 items-center">
               <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm opacity-60">
