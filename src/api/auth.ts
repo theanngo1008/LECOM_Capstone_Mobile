@@ -22,10 +22,33 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface ResetPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordResult {
+  message: string;
+}
+
+export type ResetPasswordResponse = ApiResponse<ResetPasswordResult>;
+
 export interface RegisterResult {
   message: string;
 }
 export type RegisterResponse = ApiResponse<RegisterResult>;
+// Step 2: xác nhận token và đặt mật khẩu mới
+export interface ResetPasswordConfirmRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordConfirmResult {
+  message: string;
+}
+
+export type ResetPasswordConfirmResponse =
+  ApiResponse<ResetPasswordConfirmResult>;
 
 export const authApi = {
   /**
@@ -46,5 +69,24 @@ export const authApi = {
       input
     )
     return data
+  },
+  resetPassword: async (
+  input: ResetPasswordRequest
+): Promise<ResetPasswordResponse> => {
+  const { data } = await apiClient.post<ResetPasswordResponse>(
+    "/Auth/forget-password",
+    input
+  )
+  return data
+},
+ // POST /Auth/reset-password/
+  confirmResetPassword: async (
+    input: ResetPasswordConfirmRequest
+  ): Promise<ResetPasswordConfirmResponse> => {
+    const { data } = await apiClient.post<ResetPasswordConfirmResponse>(
+      "/Auth/reset-password",
+      input
+    );
+    return data;
   },
 }

@@ -119,11 +119,14 @@ export function LoginScreen({ navigation }: Props) {
                 </View>
               </View>
 
-              <TouchableOpacity className="self-end mt-2">
-                <Text className="text-gray-800 dark:text-lavender font-bold text-sm">
-                  Quên mật khẩu?
-                </Text>
-              </TouchableOpacity>
+              <TouchableOpacity 
+  className="self-end mt-2"
+  onPress={() => navigation.navigate("ResetPassword")}
+>
+  <Text className="text-gray-800 dark:text-lavender font-bold text-sm">
+    Quên mật khẩu?
+  </Text>
+</TouchableOpacity>
             </View>
 
             <TouchableOpacity

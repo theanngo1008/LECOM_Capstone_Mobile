@@ -1,15 +1,25 @@
 import { LinkingOptions } from "@react-navigation/native";
 
 export const linking: LinkingOptions<any> = {
-  prefixes: ["lecom://", "https://lecom-fe.vercel.app/"],
+  prefixes: [
+    "lecom://",
+    "https://lecom-fe.vercel.app",
+  ],
+
   config: {
     screens: {
-      // Auth Stack
+      // ============================
+      // AUTH STACK
+      // ============================
       Welcome: "welcome",
       Login: "login",
       Register: "register",
-      EmailConfirm: "auth/email-confirmed",
-      ResetPassword: {
+
+      EmailConfirm: {
+        path: "auth/email-confirmed",
+      },
+
+      ResetPasswordConfirm: {
         path: "auth/reset-password",
         parse: {
           email: (value: string) => value,
@@ -17,13 +27,18 @@ export const linking: LinkingOptions<any> = {
         },
       },
 
-      // Drawer
+      // ============================
+      // MAIN TABS
+      // ============================
       MainTabs: {
         screens: {
-          // Home Tab
-          Home: "home",
+          // HOME → match "/" và "home"
+          Home: {
+            path: "", // 👈 match root: /
+            screens: ["home"],
+          },
 
-          // Courses Tab
+          // COURSES TAB
           CoursesTab: {
             screens: {
               CourseList: "courses",
@@ -31,13 +46,16 @@ export const linking: LinkingOptions<any> = {
               VideoPlayer: "courses/:courseId/video/:videoId",
             },
           },
+
+          // ORDERS TAB
           OrdersTab: {
             screens: {
               OrdersMain: "orders",
               OrderDetail: "orders/:orderId",
             },
           },
-          // Posts Tab
+
+          // POSTS TAB
           PostsTab: {
             screens: {
               PostList: "posts",
@@ -45,7 +63,7 @@ export const linking: LinkingOptions<any> = {
             },
           },
 
-          // Shop Tab
+          // SHOP TAB
           ShopTab: {
             screens: {
               ShopMain: "shop",
@@ -54,7 +72,7 @@ export const linking: LinkingOptions<any> = {
             },
           },
 
-          // Profile Tab
+          // PROFILE TAB
           ProfileTab: {
             screens: {
               ProfileMain: "profile",
@@ -65,11 +83,15 @@ export const linking: LinkingOptions<any> = {
         },
       },
 
-      // Drawer Items
+      // ============================
+      // DRAWER (nếu có)
+      // ============================
       Settings: "settings",
       Help: "help",
 
-      // Not Found
+      // ============================
+      // WILDCARD
+      // ============================
       NotFound: "*",
     },
   },

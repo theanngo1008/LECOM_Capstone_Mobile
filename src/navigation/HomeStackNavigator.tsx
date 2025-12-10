@@ -1,4 +1,5 @@
 import { CartScreen } from "@/features/cart/screens/CartScreen";
+import { CheckoutScreen } from "@/features/cart/screens/CheckoutScreen";
 import { CourseDetailScreen } from "@/features/courses/screens/CourseDetailScreen";
 import { HomeScreen } from "@/features/home/screens/HomeScreen";
 import { ProductDetailScreen } from "@/features/products/screens/ProductDetailScreen";
@@ -10,6 +11,7 @@ export type HomeStackParamList = {
   CourseDetail: { slug: string };
   ProductDetail: { slug: string };
   CartMain: undefined;
+  Checkout: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -25,6 +27,11 @@ export function HomeStackNavigator() {
       <Stack.Screen name="CourseDetail" component={CourseDetailScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="CartMain" component={CartScreen} />
+      <Stack.Screen
+              name="Checkout"
+              component={CheckoutScreen}
+              options={{ title: "Thanh toán" }}
+            />
     </Stack.Navigator>
   );
 }

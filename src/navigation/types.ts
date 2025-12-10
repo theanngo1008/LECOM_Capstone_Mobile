@@ -11,7 +11,11 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   EmailConfirm: undefined;
-  
+  ResetPassword: undefined;
+  ResetPasswordConfirm: {
+    email?: string;
+    token?: string;
+  }
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
@@ -135,6 +139,7 @@ export type MainTabParamList = {
   ShopTab: undefined; // ✅ Add Shop tab
   ProfileTab: undefined;
   CartMain: undefined;
+  Checkout: undefined;
 };
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> =
@@ -185,8 +190,8 @@ export type ProductsStackParamList = {
   ProductDetail: {
     slug: string;
   };
-  CartMain: undefined;       
-  Checkout: undefined;       
+  CartMain: undefined;
+  Checkout: undefined;
   CartProductDetail: {
     productId: string;       
   };

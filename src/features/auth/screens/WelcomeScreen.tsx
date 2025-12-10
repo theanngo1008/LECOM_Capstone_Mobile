@@ -74,7 +74,7 @@ export function WelcomeScreen({ navigation }: Props) {
           </Text>
         </Animated.View>
 
-        <Animated.View 
+       <Animated.View 
           className="w-full gap-4"
           style={{
             opacity: fadeAnim,
@@ -82,19 +82,21 @@ export function WelcomeScreen({ navigation }: Props) {
           }}
         >
           <Pressable
-            className="bg-skyBlue dark:bg-lavender rounded-2xl py-5 items-center justify-center shadow-lg active:opacity-80"
+            className="rounded-2xl py-5 items-center justify-center shadow-lg active:opacity-80"
+            style={{ backgroundColor: '#E8BA69' }}
             onPress={() => navigation.navigate("Login")}
           >
-            <Text className="text-white font-bold text-lg">
+            <Text className="text-gray-800 font-bold text-lg">
               Đăng nhập
             </Text>
           </Pressable>
 
           <Pressable
-            className="bg-white dark:bg-dark-card border-2 border-skyBlue dark:border-lavender rounded-2xl py-5 px-8 items-center justify-center active:opacity-80"
+            className="rounded-2xl py-5 px-8 items-center justify-center active:opacity-80"
+            style={{ backgroundColor: '#B6A8C5' }}
             onPress={() => navigation.navigate("Register")}
           >
-            <Text className="text-skyBlue dark:text-lavender font-bold text-lg">
+            <Text className="text-gray-800 font-bold text-lg">
               Tạo tài khoản
             </Text>
           </Pressable>

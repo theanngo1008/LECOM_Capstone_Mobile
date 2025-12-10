@@ -3,7 +3,8 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { DrawerNavigationProp } from "@react-navigation/drawer";
-import React, { useState } from "react";
+import { useURL } from "expo-linking";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -11,6 +12,7 @@ import {
   ScrollView,
   Text,
   View,
+  Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLandingPage } from "../hooks/useLandingPage";
@@ -25,11 +27,17 @@ export function HomeScreen() {
   
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList> & DrawerNavigationProp<any>>();
   const [searchQuery, setSearchQuery] = useState("");
+const url = useURL();
 
-  // ✅ Lấy giỏ hàng để đếm số lượng
+useEffect(() => {
+  if (url?.includes("status=PAID")) {
+    Alert.alert("Thanh toán thành công!");
+  }
+}, [url]);
+
   const { items: cartShopGroups } = useCart();
   
-  // ✅ Tính tổng số lượng sản phẩm từ tất cả shop
+
   const cartItemCount = cartShopGroups.reduce((total, shopGroup) => {
     const shopTotal = shopGroup.items.reduce((sum, item) => sum + item.quantity, 0);
     return total + shopTotal;

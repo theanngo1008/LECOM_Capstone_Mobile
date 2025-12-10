@@ -382,7 +382,7 @@ export function CheckoutScreen({ navigation, route }: any) {
 
           <TouchableOpacity onPress={() => navigation.navigate("OrdersMain")}>
             <Text className="text-mint dark:text-gold text-center font-bold">
-              Xem đơn hàng của tôi
+              Đã thanh toán? Xem đơn hàng của tôi
             </Text>
           </TouchableOpacity>
         </View>

@@ -21,7 +21,7 @@ import { useStartChat } from "@/features/chat/hooks/useStartChat";
 import { useStartAIChat } from "@/features/chat/hooks/useStartAIChat";
 import { FeedbackSection } from "./FeedbackSection";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
+import { ProductsStackParamList } from "@/navigation/types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
