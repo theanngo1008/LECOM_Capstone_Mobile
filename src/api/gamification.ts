@@ -78,6 +78,25 @@ export interface RewardCategoryResult {
   boosters: RewardItem[]
   vouchers: RewardItem[]
 }
+export type LeaderboardPeriod = "weekly" | "monthly" | "all";
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  score: number;
+  level: number;
+}
+
+export interface LeaderboardResult {
+  period: LeaderboardPeriod;
+  entries: LeaderboardEntry[];
+  currentUser: LeaderboardEntry | null;
+}
+
+export type LeaderboardResponse = ApiResponse<LeaderboardResult>;
+
 
 export type GamificationRewardResponse = ApiResponse<RewardCategoryResult>
 
@@ -111,5 +130,18 @@ export const gamificationApi = {
     )
     return data
   },
+  // GET /gamification/leaderboard
+getLeaderboard: async (
+  period: LeaderboardPeriod
+): Promise<LeaderboardResponse> => {
+  const { data } = await apiClient.get<LeaderboardResponse>(
+    "/gamification/leaderboard",
+    {
+      params: { period },
+    }
+  );
+  return data;
+},
+
 }
 

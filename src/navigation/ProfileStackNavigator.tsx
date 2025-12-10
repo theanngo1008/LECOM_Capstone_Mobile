@@ -1,12 +1,16 @@
+
 import { ChangePasswordScreen } from "@/features/profile/screens/ChangePasswordScreen";
 import { EditProfileScreen } from "@/features/profile/screens/EditProfileScreen";
+import { LeaderBoardScreen } from "@/features/profile/screens/LeaderBoardScreen";
+import { MissionScreen } from "@/features/profile/screens/MissionScreen";
+import { MyVoucherScreen } from "@/features/profile/screens/MyVoucherScreen";
 import { ProfileScreen } from "@/features/profile/screens/ProfileScreen";
+import { RewardsStoreScreen } from "@/features/profile/screens/RewardsStoreScreen";
 import { WalletScreen } from "@/features/wallet/screens/WalletScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ProfileStackParamList } from "./types";
-import { MissionScreen } from "@/features/profile/screens/MissionScreen";
-import { RewardsStoreScreen } from "@/features/profile/screens/RewardsStoreScreen";
+import { AchievementsScreen } from "@/features/profile/screens/AchievementsScreen";
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 export function ProfileStackNavigator() {
@@ -48,6 +52,19 @@ export function ProfileStackNavigator() {
         name="RewardsStore"
         component={RewardsStoreScreen}
       />
+      <Stack.Screen
+        name="MyVouchers"
+        component={MyVoucherScreen}
+      />
+      <Stack.Screen
+        name="Achievements"
+        component={AchievementsScreen}
+      />
+      <Stack.Screen
+        name="Leaderboard"
+        component={LeaderBoardScreen}
+      />
+     
     </Stack.Navigator>
   );
 }

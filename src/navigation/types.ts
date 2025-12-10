@@ -55,6 +55,9 @@ export type ProfileStackParamList = {
   WalletTransactions: undefined;
   MissionsMain: undefined;
   RewardsStore: undefined;
+  MyVouchers: undefined;  
+  Leaderboard: undefined;
+  Achievements: undefined;
 };
 
 export type ProfileStackScreenProps<T extends keyof ProfileStackParamList> =

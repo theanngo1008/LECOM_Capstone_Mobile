@@ -1,8 +1,10 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Alert } from "react-native"
 import { gamificationApi, RedeemRequest, RedeemResponse } from "@/api/gamification"
 
 export function useRedeemReward(onSuccessCallback?: () => void) {
+  const queryClient = useQueryClient()
+  
   const mutation = useMutation<RedeemResponse, Error, RedeemRequest>({
     mutationFn: async (payload) => {
       const res = await gamificationApi.redeemReward(payload)
@@ -14,7 +16,10 @@ export function useRedeemReward(onSuccessCallback?: () => void) {
 
     onSuccess: () => {
       Alert.alert("Thành công!", "Bạn đã đổi phần thưởng thành công 🎉")
-
+      
+      // Invalidate vouchers query để refresh danh sách voucher
+      queryClient.invalidateQueries({ queryKey: ["vouchers", "my"] })
+      
       // Gọi callback để refresh list rewards hoặc profile nếu cần
       if (onSuccessCallback) onSuccessCallback()
     },

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMyProfile } from "../hooks/useMyProfile";
 import { useGamificationProfile } from "../hooks/useGamificationProfile";
+import { useLeaderboard } from "../hooks/useLeaderBoard";
 
 type Props = ProfileStackScreenProps<"ProfileMain">;
 
@@ -23,12 +24,13 @@ export function ProfileScreen({ navigation }: Props) {
   const { data, isLoading, isError, refetch } = useMyProfile();
   const { data: walletData, isLoading: walletLoading } = useWalletBalance();
 
-  // NEW: Gamification Profile
   const { data: gmData, isLoading: gmLoading } = useGamificationProfile();
   const g = gmData?.result;
 
+  const { data: leaderboardData, isLoading: leaderboardLoading } = useLeaderboard("weekly");
+  const currentUserRank = leaderboardData?.currentUser?.rank;
+
   const profile = data?.result;
-  const wallet = walletData?.result;
 
   useEffect(() => {
     const { token, userId, isAuthenticated } = useAuthStore.getState();
@@ -53,42 +55,6 @@ export function ProfileScreen({ navigation }: Props) {
     ]);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount);
-  };
-
-  const menuItems = [
-    {
-      icon: "book",
-      title: "Khóa học của tôi",
-      color: "#ACD6B8",
-      bgColor: "bg-mint/10 dark:bg-gold/10",
-      onPress: () => {},
-    },
-    {
-      icon: "ticket",
-      title: "Ưu đãi của tôi",
-      color: "#F2A297",
-      bgColor: "bg-coral/10",
-      onPress: () => {},
-    },
-    {
-      icon: "certificate",
-      title: "Chứng chỉ",
-      color: "#FFCB66",
-      bgColor: "bg-gold/10",
-      onPress: () => {},
-    },
-    {
-      icon: "lock",
-      title: "Đổi mật khẩu",
-      color: "#A5C4FB",
-      bgColor: "bg-skyBlue/10",
-      onPress: () => navigation.navigate("ChangePassword"),
-    },
-  ];
-
-  // Loading Auth
   if (authLoading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background">
@@ -100,7 +66,6 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
-  // Loading Profile
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background">
@@ -112,7 +77,6 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
-  // Error
   if (isError) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background px-6">
@@ -135,7 +99,6 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
-  // Empty profile
   if (!profile) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
@@ -153,7 +116,6 @@ export function ProfileScreen({ navigation }: Props) {
               Your account does not have profile details yet.
             </Text>
 
-            {/* User ID */}
             <View className="w-full bg-white dark:bg-dark-card rounded-2xl p-4 mb-6 border border-beige/30 dark:border-dark-border/30">
               <View className="flex-row items-center">
                 <View className="w-10 h-10 rounded-xl bg-skyBlue/10 items-center justify-center mr-3">
@@ -170,7 +132,6 @@ export function ProfileScreen({ navigation }: Props) {
               </View>
             </View>
 
-            {/* Buttons */}
             <View className="w-full gap-3">
               <TouchableOpacity
                 className="bg-mint dark:bg-gold rounded-2xl py-4 items-center"
@@ -192,14 +153,10 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
-  // SUCCESS PROFILE UI
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         
-        {/* ===================== */}
-        {/* COVER & AVATAR */}
-        {/* ===================== */}
         <View className="relative">
           <View className="h-32 bg-gradient-to-r from-mint to-skyBlue dark:from-gold dark:to-lavender" />
 
@@ -221,7 +178,6 @@ export function ProfileScreen({ navigation }: Props) {
                 )}
               </View>
 
-              {/* EDIT BUTTON */}
               <TouchableOpacity
                 className="absolute bottom-0 right-1/3 w-10 h-10 rounded-full bg-mint dark:bg-gold items-center justify-center border-2 border-cream dark:border-dark-background shadow-lg"
                 onPress={() => navigation.navigate("EditProfile")}
@@ -230,7 +186,6 @@ export function ProfileScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* NAME + EMAIL */}
             <View className="items-center mb-6">
               <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-1">
                 {profile.fullName}
@@ -244,13 +199,7 @@ export function ProfileScreen({ navigation }: Props) {
               </View>
             </View>
 
-            {/* =============================== */}
-            {/* ⭐ LEVEL • COINS • RANK ROW ⭐ */}
-            {/* =============================== */}
-
             <View className="flex-row gap-3 mb-6">
-
-              {/* LEVEL */}
               <View className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 border border-beige/30 dark:border-dark-border/30">
                 <View className="flex-row items-center justify-between mb-2">
                   <FontAwesome name="trophy" size={18} color="#ACD6B8" />
@@ -267,7 +216,6 @@ export function ProfileScreen({ navigation }: Props) {
                 </Text>
               </View>
 
-              {/* COINS */}
               <View className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 border border-beige/30 dark:border-dark-border/30">
                 <View className="flex-row items-center justify-between mb-2">
                   <FontAwesome name="money" size={18} color="#F2A297" />
@@ -284,90 +232,129 @@ export function ProfileScreen({ navigation }: Props) {
                 </Text>
               </View>
 
-              {/* RANK (STATIC) */}
-              <View className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 border border-beige/30 dark:border-dark-border/30">
+              <TouchableOpacity
+                className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 border border-beige/30 dark:border-dark-border/30"
+                onPress={() => navigation.navigate("Leaderboard")}
+                activeOpacity={0.7}
+              >
                 <View className="flex-row items-center justify-between mb-2">
                   <FontAwesome name="line-chart" size={18} color="#FFCB66" />
-                  <Text className="text-2xl font-bold text-gold">—</Text>
+                  {leaderboardLoading ? (
+                    <ActivityIndicator size="small" color="#FFCB66" />
+                  ) : (
+                    <Text className="text-2xl font-bold text-gold">
+                      {currentUserRank ? `#${currentUserRank}` : "—"}
+                    </Text>
+                  )}
                 </View>
                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                  Xếp hạng học tập
+                  Xếp hạng tuần
                 </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row gap-3 mb-6">
+              <TouchableOpacity
+                onPress={() => navigation.navigate("MissionsMain")}
+                className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 
+                           border border-beige/30 dark:border-dark-border/30 
+                           items-center justify-center active:opacity-80"
+              >
+                <FontAwesome name="tasks" size={20} color="#ACD6B8" />
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mt-2">
+                  Nhiệm vụ
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("RewardsStore")}
+                className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 
+                           border border-beige/30 dark:border-dark-border/30 
+                           items-center justify-center active:opacity-80"
+              >
+                <FontAwesome name="gift" size={20} color="#F2A297" />
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mt-2">
+                  Phần thưởng
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Leaderboard")}
+                className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 
+                           border border-beige/30 dark:border-dark-border/30 
+                           items-center justify-center active:opacity-80"
+              >
+                <FontAwesome name="trophy" size={20} color="#FFCB66" />
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mt-2">
+                  Xếp hạng
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ✅ HARDCODE menu items - NO .map() */}
+             {/* ✅ HARDCODE menu items - NO .map() */}
+          <View className="mb-6">
+            <Text className="text-lg font-bold mb-3">Account Settings</Text>
+
+            <TouchableOpacity
+              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+              onPress={() => console.log("Courses")}
+            >
+              <View className="w-10 h-10 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
+                <FontAwesome name="book" size={16} color="#ACD6B8" />
               </View>
-            </View>
-            {/* =============================== */}
-{/* ⭐ ACTION BUTTONS — QUEST • REWARD • LEADERBOARD ⭐ */}
-{/* =============================== */}
-<View className="flex-row gap-3 mb-6">
+              <Text className="flex-1 text-base font-semibold">
+                Khóa học của tôi
+              </Text>
+              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
 
-  {/* Nhiệm vụ */}
-  <TouchableOpacity
-    onPress={() => navigation.navigate("MissionsMain")}
-    className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 
-               border border-beige/30 dark:border-dark-border/30 
-               items-center justify-center active:opacity-80"
-  >
-    <FontAwesome name="tasks" size={20} color="#ACD6B8" />
-    <Text className="text-sm font-semibold text-light-text dark:text-dark-text mt-2">
-      Nhiệm vụ
-    </Text>
-  </TouchableOpacity>
+            {/* ✅ FIX: Dùng push thay vì navigate */}
+            <TouchableOpacity
+              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+              onPress={() => {
+                console.log("🎫 Navigating to MyVouchers...");
+                console.log("Navigation object:", navigation);
+                // ✅ Dùng push để force mount mới
+                navigation.push("MyVouchers");
+              }}
+            >
+              <View className="w-10 h-10 rounded-xl bg-coral/10 items-center justify-center mr-3">
+                <FontAwesome name="ticket" size={16} color="#F2A297" />
+              </View>
+              <Text className="flex-1 text-base font-semibold">
+                Ưu đãi của tôi
+              </Text>
+              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
 
-  {/* Cửa hàng phần thưởng */}
-  <TouchableOpacity
-    onPress={() => navigation.navigate("RewardsStore")}
-    className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 
-               border border-beige/30 dark:border-dark-border/30 
-               items-center justify-center active:opacity-80"
-  >
-    <FontAwesome name="gift" size={20} color="#F2A297" />
-    <Text className="text-sm font-semibold text-light-text dark:text-dark-text mt-2">
-      Phần thưởng
-    </Text>
-  </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+              onPress={() => navigation.push("Achievements")}
+            >
+              <View className="w-10 h-10 rounded-xl bg-gold/10 items-center justify-center mr-3">
+                <FontAwesome name="certificate" size={16} color="#FFCB66" />
+              </View>
+              <Text className="flex-1 text-base font-semibold">
+                Thành tựu
+              </Text>
+              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
 
-  {/* Bảng xếp hạng */}
-  <TouchableOpacity
-    onPress={() => navigation.navigate("Home")}
-    className="flex-1 bg-white dark:bg-dark-card rounded-2xl p-4 
-               border border-beige/30 dark:border-dark-border/30 
-               items-center justify-center active:opacity-80"
-  >
-    <FontAwesome name="trophy" size={20} color="#FFCB66" />
-    <Text className="text-sm font-semibold text-light-text dark:text-dark-text mt-2">
-      Xếp hạng
-    </Text>
-  </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+              onPress={() => navigation.push("ChangePassword")}
+            >
+              <View className="w-10 h-10 rounded-xl bg-skyBlue/10 items-center justify-center mr-3">
+                <FontAwesome name="lock" size={16} color="#A5C4FB" />
+              </View>
+              <Text className="flex-1 text-base font-semibold">
+                Đổi mật khẩu
+              </Text>
+              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
 
-</View>
-
-
-            {/* ===================== */}
-            {/* MENU ITEMS */}
-            {/* ===================== */}
-            <View className="mb-6">
-              <Text className="text-lg font-bold mb-3">Account Settings</Text>
-
-              {menuItems.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
-                  onPress={item.onPress}
-                >
-                  <View
-                    className={`w-10 h-10 rounded-xl ${item.bgColor} items-center justify-center mr-3`}
-                  >
-                    <FontAwesome name={item.icon as any} size={16} color={item.color} />
-                  </View>
-                  <Text className="flex-1 text-base font-semibold">
-                    {item.title}
-                  </Text>
-                  <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* LOGOUT */}
             <TouchableOpacity
               className="bg-coral rounded-2xl py-4 items-center mb-6"
               onPress={handleLogout}
@@ -377,7 +364,6 @@ export function ProfileScreen({ navigation }: Props) {
                 <Text className="text-white font-bold text-lg ml-2">Logout</Text>
               </View>
             </TouchableOpacity>
-
           </View>
         </View>
       </ScrollView>
