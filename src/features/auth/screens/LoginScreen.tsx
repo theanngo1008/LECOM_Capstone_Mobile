@@ -42,8 +42,8 @@ export function LoginScreen({ navigation }: Props) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView 
-          className="flex-1" 
+        <ScrollView
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -59,7 +59,7 @@ export function LoginScreen({ navigation }: Props) {
                   <FontAwesome name="check" size={18} color="white" />
                 </View>
               </View>
-              
+
               <Text className="text-4xl font-bold text-light-text dark:text-dark-text mb-3">
                 Chào mừng trở lại
               </Text>
@@ -106,32 +106,33 @@ export function LoginScreen({ navigation }: Props) {
                     secureTextEntry={!showPassword}
                     editable={!isLoading}
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className="absolute right-4 top-0 bottom-0 justify-center z-10"
                     onPress={() => setShowPassword(!showPassword)}
                   >
-                    <FontAwesome 
-                      name={showPassword ? "eye" : "eye-slash"} 
-                      size={18} 
-                      color="#9CA3AF" 
+                    <FontAwesome
+                      name={showPassword ? "eye" : "eye-slash"}
+                      size={18}
+                      color="#9CA3AF"
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
               <TouchableOpacity className="self-end mt-2">
-                <Text className="text-skyBlue dark:text-lavender font-bold text-sm">
+                <Text className="text-gray-800 dark:text-lavender font-bold text-sm">
                   Quên mật khẩu?
                 </Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
-              className="bg-skyBlue dark:bg-lavender rounded-2xl py-5 items-center justify-center shadow-lg active:scale-98 mb-8"
+              className="rounded-2xl py-5 items-center justify-center shadow-lg active:scale-98 mb-8"
               onPress={handleLogin}
               disabled={isLoading}
               style={{
-                shadowColor: "#6B9BD1",
+                backgroundColor: "#E3B967",
+                shadowColor: "#E3B967",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
@@ -140,13 +141,19 @@ export function LoginScreen({ navigation }: Props) {
             >
               {isLoading ? (
                 <View className="flex-row items-center gap-3">
-                  <View className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <Text className="text-white font-bold text-lg">
+                  <View className="w-5 h-5 border-2 border-gray-800/30 border-t-gray-800 rounded-full animate-spin" />
+                  <Text
+                    style={{ color: "#1F2937" }}
+                    className="font-bold text-lg"
+                  >
                     Đang đăng nhập...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-white font-bold text-lg">
+                <Text
+                  style={{ color: "#1F2937" }}
+                  className="font-bold text-lg"
+                >
                   Đăng nhập
                 </Text>
               )}
@@ -156,11 +163,11 @@ export function LoginScreen({ navigation }: Props) {
               <Text className="text-light-textSecondary dark:text-dark-textSecondary text-base">
                 Chưa có tài khoản?
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => navigation.navigate("Register")}
                 className="active:opacity-70"
               >
-                <Text className="text-skyBlue dark:text-lavender font-bold text-base">
+                <Text className="text-gray-800 dark:text-lavender font-bold text-base">
                   Đăng ký ngay
                 </Text>
               </TouchableOpacity>

@@ -1,18 +1,22 @@
 import { LinkingOptions } from "@react-navigation/native";
 
 export const linking: LinkingOptions<any> = {
-  prefixes: [
-    "lecom://",
-    "https://lecom-fe.vercel.app/",
-    
-  ],
+  prefixes: ["lecom://", "https://lecom-fe.vercel.app/"],
   config: {
     screens: {
       // Auth Stack
       Welcome: "welcome",
       Login: "login",
       Register: "register",
-EmailConfirm: "auth/email-confirmed",
+      EmailConfirm: "auth/email-confirmed",
+      ResetPassword: {
+        path: "auth/reset-password",
+        parse: {
+          email: (value: string) => value,
+          token: (value: string) => value,
+        },
+      },
+
       // Drawer
       MainTabs: {
         screens: {
@@ -27,7 +31,7 @@ EmailConfirm: "auth/email-confirmed",
               VideoPlayer: "courses/:courseId/video/:videoId",
             },
           },
- OrdersTab: {
+          OrdersTab: {
             screens: {
               OrdersMain: "orders",
               OrderDetail: "orders/:orderId",

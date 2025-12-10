@@ -64,8 +64,17 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
     const status = error.response?.status;
 
+    // ✅ Extract error messages from response data
+    const errorMessages = error.response?.data?.errorMessages || [];
+    const errorMessage = errorMessages.length > 0 
+      ? errorMessages.join(", ") 
+      : error.message;
+
     console.log("🚨 Client: Response Error", {
-      message: error.message,
+      status,
+      url: originalRequest?.url,
+      errorMessages,
+      message: errorMessage,
     });
 
     if (!originalRequest) {
@@ -154,8 +163,8 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // ✅ Log only error message
-    console.log("❌ Client: Error -", error.message);
+    // ✅ Log error with messages from API
+    console.log("❌ Client: Error -", errorMessage);
     return Promise.reject(error);
   }
 );

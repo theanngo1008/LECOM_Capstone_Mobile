@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true, // ✅ Start loading
 
       setAuth: (token, refreshToken, userId) => {
-        console.log("✅ Auth Store: setAuth", { userId, hasToken: !!token });
+        console.log("Auth Store: setAuth", { userId, hasToken: !!token });
         set({
           token,
           refreshToken,

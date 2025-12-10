@@ -1,7 +1,7 @@
 // src/hooks/useLogin.ts
+import { authApi, LoginRequest, LoginResponse } from "@/api/auth"
 import { useMutation } from "@tanstack/react-query"
 import { Alert } from "react-native"
-import { authApi, LoginRequest, LoginResponse } from "@/api/auth"
 import { useAuth } from "./useAuth"
 
 export const useLogin = () => {
@@ -11,7 +11,11 @@ export const useLogin = () => {
     mutationFn: async (input) => {
       const res = await authApi.login(input)
       if (!res.isSuccess) {
-        throw new Error(res.errorMessages?.[0] || "Đăng nhập thất bại")
+        // ✅ Throw custom error with errorMessages
+        const error = new Error("Đăng nhập thất bại") as any
+        error.errorMessages = res.errorMessages
+        error.statusCode = res.statusCode
+        throw error
       }
       return res
     },
@@ -22,8 +26,19 @@ export const useLogin = () => {
       Alert.alert("Thành công", "Đăng nhập thành công!")
     },
 
-    onError: (error) => {
-      Alert.alert("Đăng nhập thất bại", error.message)
+    onError: (error: any) => {
+      // ✅ Extract error messages from axios error response
+      const errorMessages = error.response?.data?.errorMessages || error.errorMessages || []
+      const errorMessage = errorMessages[0] || error.message || "Đăng nhập thất bại"
+      
+      console.log("🚨 useLogin Error:", {
+        hasResponse: !!error.response,
+        responseData: error.response?.data,
+        errorMessages,
+        finalMessage: errorMessage,
+      })
+      
+      Alert.alert("Đăng nhập thất bại", errorMessage)
     },
   })
 

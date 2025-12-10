@@ -1,3 +1,5 @@
+import { FontAwesome } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useState } from "react";
 import {
   Alert,
@@ -12,8 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthStackScreenProps } from "../../../navigation/types";
 import { useRegister } from "../hooks/useRegister";
-import { FontAwesome } from "@expo/vector-icons";
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 type Props = AuthStackScreenProps<"Register">;
 
@@ -45,7 +45,7 @@ export function RegisterScreen({ navigation }: Props) {
 
   const validatePhoneNumber = (phone: string) => {
     const phoneRegex = /^[0-9]{10,11}$/;
-    return !phone || phoneRegex.test(phone.replace(/\s/g, ''));
+    return !phone || phoneRegex.test(phone.replace(/\s/g, ""));
   };
 
   const validateUsername = (username: string) => {
@@ -71,7 +71,7 @@ export function RegisterScreen({ navigation }: Props) {
 
     if (!validateUsername(userName)) {
       Alert.alert(
-        "Lỗi", 
+        "Lỗi",
         "Tên đăng nhập phải có 3-20 ký tự và chỉ chứa chữ cái, số và dấu gạch dưới"
       );
       return;
@@ -99,7 +99,7 @@ export function RegisterScreen({ navigation }: Props) {
 
     if (!validatePassword(password)) {
       Alert.alert(
-        "Lỗi", 
+        "Lỗi",
         "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa và ký tự đặc biệt"
       );
       return;
@@ -130,7 +130,7 @@ export function RegisterScreen({ navigation }: Props) {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    setShowDatePicker(Platform.OS === "ios");
     if (selectedDate) {
       setDateOfBirth(selectedDate);
     }
@@ -138,10 +138,10 @@ export function RegisterScreen({ navigation }: Props) {
 
   const formatDate = (date?: Date) => {
     if (!date) return "Chọn ngày sinh";
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -151,8 +151,8 @@ export function RegisterScreen({ navigation }: Props) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView 
-          className="flex-1" 
+        <ScrollView
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -168,7 +168,7 @@ export function RegisterScreen({ navigation }: Props) {
                   <FontAwesome name="user-plus" size={16} color="white" />
                 </View>
               </View>
-              
+
               <Text className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">
                 Tạo tài khoản
               </Text>
@@ -251,7 +251,13 @@ export function RegisterScreen({ navigation }: Props) {
                       <FontAwesome name="calendar" size={16} color="#9CA3AF" />
                     </View>
                     <View className="bg-white dark:bg-dark-card pl-12 pr-4 py-4 rounded-2xl border-2 border-beige dark:border-dark-border">
-                      <Text className={dateOfBirth ? "text-light-text dark:text-dark-text" : "text-gray-400"}>
+                      <Text
+                        className={
+                          dateOfBirth
+                            ? "text-light-text dark:text-dark-text"
+                            : "text-gray-400"
+                        }
+                      >
                         {formatDate(dateOfBirth)}
                       </Text>
                     </View>
@@ -261,7 +267,7 @@ export function RegisterScreen({ navigation }: Props) {
                   <DateTimePicker
                     value={dateOfBirth || new Date()}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
                     onChange={handleDateChange}
                     maximumDate={new Date()}
                     minimumDate={new Date(1900, 0, 1)}
@@ -325,20 +331,21 @@ export function RegisterScreen({ navigation }: Props) {
                     secureTextEntry={!showPassword}
                     editable={!isLoading}
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className="absolute right-4 top-0 bottom-0 justify-center z-10"
                     onPress={() => setShowPassword(!showPassword)}
                   >
-                    <FontAwesome 
-                      name={showPassword ? "eye" : "eye-slash"} 
-                      size={16} 
-                      color="#9CA3AF" 
+                    <FontAwesome
+                      name={showPassword ? "eye" : "eye-slash"}
+                      size={16}
+                      color="#9CA3AF"
                     />
                   </TouchableOpacity>
                 </View>
                 {password && !validatePassword(password) && (
                   <Text className="text-xs text-coral mt-1 ml-1">
-                    Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa và ký tự đặc biệt
+                    Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa và ký tự
+                    đặc biệt
                   </Text>
                 )}
               </View>
@@ -360,14 +367,14 @@ export function RegisterScreen({ navigation }: Props) {
                     secureTextEntry={!showConfirmPassword}
                     editable={!isLoading}
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className="absolute right-4 top-0 bottom-0 justify-center z-10"
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    <FontAwesome 
-                      name={showConfirmPassword ? "eye" : "eye-slash"} 
-                      size={16} 
-                      color="#9CA3AF" 
+                    <FontAwesome
+                      name={showConfirmPassword ? "eye" : "eye-slash"}
+                      size={16}
+                      color="#9CA3AF"
                     />
                   </TouchableOpacity>
                 </View>
@@ -380,11 +387,12 @@ export function RegisterScreen({ navigation }: Props) {
             </View>
 
             <TouchableOpacity
-              className="bg-mint dark:bg-gold rounded-2xl py-5 items-center justify-center shadow-lg active:scale-98 mb-8"
+              className="rounded-2xl py-5 items-center justify-center shadow-lg active:scale-98 mb-8"
               onPress={handleRegister}
               disabled={isLoading}
               style={{
-                shadowColor: "#ACD6B8",
+                backgroundColor: "#E3B967",
+                shadowColor: "#E3B967",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
@@ -393,14 +401,14 @@ export function RegisterScreen({ navigation }: Props) {
             >
               {isLoading ? (
                 <View className="flex-row items-center gap-3">
-                  <View className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <Text className="text-white font-bold text-lg">
+                  <View className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  <Text className="text-black font-bold text-lg">
                     Đang tạo tài khoản...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-white font-bold text-lg">
-                  Tạo tài khoản
+                <Text className="text-gray-800 font-bold text-lg">
+                  Đăng ký tài khoản mới
                 </Text>
               )}
             </TouchableOpacity>
@@ -409,7 +417,7 @@ export function RegisterScreen({ navigation }: Props) {
               <Text className="text-light-textSecondary dark:text-dark-textSecondary text-base">
                 Đã có tài khoản?
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => navigation.navigate("Login")}
                 className="active:opacity-70"
               >
@@ -421,9 +429,13 @@ export function RegisterScreen({ navigation }: Props) {
 
             <Text className="text-xs text-center text-light-textSecondary dark:text-dark-textSecondary px-8 mb-6">
               Bằng việc đăng ký, bạn đồng ý với{" "}
-              <Text className="text-mint dark:text-gold font-semibold">Điều khoản dịch vụ</Text>
-              {" "}và{" "}
-              <Text className="text-mint dark:text-gold font-semibold">Chính sách bảo mật</Text>
+              <Text className="text-mint dark:text-gold font-semibold">
+                Điều khoản dịch vụ
+              </Text>{" "}
+              và{" "}
+              <Text className="text-mint dark:text-gold font-semibold">
+                Chính sách bảo mật
+              </Text>
             </Text>
 
             <View className="items-center pb-4">
