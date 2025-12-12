@@ -31,7 +31,7 @@
             {
               "scheme": "https",
               "host": "lecom-fe.vercel.app",
-              "pathPrefix": "/"
+              "pathPrefix": "/auth/email-confirmed"
             }
           ],
           "category": [
