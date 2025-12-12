@@ -1,6 +1,8 @@
+import { FontAwesome } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -8,12 +10,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthStackScreenProps } from "../../../navigation/types";
 import { useLogin } from "../hooks/useLogin";
-import { FontAwesome } from "@expo/vector-icons";
 
 type Props = AuthStackScreenProps<"Login">;
 
@@ -50,9 +50,13 @@ export function LoginScreen({ navigation }: Props) {
           <View className="flex-1 px-6 pt-12">
             <View className="items-center mb-16">
               <View className="relative mb-8">
-                <View className="w-32 h-32 rounded-full items-center justify-center bg-gradient-to-br from-skyBlue/30 to-mint/30 dark:from-lavender/30 dark:to-gold/30">
-                  <View className="w-28 h-28 rounded-full bg-white/80 dark:bg-dark-card/80 items-center justify-center shadow-xl">
-                    <Text className="text-6xl">🍳</Text>
+                <View className="w-32 h-32 rounded-3xl items-center justify-center bg-gradient-to-br from-skyBlue/30 to-mint/30 dark:from-lavender/30 dark:to-gold/30">
+                  <View className="w-28 h-28 rounded-2xl bg-white/80 dark:bg-dark-card/80 items-center justify-center overflow-hidden shadow-xl">
+                    <Image 
+                      source={require('../../../../assets/images/icon.png')}
+                      style={{ width: 132, height: 132 }}
+                      resizeMode="cover"
+                    />
                   </View>
                 </View>
                 <View className="absolute -bottom-2 -right-2 w-10 h-10 bg-mint rounded-full items-center justify-center shadow-lg">
@@ -120,13 +124,13 @@ export function LoginScreen({ navigation }: Props) {
               </View>
 
               <TouchableOpacity 
-  className="self-end mt-2"
-  onPress={() => navigation.navigate("ResetPassword")}
->
-  <Text className="text-gray-800 dark:text-lavender font-bold text-sm">
-    Quên mật khẩu?
-  </Text>
-</TouchableOpacity>
+                className="self-end mt-2"
+                onPress={() => navigation.navigate("ResetPassword")}
+              >
+                <Text className="text-gray-800 dark:text-lavender font-bold text-sm">
+                  Quên mật khẩu?
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity

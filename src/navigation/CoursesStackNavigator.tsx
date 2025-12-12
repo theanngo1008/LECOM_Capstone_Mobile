@@ -1,9 +1,10 @@
 import { CourseDetailScreen } from "@/features/courses/screens/CourseDetailScreen";
 import { CoursesScreen } from "@/features/courses/screens/CoursesScreen";
+import { LessonPlayerScreen } from "@/features/courses/screens/LessonPlayerScreen";
+import { ProductDetailScreen } from "@/features/products/screens/ProductDetailScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { CoursesStackParamList } from "./types";
-import { LessonPlayerScreen } from "@/features/courses/screens/LessonPlayerScreen";
 
 const Stack = createNativeStackNavigator<CoursesStackParamList>();
 
@@ -34,6 +35,13 @@ export function CoursesStackNavigator() {
         options={{
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+        options={{
+          title: "Chi tiết sản phẩm",
         }}
       />
     </Stack.Navigator>

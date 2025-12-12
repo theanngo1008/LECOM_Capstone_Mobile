@@ -1,5 +1,5 @@
-import { apiClient } from "./client"
 import { ApiResponse } from "@/types/common"
+import { apiClient } from "./client"
 
 // =========================
 // PAYLOADS
@@ -12,6 +12,12 @@ export interface CreateFeedbackPayload {
   content: string
   images?: any[] // RN: { uri, name, type }
 }
+export interface ReplyFeedbackPayload {
+  replyContent: string;
+}
+
+export type ReplyFeedbackResponse = ApiResponse<FeedbackItem>;
+
 
 export interface UpdateFeedbackPayload {
   rating?: number
@@ -149,5 +155,50 @@ export const feedbackApi = {
     )
 
     return data
+  },
+
+   getShopFeedback: async (
+  pageNumber = 1,
+  pageSize = 10,
+  rating?: number | null
+): Promise<GetFeedbackListResponse> => {
+  const params: any = { pageNumber, pageSize };
+  
+  // Chỉ thêm rating vào params nếu có giá trị
+  if (rating !== null && rating !== undefined) {
+    params.rating = rating;
   }
+
+  const { data } = await apiClient.get<GetFeedbackListResponse>(
+    `/Feedback/shop/me`,
+    { params }
+  );
+
+  return data;
+},
+// POST /feedback/{feedbackId}/reply
+replyFeedback: async (
+  feedbackId: string,
+  payload: ReplyFeedbackPayload
+): Promise<ReplyFeedbackResponse> => {
+  const { data } = await apiClient.post<ReplyFeedbackResponse>(
+    `/Feedback/${feedbackId}/reply`,
+    payload
+  );
+
+  return data;
+},
+// PUT /feedback/{feedbackId}/reply
+updateReply: async (
+  feedbackId: string,
+  payload: ReplyFeedbackPayload
+): Promise<ReplyFeedbackResponse> => {
+  const { data } = await apiClient.put<ReplyFeedbackResponse>(
+    `/Feedback/${feedbackId}/reply`,
+    payload
+  );
+
+  return data;
+},
+
 }

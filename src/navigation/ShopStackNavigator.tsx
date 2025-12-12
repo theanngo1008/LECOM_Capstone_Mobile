@@ -1,6 +1,7 @@
 import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
 import { SellerChatListScreen } from "@/features/chat/screens/SellerChatListScreen";
 import { ShopDashboardScreen } from "@/features/shop/screens/SelletDashboardScreen";
+import { ShopFeedbackScreen } from "@/features/shop/screens/ShopFeedbackScreen";
 import { CreateShopCourseScreen } from "@/features/shopCourses/screens/CreateShopCourseScreen";
 import { ShopCourseDetailScreen } from "@/features/shopCourses/screens/ShopCourseDetailScreen";
 import { ShopCoursesScreen } from "@/features/shopCourses/screens/ShopCoursesScreen";
@@ -13,43 +14,13 @@ import { ShopRefundListScreen } from "@/features/shopRefund/screens/ShopRefundLi
 import { ShopWalletScreen } from "@/features/shopWallet/screens/ShopWalletScreen";
 import { ShopWalletTransactionsScreen } from "@/features/shopWallet/screens/ShopWalletTransactionsScreen";
 import { ShopWithdrawalsScreen } from "@/features/shopWallet/screens/ShopWithdrawalsScreen";
+import { ShopStackParamList } from "@/navigation/types";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ShopRegisterScreen } from "../features/shop/screens/ShopRegisterScreen";
 import { ShopScreen } from "../features/shop/screens/ShopScreen";
 import { UpdateShopScreen } from "../features/shop/screens/ShopUpdateScreen";
 import { ShopProductsScreen } from "../features/shopProducts/screens/ShopProductsScreen";
-export type ShopStackParamList = {
-  ShopMain: undefined;
-  UpdateShop: undefined;
-  RegisterShop: undefined;
-  ShopProductsMain: undefined;
-  CreateShopProduct: undefined; // <-- thêm route
-  EditShopProduct: {
-    productId: string;
-  };
-  ShopProductDetail: {
-    productId: string;
-  };
-  ShopCoursesMain: undefined;
-  CreateShopCourse: undefined;
-  ShopCourseDetail: {
-    courseId: string;
-  };
-  ShopOrdersMain: undefined;
-  SellerChatList: undefined;
-  ChatDetail: {
-    conversationId: string;
-  };
-  ShopWalletMain: undefined;
-  ShopWalletTransactions: undefined;  
-  ShopWithdrawals: undefined;
-  ShopDashboard: undefined;
-  ShopOrderDetail: {
-    orderId: string;
-  };
-  ShopRefundsMain: undefined;
-};
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
 
@@ -163,7 +134,15 @@ export function ShopStackNavigator() {
         name="ShopRefundsMain"
         component={ShopRefundListScreen}
         options={{ title: "Shop Refunds", presentation: "card" }}
-      />  
+      />
+      <Stack.Screen
+        name="ShopReviews"
+        component={ShopFeedbackScreen}
+        options={{ title: "Shop Reviews", presentation: "card" }}
+      />
+
     </Stack.Navigator>
   );
 }
+
+

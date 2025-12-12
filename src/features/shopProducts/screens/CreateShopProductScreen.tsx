@@ -43,7 +43,7 @@ export const CreateShopProductScreen = () => {
       const { status: permissionStatus } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permissionStatus !== "granted") {
-        Alert.alert("Permission required", "Please allow access to your photos");
+        Alert.alert("Yêu cầu quyền truy cập", "Vui lòng cho phép truy cập thư viện ảnh");
         return;
       }
 
@@ -65,7 +65,7 @@ export const CreateShopProductScreen = () => {
 
       const uploaded = await uploadFile(file, "image");
       const uploadedUrl = typeof uploaded === "string" ? uploaded : uploaded?.url;
-      if (!uploadedUrl) throw new Error("Upload failed");
+      if (!uploadedUrl) throw new Error("Tải ảnh thất bại");
 
       setImages((prev) => [
         ...prev,
@@ -76,18 +76,18 @@ export const CreateShopProductScreen = () => {
         },
       ]);
 
-      Alert.alert("Success", "Image uploaded successfully!");
+      Alert.alert("Thành công", "Tải ảnh lên thành công!");
     } catch (err: any) {
       console.error("Upload error:", err);
-      Alert.alert("Error", err.message || "Failed to upload image");
+      Alert.alert("Lỗi", err.message || "Không thể tải ảnh lên");
     }
   };
 
   const handleDeleteImage = (index: number) => {
-    Alert.alert("Delete Image", "Are you sure you want to remove this image?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Xóa ảnh", "Bạn có chắc chắn muốn xóa ảnh này?", [
+      { text: "Hủy", style: "cancel" },
       {
-        text: "Delete",
+        text: "Xóa",
         style: "destructive",
         onPress: () => setImages((prev) => prev.filter((_, i) => i !== index)),
       },
@@ -96,7 +96,7 @@ export const CreateShopProductScreen = () => {
 
   const handleSubmit = () => {
     if (!name || !categoryId || !description || !price || !stock || images.length === 0) {
-      Alert.alert("Validation Error", "Please fill in all fields and add at least one image");
+      Alert.alert("Lỗi xác thực", "Vui lòng điền đầy đủ các trường và thêm ít nhất một ảnh");
       return;
     }
 
@@ -112,7 +112,7 @@ export const CreateShopProductScreen = () => {
       },
       {
         onSuccess: () => {
-          Alert.alert("Success", "Product created successfully!", [
+          Alert.alert("Thành công", "Tạo sản phẩm thành công!", [
             {
               text: "OK",
               onPress: () => {
@@ -129,20 +129,20 @@ export const CreateShopProductScreen = () => {
           ]);
         },
         onError: (error: any) => {
-          Alert.alert("Error", error.message || "Failed to create product");
+          Alert.alert("Lỗi", error.message || "Không thể tạo sản phẩm");
         },
       }
     );
   };
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         {/* Header */}
-        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 50 : 16 }}>
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
           <View className="flex-row items-center justify-between">
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -151,7 +151,7 @@ export const CreateShopProductScreen = () => {
               <FontAwesome name="arrow-left" size={16} color="#4A5568" />
             </TouchableOpacity>
             <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-              Create Product
+              Tạo sản phẩm mới
             </Text>
             <View className="w-10" />
           </View>
@@ -165,12 +165,12 @@ export const CreateShopProductScreen = () => {
           {/* Product Name */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Product Name <Text className="text-coral">*</Text>
+              Tên sản phẩm <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="Enter product name"
+              placeholder="Nhập tên sản phẩm"
               placeholderTextColor="#9CA3AF"
               className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30"
             />
@@ -179,12 +179,12 @@ export const CreateShopProductScreen = () => {
           {/* Description */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Description <Text className="text-coral">*</Text>
+              Mô tả <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Enter product description"
+              placeholder="Nhập mô tả sản phẩm"
               placeholderTextColor="#9CA3AF"
               className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30"
               multiline
@@ -197,7 +197,7 @@ export const CreateShopProductScreen = () => {
           <View className="flex-row gap-3 mb-5">
             <View className="flex-1">
               <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                Price (₫) <Text className="text-coral">*</Text>
+                Giá (₫) <Text className="text-coral">*</Text>
               </Text>
               <TextInput
                 value={price}
@@ -210,7 +210,7 @@ export const CreateShopProductScreen = () => {
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                Stock <Text className="text-coral">*</Text>
+                Tồn kho <Text className="text-coral">*</Text>
               </Text>
               <TextInput
                 value={stock}
@@ -223,10 +223,10 @@ export const CreateShopProductScreen = () => {
             </View>
           </View>
 
-          {/* ✅ Category Selector */}
+          {/* Category Selector */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Category <Text className="text-coral">*</Text>
+              Danh mục <Text className="text-coral">*</Text>
             </Text>
             <TouchableOpacity
               className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30 flex-row items-center justify-between"
@@ -240,7 +240,7 @@ export const CreateShopProductScreen = () => {
                     : "text-gray-400"
                 }`}
               >
-                {categoryName || "Select a category"}
+                {categoryName || "Chọn danh mục"}
               </Text>
               <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
             </TouchableOpacity>
@@ -249,18 +249,18 @@ export const CreateShopProductScreen = () => {
           {/* Status */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Status
+              Trạng thái
             </Text>
-            <View className="flex-row items-center px-3.5 py-2.5 rounded-lg bg-amber-50 border-1.5 border-amber-400 w-24">
+            <View className="flex-row items-center px-3.5 py-2.5 rounded-lg bg-amber-50 border-1.5 border-amber-400 w-20">
               <FontAwesome name="edit" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
-              <Text className="text-xs font-semibold text-amber-600">Draft</Text>
+              <Text className="text-xs font-semibold text-amber-600">Nháp</Text>
             </View>
           </View>
 
           {/* Images */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-              Product Images <Text className="text-coral">*</Text>
+              Hình ảnh sản phẩm <Text className="text-coral">*</Text>
             </Text>
             
             {images.length > 0 && (
@@ -274,7 +274,7 @@ export const CreateShopProductScreen = () => {
                     />
                     {img.isPrimary && (
                       <View className="absolute top-1 left-1 bg-mint dark:bg-gold px-2 py-0.5 rounded">
-                        <Text className="text-white text-[10px] font-bold">Thumbnail</Text>
+                        <Text className="text-white text-[10px] font-bold">Chính</Text>
                       </View>
                     )}
                     <Pressable
@@ -299,7 +299,7 @@ export const CreateShopProductScreen = () => {
                 <View className="items-center">
                   <FontAwesome name="plus-circle" size={32} color="#ACD6B8" />
                   <Text className="text-mint dark:text-gold font-semibold mt-2">
-                    Add Image
+                    Thêm ảnh
                   </Text>
                 </View>
               )}
@@ -318,7 +318,7 @@ export const CreateShopProductScreen = () => {
               <View className="flex-row items-center">
                 <FontAwesome name="check" size={16} color="white" />
                 <Text className="text-white font-bold text-base ml-2">
-                  Create Product
+                  Tạo sản phẩm
                 </Text>
               </View>
             )}
@@ -326,7 +326,7 @@ export const CreateShopProductScreen = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ✅ Category Modal */}
+      {/* Category Modal */}
       <Modal
         visible={showCategoryModal}
         transparent
@@ -338,7 +338,7 @@ export const CreateShopProductScreen = () => {
             {/* Modal Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Select Category
+                Chọn danh mục
               </Text>
               <TouchableOpacity
                 onPress={() => setShowCategoryModal(false)}
@@ -353,7 +353,7 @@ export const CreateShopProductScreen = () => {
               <View className="py-12 items-center">
                 <ActivityIndicator size="large" color="#ACD6B8" />
                 <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                  Loading categories...
+                  Đang tải danh mục...
                 </Text>
               </View>
             ) : (
@@ -393,7 +393,7 @@ export const CreateShopProductScreen = () => {
                   <View className="py-12 items-center">
                     <FontAwesome name="inbox" size={48} color="#D1D5DB" />
                     <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                      No categories available
+                      Không có danh mục nào
                     </Text>
                   </View>
                 )}
@@ -402,6 +402,6 @@ export const CreateShopProductScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };

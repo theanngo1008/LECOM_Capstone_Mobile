@@ -34,6 +34,9 @@ export type CoursesStackParamList = {
     courseTitle: string;
     sectionId: string;
 };
+ProductDetail: {
+    slug: string;
+  };
 }
 export type CoursesStackScreenProps<T extends keyof CoursesStackParamList> =
   CompositeScreenProps<
@@ -122,6 +125,7 @@ export type ShopStackParamList = {
   ShopWithdrawals: undefined;
   ShopDashboard: undefined;
   ShopRefundsMain: undefined;
+  ShopReviews: undefined;
 };
 export type ShopStackScreenProps<T extends keyof ShopStackParamList> =
   CompositeScreenProps<
@@ -158,7 +162,7 @@ export type DrawerParamList = {
   MainTabs: undefined;
   Settings: undefined;
   Help: undefined;
-  ShopMain: undefined;
+  ShopStack: undefined;
   OrdersMain: undefined;
   ChatList: undefined; 
   CommunityList: undefined;

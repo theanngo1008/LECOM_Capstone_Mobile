@@ -24,6 +24,8 @@ export interface ShopProduct {
   shopName: string;
   shopAvatar: string;
   shopDescription: string;
+   approvalStatus: "Pending" | "Approved" | "Rejected";
+  moderatorNote: string | null;
 }
 
 // Payload để tạo sản phẩm

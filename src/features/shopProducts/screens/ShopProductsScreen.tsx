@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
@@ -8,26 +7,22 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ShopStackParamList } from "../../../navigation/ShopStackNavigator";
+import { ShopStackParamList } from "../../../navigation/types";
 import { useDeleteProduct } from "../hooks/useDeleteProduct";
 import { useShopProducts } from "../hooks/useShopProducts";
-import { useUpdateProductStatus } from "../hooks/useUpdateProductStatus";
 
 export function ShopProductsScreen() {
-  const { data, isLoading, isError } = useShopProducts();
-  const { mutate: updateStatus, isPending: isUpdating } = useUpdateProductStatus();
+  const { data, isLoading, isError, refetch } = useShopProducts();
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const navigation = useNavigation<NativeStackNavigationProp<ShopStackParamList>>();
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const products = data?.result || [];
 
@@ -45,45 +40,31 @@ export function ShopProductsScreen() {
   // ---------- /Phân trang ----------
 
   const statuses = [
-    { label: "Draft", color: "#F59E0B", icon: "edit", bgColor: "#FEF3C7", lightBg: "#FFFBEB" },
-    { label: "Published", color: "#10B981", icon: "check-circle", bgColor: "#D1FAE5", lightBg: "#ECFDF5" },
-    { label: "OutOfStock", color: "#EF4444", icon: "times-circle", bgColor: "#FEE2E2", lightBg: "#FEF2F2" },
-    { label: "Archived", color: "#6B7280", icon: "archive", bgColor: "#E5E7EB", lightBg: "#F9FAFB" },
+    { label: "Draft", displayName: "Nháp", color: "#F59E0B", bgColor: "#FFFBEB" },
+    { label: "Published", displayName: "Đã xuất bản", color: "#10B981", bgColor: "#ECFDF5" },
+    { label: "OutOfStock", displayName: "Hết hàng", color: "#EF4444", bgColor: "#FEF2F2" },
+    { label: "Archived", displayName: "Đã lưu trữ", color: "#6B7280", bgColor: "#F9FAFB" },
   ];
 
-  const openStatusModal = (product: any) => {
-    setSelectedProduct(product);
-    setShowModal(true);
-  };
-
-  const handleSelectStatus = (status: string) => {
-    if (!selectedProduct) return;
-    setShowModal(false);
-    updateStatus(
-      {
-        productId: selectedProduct.id,
-        status: status as "Draft" | "Published" | "OutOfStock" | "Archived",
-      },
-      {
-        onSuccess: () => Alert.alert("Success", `Product updated to "${status}"`),
-        onError: () => Alert.alert("Error", "Failed to update product status"),
-      }
-    );
+  const approvalStatuses = {
+    Pending: { label: "Chờ duyệt", color: "#F59E0B", icon: "clock-o", bgColor: "#FEF3C7" },
+    Approved: { label: "Đã duyệt", color: "#10B981", icon: "check-circle", bgColor: "#D1FAE5" },
+    Rejected: { label: "Từ chối", color: "#EF4444", icon: "times-circle", bgColor: "#FEE2E2" },
   };
 
   const handleDeleteProduct = (productId: string, name: string) => {
     Alert.alert(
-      "Confirm Delete",
-      `Are you sure you want to delete "${name}"?`,
+      "Xác nhận lưu trữ",
+      `Bạn có chắc chắn muốn lưu trữ "${name}"?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Hủy", style: "cancel" },
         {
-          text: "Delete",
-          style: "destructive",
+          text: "Lưu trữ",
+          style: "default",
           onPress: () => {
             deleteProduct(productId, {
-              onSuccess: () => Alert.alert("Deleted", "Product deleted successfully."),
-              onError: () => Alert.alert("Error", "Failed to delete product."),
+              onSuccess: () => Alert.alert("Đã lưu trữ", "Sản phẩm đã được lưu trữ thành công."),
+              onError: () => Alert.alert("Lỗi", "Không thể lưu trữ sản phẩm."),
             });
           },
         },
@@ -95,18 +76,24 @@ export function ShopProductsScreen() {
     const statusConfig = statuses.find((s) => s.label === status);
     return {
       color: statusConfig?.color || "#6B7280",
-      bgColor: statusConfig?.bgColor || "#E5E7EB",
-      lightBg: statusConfig?.lightBg || "#F9FAFB",
+      bgColor: statusConfig?.bgColor || "#F9FAFB",
+      displayName: statusConfig?.displayName || status,
     };
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
   };
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background" edges={['bottom']}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background">
         <View className="items-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4 text-base">
-            Loading products...
+            Đang tải sản phẩm...
           </Text>
         </View>
       </SafeAreaView>
@@ -115,14 +102,14 @@ export function ShopProductsScreen() {
 
   if (isError) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background px-6" edges={['bottom']}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background px-6">
         <View className="items-center">
           <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
             <FontAwesome name="exclamation-triangle" size={40} color="#FF6B6B" />
           </View>
           <Text className="text-coral font-bold text-xl mb-2">Oops!</Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-            Failed to load product list
+            Không thể tải danh sách sản phẩm
           </Text>
         </View>
       </SafeAreaView>
@@ -130,18 +117,18 @@ export function ShopProductsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       {/* Header */}
-      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 50 : 16 }}>
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
-              My Products
+              Sản phẩm của tôi
             </Text>
             <View className="flex-row items-center mt-2">
               <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                {products.length} items in stock
+                {products.length} sản phẩm trong kho
               </Text>
             </View>
           </View>
@@ -156,6 +143,16 @@ export function ShopProductsScreen() {
         className="flex-1 px-5"
         contentContainerStyle={{ paddingTop: 20, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#ACD6B8"]}
+            tintColor="#ACD6B8"
+            title="Đang tải..."
+            titleColor="#9CA3AF"
+          />
+        }
       >
         {paginatedProducts.length === 0 ? (
           <View className="items-center justify-center py-20">
@@ -163,25 +160,32 @@ export function ShopProductsScreen() {
               <FontAwesome name="inbox" size={40} color="#9CA3AF" />
             </View>
             <Text className="text-light-textSecondary dark:text-dark-textSecondary text-base font-medium">
-              No products found
+              Không tìm thấy sản phẩm
             </Text>
             <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm mt-1">
-              Add your first product to get started
+              Thêm sản phẩm đầu tiên để bắt đầu
             </Text>
           </View>
         ) : (
-          paginatedProducts.map((item, index) => {
+          paginatedProducts.map((item) => {
             const statusStyle = getStatusStyle(item.status);
+            const approvalConfig = approvalStatuses[item.approvalStatus as keyof typeof approvalStatuses];
+            const isArchived = item.status === "Archived";
+            const isRejected = item.approvalStatus === "Rejected";
+            
             return (
               <Pressable
                 key={item.id}
                 className="bg-white dark:bg-dark-card rounded-2xl mb-4 overflow-hidden border border-beige/30 dark:border-dark-border/30"
-                onPress={() =>
-                  navigation.navigate("ShopProductDetail", { productId: item.id })
-                }
+                onPress={() => {
+                  if (!isArchived) {
+                    navigation.navigate("ShopProductDetail", { productId: item.id });
+                  }
+                }}
+                disabled={isArchived}
                 style={({ pressed }) => [
                   { 
-                    opacity: pressed ? 0.95 : 1,
+                    opacity: pressed ? 0.95 : isArchived ? 0.6 : 1,
                     transform: [{ scale: pressed ? 0.99 : 1 }]
                   }
                 ]}
@@ -211,10 +215,27 @@ export function ShopProductsScreen() {
                       >
                         {item.name}
                       </Text>
-                      <View className="flex-row items-center mt-1.5">
+                      <View className="flex-row items-center mt-1.5 gap-2">
                         <View className="px-2 py-0.5 rounded bg-beige/30 dark:bg-dark-border/30">
                           <Text className="text-[11px] text-light-textSecondary dark:text-dark-textSecondary font-medium">
                             {item.categoryName}
+                          </Text>
+                        </View>
+                        {/* Approval Status Badge */}
+                        <View 
+                          className="flex-row items-center px-2 py-0.5 rounded"
+                          style={{ backgroundColor: approvalConfig.bgColor }}
+                        >
+                          <FontAwesome 
+                            name={approvalConfig.icon as any} 
+                            size={10} 
+                            color={approvalConfig.color}
+                          />
+                          <Text 
+                            className="text-[10px] font-bold ml-1"
+                            style={{ color: approvalConfig.color }}
+                          >
+                            {approvalConfig.label}
                           </Text>
                         </View>
                       </View>
@@ -229,67 +250,100 @@ export function ShopProductsScreen() {
                     </View>
                   </View>
 
+                  {/* Moderator Note (if rejected) */}
+                  {isRejected && item.moderatorNote && (
+                    <View className="mt-3 p-3 rounded-lg bg-coral/10 border border-coral/20">
+                      <View className="flex-row items-start">
+                        <FontAwesome name="info-circle" size={14} color="#EF4444" />
+                        <View className="flex-1 ml-2">
+                          <Text className="text-xs font-bold text-coral mb-1">
+                            Lý do từ chối:
+                          </Text>
+                          <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary leading-4">
+                            {item.moderatorNote}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
                   {/* Divider */}
                   <View className="h-[0.5px] bg-beige/30 dark:bg-dark-border/30 my-3.5" />
 
                   {/* Actions */}
                   <View className="flex-row items-center justify-between">
-                    {/* Status Button */}
-                    <Pressable
-                      className="flex-row items-center px-3 py-2 rounded-lg"
-                      style={{
-                        backgroundColor: statusStyle.lightBg,
-                      }}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        openStatusModal(item);
-                      }}
+                    {/* Status Display Only */}
+                    <View 
+                      className="flex-row items-center px-2.5 py-1.5 rounded-lg flex-shrink"
+                      style={{ backgroundColor: statusStyle.bgColor }}
                     >
                       <View 
-                        className="w-1.5 h-1.5 rounded-full mr-2"
+                        className="w-1.5 h-1.5 rounded-full mr-1.5"
                         style={{ backgroundColor: statusStyle.color }}
                       />
                       <Text
-                        className="text-xs font-semibold mr-1"
+                        className="text-[11px] font-semibold"
                         style={{ color: statusStyle.color }}
+                        numberOfLines={1}
                       >
-                        {item.status}
+                        {statusStyle.displayName}
                       </Text>
-                      <AntDesign
-                        name="down"
-                        size={9}
-                        color={statusStyle.color}
-                      />
-                    </Pressable>
+                    </View>
 
-                    {/* Edit & Delete Buttons */}
-                    <View className="flex-row gap-2">
-                      <Pressable
-                        className="px-3 py-2 rounded-lg bg-skyBlue/10 dark:bg-lavender/10 active:bg-skyBlue/20 dark:active:bg-lavender/20"
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          navigation.navigate("EditShopProduct", {
-                            productId: item.id,
-                          });
-                        }}
-                      >
-                        <Text className="text-xs font-semibold text-skyBlue dark:text-lavender">
-                          Edit
-                        </Text>
-                      </Pressable>
+                    {/* Action Buttons */}
+                    <View className="flex-row gap-1.5 flex-shrink-0">
+                      {isRejected ? (
+                        // Show "Cập nhật" button for rejected products
+                        <Pressable
+                          className="px-2.5 py-1.5 rounded-lg bg-mint/10 dark:bg-gold/10 active:bg-mint/20 dark:active:bg-gold/20"
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            navigation.navigate("EditShopProduct", {
+                              productId: item.id,
+                            });
+                          }}
+                        >
+                          <View className="flex-row items-center gap-1">
+                            <FontAwesome name="refresh" size={10} color="#ACD6B8" />
+                            <Text className="text-[11px] font-semibold text-mint dark:text-gold">
+                              Cập nhật
+                            </Text>
+                          </View>
+                        </Pressable>
+                      ) : !isArchived ? (
+                        // Show "Sửa" and "Lưu trữ" for other products
+                        <>
+                          <Pressable
+                            className="px-2.5 py-1.5 rounded-lg bg-skyBlue/10 dark:bg-lavender/10 active:bg-skyBlue/20 dark:active:bg-lavender/20"
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              navigation.navigate("EditShopProduct", {
+                                productId: item.id,
+                              });
+                            }}
+                          >
+                            <Text className="text-[11px] font-semibold text-skyBlue dark:text-lavender">
+                              Sửa
+                            </Text>
+                          </Pressable>
 
-                      <Pressable
-                        className="px-3 py-2 rounded-lg bg-coral/10 active:bg-coral/20"
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleDeleteProduct(item.id, item.name);
-                        }}
-                        disabled={isDeleting}
-                      >
-                        <Text className="text-xs font-semibold text-coral">
-                          Delete
-                        </Text>
-                      </Pressable>
+                          <Pressable
+                            className="px-2.5 py-1.5 rounded-lg bg-beige/20 dark:bg-dark-border/20 active:bg-beige/30 dark:active:bg-dark-border/30"
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProduct(item.id, item.name);
+                            }}
+                            disabled={isDeleting}
+                          >
+                            <View className="flex-row items-center gap-1">
+                              <FontAwesome name="archive" size={10} color="#6B7280" />
+                              <Text className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                                Lưu trữ
+                              </Text>
+                            </View>
+                          </Pressable>
+                        </>
+                      ) : null}
                     </View>
                   </View>
                 </View>
@@ -309,7 +363,7 @@ export function ShopProductsScreen() {
           <View className="flex-row items-center">
             <FontAwesome name="plus" size={16} color="white" />
             <Text className="text-white font-bold text-base ml-2">
-              Add New Product
+              Thêm sản phẩm mới
             </Text>
           </View>
         </Pressable>
@@ -337,7 +391,7 @@ export function ShopProductsScreen() {
                       : "text-light-text dark:text-dark-text"
                   }`}
                 >
-                  Previous
+                  Trước
                 </Text>
               </View>
             </Pressable>
@@ -365,7 +419,7 @@ export function ShopProductsScreen() {
                       : "text-light-text dark:text-dark-text"
                   }`}
                 >
-                  Next
+                  Sau
                 </Text>
                 <FontAwesome
                   name="chevron-right"
@@ -377,79 +431,6 @@ export function ShopProductsScreen() {
           </View>
         )}
       </View>
-
-      {/* Status Modal */}
-      <Modal transparent visible={showModal} animationType="slide">
-        <Pressable
-          className="flex-1 bg-black/40 justify-end"
-          onPress={() => setShowModal(false)}
-        >
-          <Pressable
-            className="bg-white dark:bg-dark-card rounded-t-3xl p-6"
-            onPress={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <View className="items-center mb-6">
-              <View className="w-12 h-1 rounded-full bg-beige dark:bg-dark-border mb-6" />
-              <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
-                Update Status
-              </Text>
-              <Text className="text-sm text-center text-light-textSecondary dark:text-dark-textSecondary px-4">
-                Choose a new status for{" "}
-                <Text className="font-semibold text-mint dark:text-gold">
-                  {selectedProduct?.name}
-                </Text>
-              </Text>
-            </View>
-
-            {/* Status Options */}
-            <View className="gap-2.5 mb-4">
-              {statuses.map((s) => {
-                const isSelected = s.label === selectedProduct?.status;
-                return (
-                  <Pressable
-                    key={s.label}
-                    className="flex-row items-center rounded-xl py-3.5 px-4"
-                    style={{
-                      backgroundColor: isSelected ? s.bgColor : s.lightBg,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? s.color : "transparent",
-                    }}
-                    onPress={() => handleSelectStatus(s.label)}
-                    disabled={isUpdating}
-                  >
-                    <View
-                      className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: `${s.color}25` }}
-                    >
-                      <FontAwesome name={s.icon as any} size={16} color={s.color} />
-                    </View>
-                    <Text
-                      className="flex-1 font-bold text-base"
-                      style={{ color: s.color }}
-                    >
-                      {s.label}
-                    </Text>
-                    {isSelected && (
-                      <FontAwesome name="check" size={18} color={s.color} />
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Cancel Button */}
-            <Pressable
-              onPress={() => setShowModal(false)}
-              className="py-3.5 rounded-xl bg-beige/20 dark:bg-dark-border/20 items-center justify-center active:opacity-70"
-            >
-              <Text className="font-bold text-light-text dark:text-dark-text">
-                Cancel
-              </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
+    </SafeAreaView>
   );
 }

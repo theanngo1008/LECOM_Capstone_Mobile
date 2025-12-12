@@ -1,4 +1,4 @@
-import { ShopStackParamList } from "@/navigation/ShopStackNavigator";
+import { ShopStackParamList } from "@/navigation/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useState } from "react";
@@ -15,10 +15,10 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const statusConfig = {
-    Draft: { color: "#F59E0B", bgColor: "#FFFBEB", icon: "edit" },
-    Published: { color: "#10B981", bgColor: "#ECFDF5", icon: "check-circle" },
-    OutOfStock: { color: "#EF4444", bgColor: "#FEF2F2", icon: "times-circle" },
-    Archived: { color: "#6B7280", bgColor: "#F9FAFB", icon: "archive" },
+    Draft: { color: "#F59E0B", bgColor: "#FFFBEB", icon: "edit", label: "Nháp" },
+    Published: { color: "#10B981", bgColor: "#ECFDF5", icon: "check-circle", label: "Đã xuất bản" },
+    OutOfStock: { color: "#EF4444", bgColor: "#FEF2F2", icon: "times-circle", label: "Hết hàng" },
+    Archived: { color: "#6B7280", bgColor: "#F9FAFB", icon: "archive", label: "Đã lưu trữ" },
   };
 
   if (isLoading) {
@@ -26,7 +26,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background">
         <ActivityIndicator size="large" color="#ACD6B8" />
         <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-          Loading product...
+          Đang tải sản phẩm...
         </Text>
       </SafeAreaView>
     );
@@ -39,9 +39,9 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
             <FontAwesome name="exclamation-triangle" size={40} color="#FF6B6B" />
           </View>
-          <Text className="text-coral font-bold text-xl mb-2">Error</Text>
+          <Text className="text-coral font-bold text-xl mb-2">Lỗi</Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-            Failed to load product details
+            Không thể tải thông tin sản phẩm
           </Text>
         </View>
       </SafeAreaView>
@@ -68,7 +68,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <FontAwesome name="arrow-left" size={16} color="#4A5568" />
           </TouchableOpacity>
           <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-            Product Details
+            Chi tiết sản phẩm
           </Text>
           <View className="w-10" />
         </View>
@@ -87,7 +87,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               className="w-full h-80 rounded-2xl bg-beige/20"
               resizeMode="cover"
             />
-            {/* Status Badge on Image */}
+            {/* Status Badge - Display Only */}
             <View 
               className="absolute top-4 right-4 flex-row items-center px-3 py-2 rounded-full"
               style={{ backgroundColor: currentStatus.bgColor }}
@@ -102,7 +102,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                 className="text-xs font-bold"
                 style={{ color: currentStatus.color }}
               >
-                {product.status}
+                {currentStatus.label}
               </Text>
             </View>
           </View>
@@ -123,7 +123,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Stock & Updated Info */}
+          {/* Stock & Status Info */}
           <View className="flex-row items-center justify-between bg-white dark:bg-dark-card rounded-xl p-4 mb-6 border border-beige/30 dark:border-dark-border/30">
             <View className="flex-row items-center">
               <View className="w-10 h-10 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
@@ -131,19 +131,46 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
               <View>
                 <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                  In Stock
+                  Tồn kho
                 </Text>
                 <Text className="text-base font-bold text-light-text dark:text-dark-text">
-                  {product.stock} units
+                  {product.stock} sản phẩm
                 </Text>
               </View>
             </View>
             <View className="items-end">
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                Updated
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-1">
+                Trạng thái
               </Text>
-              <Text className="text-xs font-semibold text-light-text dark:text-dark-text">
-                {new Date(product.lastUpdatedAt).toLocaleDateString()}
+              <View 
+                className="flex-row items-center px-2.5 py-1.5 rounded-full"
+                style={{ backgroundColor: currentStatus.bgColor }}
+              >
+                <FontAwesome 
+                  name={currentStatus.icon as any} 
+                  size={11} 
+                  color={currentStatus.color}
+                  style={{ marginRight: 4 }}
+                />
+                <Text 
+                  className="text-[11px] font-bold"
+                  style={{ color: currentStatus.color }}
+                >
+                  {currentStatus.label}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Updated Info */}
+          <View className="bg-white dark:bg-dark-card rounded-xl p-4 mb-6 border border-beige/30 dark:border-dark-border/30">
+            <View className="flex-row items-center">
+              <FontAwesome name="clock-o" size={14} color="#ACD6B8" style={{ marginRight: 8 }} />
+              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                Cập nhật lần cuối:{" "}
+                <Text className="font-semibold text-light-text dark:text-dark-text">
+                  {new Date(product.lastUpdatedAt).toLocaleString("vi-VN")}
+                </Text>
               </Text>
             </View>
           </View>
@@ -174,11 +201,11 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <View className="flex-row items-center mb-3">
               <FontAwesome name="align-left" size={16} color="#ACD6B8" style={{ marginRight: 8 }} />
               <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-                Description
+                Mô tả
               </Text>
             </View>
             <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary leading-6">
-              {product.description || "No description provided."}
+              {product.description || "Chưa có mô tả."}
             </Text>
           </View>
 
@@ -188,11 +215,11 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               <View className="flex-row items-center">
                 <FontAwesome name="image" size={16} color="#ACD6B8" style={{ marginRight: 8 }} />
                 <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-                  Product Images
+                  Hình ảnh sản phẩm
                 </Text>
               </View>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {product.images.length} photos
+                {product.images.length} ảnh
               </Text>
             </View>
             
@@ -216,7 +243,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                   />
                   {img.isPrimary && (
                     <View className="absolute top-2 left-2 bg-mint dark:bg-gold px-2 py-1 rounded">
-                      <Text className="text-white text-[10px] font-bold">Primary</Text>
+                      <Text className="text-white text-[10px] font-bold">Chính</Text>
                     </View>
                   )}
                   <View className="absolute bottom-2 right-2 bg-black/50 px-2 py-1 rounded">

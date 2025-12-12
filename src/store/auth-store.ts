@@ -9,7 +9,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   setAuth: (token: string, refreshToken: string, userId: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   setLoading: (loading: boolean) => void;
 }
 
@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true, // ✅ Start loading
 
       setAuth: (token, refreshToken, userId) => {
-        console.log("Auth Store: setAuth", { userId, hasToken: !!token });
+        console.log("✅ Auth Store: setAuth", { userId, hasToken: !!token });
         set({
           token,
           refreshToken,
@@ -33,15 +33,34 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      logout: () => {
-        console.log("🚪 Auth Store: Logging out");
-        set({
-          token: null,
-          refreshToken: null,
-          userId: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+      logout: async () => {
+        try {
+          console.log("🚪 Auth Store: Starting logout...");
+          
+          // ✅ 1. Clear Zustand state
+          set({
+            token: null,
+            refreshToken: null,
+            userId: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+
+          // ✅ 2. Clear ALL AsyncStorage (xóa toàn bộ cache)
+          await AsyncStorage.clear();
+          console.log("✅ AsyncStorage cleared completely");
+
+        } catch (error) {
+          console.error("❌ Logout error:", error);
+          // Force clear state even if AsyncStorage fails
+          set({
+            token: null,
+            refreshToken: null,
+            userId: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
       },
 
       setLoading: (loading) => {
@@ -60,6 +79,7 @@ export const useAuthStore = create<AuthState>()(
         return (state, error) => {
           if (error) {
             console.error("❌ Auth Store: Rehydrate error:", error);
+            state?.setLoading(false);
           } else {
             console.log("✅ Auth Store: Rehydrated", {
               hasToken: !!state?.token,

@@ -1,29 +1,29 @@
-import React, { useState, useEffect } from "react";
+import { useProductCategories } from "@/hooks/useProductCategories";
+import { useUploadFile } from "@/hooks/useUploadFile";
+import { ShopStackParamList } from "@/navigation/types";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Alert,
-  Image,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  Modal,
-  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { ShopProductImage } from "../../../api/shopProducts";
 import { useProductDetail } from "../hooks/useProductDetail";
 import { useUpdateProduct } from "../hooks/useUpdateProduct";
-import { useUploadFile } from "@/hooks/useUploadFile";
-import { useProductCategories } from "@/hooks/useProductCategories";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ShopStackParamList } from "@/navigation/ShopStackNavigator";
-import { ShopProductImage } from "../../../api/shopProducts";
 
 type Props = NativeStackScreenProps<ShopStackParamList, "EditShopProduct">;
 
@@ -40,16 +40,8 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
   const [stock, setStock] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [categoryName, setCategoryName] = useState("");
-  const [status, setStatus] = useState<"Draft" | "Published" | "OutOfStock" | "Archived">("Draft");
   const [images, setImages] = useState<ShopProductImage[]>([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-
-  const statusOptions = [
-    { value: "Draft", label: "Draft", color: "#F59E0B", bgColor: "#FFFBEB", icon: "edit" },
-    { value: "Published", label: "Published", color: "#10B981", bgColor: "#ECFDF5", icon: "check-circle" },
-    { value: "OutOfStock", label: "Out of Stock", color: "#EF4444", bgColor: "#FEF2F2", icon: "times-circle" },
-    { value: "Archived", label: "Archived", color: "#6B7280", bgColor: "#F9FAFB", icon: "archive" },
-  ] as const;
 
   useEffect(() => {
     if (data) {
@@ -58,10 +50,9 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
       setPrice(data.price.toString());
       setStock(data.stock.toString());
       setCategoryId(data.categoryId);
-      setStatus(data.status);
       setImages(data.images);
 
-      // ✅ Find and set category name from fetched categories
+      // Find and set category name from fetched categories
       if (categories) {
         const category = categories.find((cat) => cat.id === data.categoryId);
         if (category) {
@@ -73,10 +64,10 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background" edges={['bottom']}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background">
         <ActivityIndicator size="large" color="#ACD6B8" />
         <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-          Loading product...
+          Đang tải sản phẩm...
         </Text>
       </SafeAreaView>
     );
@@ -84,14 +75,14 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
 
   if (isError || !data) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background px-6" edges={['bottom']}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-cream dark:bg-dark-background px-6">
         <View className="items-center">
           <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
             <FontAwesome name="exclamation-triangle" size={40} color="#FF6B6B" />
           </View>
-          <Text className="text-coral font-bold text-xl mb-2">Error</Text>
+          <Text className="text-coral font-bold text-xl mb-2">Lỗi</Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-            Failed to load product details
+            Không thể tải thông tin sản phẩm
           </Text>
         </View>
       </SafeAreaView>
@@ -103,7 +94,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
       const { status: permissionStatus } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permissionStatus !== "granted") {
-        Alert.alert("Permission required", "Please allow access to your photos");
+        Alert.alert("Yêu cầu quyền truy cập", "Vui lòng cho phép truy cập thư viện ảnh");
         return;
       }
 
@@ -124,7 +115,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const uploaded = await uploadFile(file, "image");
       const uploadedUrl = typeof uploaded === "string" ? uploaded : uploaded?.url;
-      if (!uploadedUrl) throw new Error("Upload failed");
+      if (!uploadedUrl) throw new Error("Tải ảnh thất bại");
 
       setImages((prev) => [
         ...prev,
@@ -134,21 +125,21 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
           isPrimary: prev.length === 0,
         },
       ]);
-      Alert.alert("Success", "Image uploaded successfully!");
+      Alert.alert("Thành công", "Tải ảnh lên thành công!");
     } catch (err: any) {
       console.error("Upload error:", err);
-      Alert.alert("Error", err.message || "Failed to upload image");
+      Alert.alert("Lỗi", err.message || "Không thể tải ảnh lên");
     }
   };
 
   const handleDeleteImage = (index: number) => {
     Alert.alert(
-      "Delete Image",
-      "Are you sure you want to remove this image?",
+      "Xóa ảnh",
+      "Bạn có chắc chắn muốn xóa ảnh này?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Hủy", style: "cancel" },
         {
-          text: "Delete",
+          text: "Xóa",
           style: "destructive",
           onPress: () => setImages((prev) => prev.filter((_, i) => i !== index)),
         },
@@ -158,7 +149,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSubmit = () => {
     if (!name || !categoryId || !description || !price || !stock) {
-      Alert.alert("Validation Error", "Please fill in all required fields");
+      Alert.alert("Lỗi xác thực", "Vui lòng điền đầy đủ các trường bắt buộc");
       return;
     }
 
@@ -171,13 +162,13 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
           price: Number(price),
           stock: Number(stock),
           categoryId,
-          status,
+          status: data.status, // Keep the current status, don't allow changing
           images,
         },
       },
       {
         onSuccess: () => {
-          Alert.alert("Success", "Product updated successfully!", [
+          Alert.alert("Thành công", "Cập nhật sản phẩm thành công!", [
             {
               text: "OK",
               onPress: () => {
@@ -187,19 +178,19 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
             },
           ]);
         },
-        onError: (err: any) => Alert.alert("Error", err.message || "Update failed"),
+        onError: (err: any) => Alert.alert("Lỗi", err.message || "Cập nhật thất bại"),
       }
     );
   };
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         {/* Header */}
-        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 50 : 16 }}>
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
           <View className="flex-row items-center justify-between">
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -208,7 +199,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
               <FontAwesome name="arrow-left" size={16} color="#4A5568" />
             </TouchableOpacity>
             <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-              Edit Product
+              Chỉnh sửa sản phẩm
             </Text>
             <View className="w-10" />
           </View>
@@ -222,12 +213,12 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* Product Name */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Product Name <Text className="text-coral">*</Text>
+              Tên sản phẩm <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="Enter product name"
+              placeholder="Nhập tên sản phẩm"
               placeholderTextColor="#9CA3AF"
               className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30"
             />
@@ -236,12 +227,12 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* Description */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Description <Text className="text-coral">*</Text>
+              Mô tả <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Enter product description"
+              placeholder="Nhập mô tả sản phẩm"
               placeholderTextColor="#9CA3AF"
               className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30"
               multiline
@@ -254,7 +245,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
           <View className="flex-row gap-3 mb-5">
             <View className="flex-1">
               <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                Price (₫) <Text className="text-coral">*</Text>
+                Giá (₫) <Text className="text-coral">*</Text>
               </Text>
               <TextInput
                 value={price}
@@ -267,7 +258,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                Stock <Text className="text-coral">*</Text>
+                Tồn kho <Text className="text-coral">*</Text>
               </Text>
               <TextInput
                 value={stock}
@@ -280,10 +271,10 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* ✅ Category Selector */}
+          {/* Category Selector */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Category <Text className="text-coral">*</Text>
+              Danh mục <Text className="text-coral">*</Text>
             </Text>
             <TouchableOpacity
               className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30 flex-row items-center justify-between"
@@ -297,53 +288,16 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
                     : "text-gray-400"
                 }`}
               >
-                {categoryName || "Select a category"}
+                {categoryName || "Chọn danh mục"}
               </Text>
               <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
 
-          {/* Status */}
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-              Status <Text className="text-coral">*</Text>
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {statusOptions.map((option) => {
-                const isSelected = status === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => setStatus(option.value)}
-                    className="flex-row items-center px-3.5 py-2.5 rounded-lg"
-                    style={{
-                      backgroundColor: isSelected ? option.bgColor : "#F3F4F6",
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? option.color : "transparent",
-                    }}
-                  >
-                    <FontAwesome
-                      name={option.icon as any}
-                      size={14}
-                      color={isSelected ? option.color : "#9CA3AF"}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      className="text-xs font-semibold"
-                      style={{ color: isSelected ? option.color : "#6B7280" }}
-                    >
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
           {/* Images */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-              Product Images
+              Hình ảnh sản phẩm
             </Text>
             <View className="flex-row flex-wrap gap-3 mb-3">
               {images.map((img, idx) => (
@@ -355,7 +309,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
                   />
                   {img.isPrimary && (
                     <View className="absolute top-1 left-1 bg-mint dark:bg-gold px-2 py-0.5 rounded">
-                      <Text className="text-white text-[10px] font-bold">Primary</Text>
+                      <Text className="text-white text-[10px] font-bold">Chính</Text>
                     </View>
                   )}
                   <Pressable
@@ -379,7 +333,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View className="items-center">
                   <FontAwesome name="plus-circle" size={32} color="#ACD6B8" />
                   <Text className="text-mint dark:text-gold font-semibold mt-2">
-                    Add Image
+                    Thêm ảnh
                   </Text>
                 </View>
               )}
@@ -398,7 +352,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
               <View className="flex-row items-center">
                 <FontAwesome name="save" size={16} color="white" />
                 <Text className="text-white font-bold text-base ml-2">
-                  Update Product
+                  Cập nhật sản phẩm
                 </Text>
               </View>
             )}
@@ -406,7 +360,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ✅ Category Modal */}
+      {/* Category Modal */}
       <Modal
         visible={showCategoryModal}
         transparent
@@ -418,7 +372,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Modal Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Select Category
+                Chọn danh mục
               </Text>
               <TouchableOpacity
                 onPress={() => setShowCategoryModal(false)}
@@ -433,7 +387,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
               <View className="py-12 items-center">
                 <ActivityIndicator size="large" color="#ACD6B8" />
                 <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                  Loading categories...
+                  Đang tải danh mục...
                 </Text>
               </View>
             ) : (
@@ -473,7 +427,7 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
                   <View className="py-12 items-center">
                     <FontAwesome name="inbox" size={48} color="#D1D5DB" />
                     <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                      No categories available
+                      Không có danh mục nào
                     </Text>
                   </View>
                 )}
@@ -482,6 +436,6 @@ export const EditProductScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };

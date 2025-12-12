@@ -1,3 +1,4 @@
+
 import { useWalletBalance } from "@/features/cart/hooks/useWalletBalance";
 import { ProfileStackScreenProps } from "@/navigation/types";
 import { useAuthStore } from "@/store/auth-store";
@@ -16,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useMyProfile } from "../hooks/useMyProfile";
 import { useGamificationProfile } from "../hooks/useGamificationProfile";
 import { useLeaderboard } from "../hooks/useLeaderBoard";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = ProfileStackScreenProps<"ProfileMain">;
 
@@ -23,13 +25,14 @@ export function ProfileScreen({ navigation }: Props) {
   const { logout, isLoading: authLoading, userId } = useAuthStore();
   const { data, isLoading, isError, refetch } = useMyProfile();
   const { data: walletData, isLoading: walletLoading } = useWalletBalance();
-
   const { data: gmData, isLoading: gmLoading } = useGamificationProfile();
-  const g = gmData?.result;
-
   const { data: leaderboardData, isLoading: leaderboardLoading } = useLeaderboard("weekly");
+  
+  // ✅ Get query client để clear cache
+  const queryClient = useQueryClient();
+  
+  const g = gmData?.result;
   const currentUserRank = leaderboardData?.currentUser?.rank;
-
   const profile = data?.result;
 
   useEffect(() => {
@@ -49,7 +52,24 @@ export function ProfileScreen({ navigation }: Props) {
         text: "Đăng xuất",
         style: "destructive",
         onPress: async () => {
-          await logout();
+          try {
+            console.log("🚪 Starting logout process...");
+            
+            // ✅ 1. Clear React Query cache
+            queryClient.clear();
+            console.log("✅ React Query cache cleared");
+            
+            // ✅ 2. Logout (clears AsyncStorage & Zustand)
+            await logout();
+            console.log("✅ Logout complete");
+            
+            // ✅ 3. Navigation sẽ tự động redirect về Login
+            // do App.tsx detect isAuthenticated = false
+            
+          } catch (error) {
+            console.error("❌ Logout failed:", error);
+            Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
+          }
         },
       },
     ]);
@@ -156,7 +176,6 @@ export function ProfileScreen({ navigation }: Props) {
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        
         <View className="relative">
           <View className="h-32 bg-gradient-to-r from-mint to-skyBlue dark:from-gold dark:to-lavender" />
 
@@ -291,69 +310,61 @@ export function ProfileScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ HARDCODE menu items - NO .map() */}
-             {/* ✅ HARDCODE menu items - NO .map() */}
-          <View className="mb-6">
-            <Text className="text-lg font-bold mb-3">Account Settings</Text>
+            <View className="mb-6">
+              <Text className="text-lg font-bold mb-3">Account Settings</Text>
 
-            <TouchableOpacity
-              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
-              onPress={() => console.log("Courses")}
-            >
-              <View className="w-10 h-10 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
-                <FontAwesome name="book" size={16} color="#ACD6B8" />
-              </View>
-              <Text className="flex-1 text-base font-semibold">
-                Khóa học của tôi
-              </Text>
-              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+                onPress={() => console.log("Courses")}
+              >
+                <View className="w-10 h-10 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
+                  <FontAwesome name="book" size={16} color="#ACD6B8" />
+                </View>
+                <Text className="flex-1 text-base font-semibold">
+                  Khóa học của tôi
+                </Text>
+                <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
 
-            {/* ✅ FIX: Dùng push thay vì navigate */}
-            <TouchableOpacity
-              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
-              onPress={() => {
-                console.log("🎫 Navigating to MyVouchers...");
-                console.log("Navigation object:", navigation);
-                // ✅ Dùng push để force mount mới
-                navigation.push("MyVouchers");
-              }}
-            >
-              <View className="w-10 h-10 rounded-xl bg-coral/10 items-center justify-center mr-3">
-                <FontAwesome name="ticket" size={16} color="#F2A297" />
-              </View>
-              <Text className="flex-1 text-base font-semibold">
-                Ưu đãi của tôi
-              </Text>
-              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+                onPress={() => navigation.navigate("MyVouchers")}
+              >
+                <View className="w-10 h-10 rounded-xl bg-coral/10 items-center justify-center mr-3">
+                  <FontAwesome name="ticket" size={16} color="#F2A297" />
+                </View>
+                <Text className="flex-1 text-base font-semibold">
+                  Ưu đãi của tôi
+                </Text>
+                <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
-              onPress={() => navigation.push("Achievements")}
-            >
-              <View className="w-10 h-10 rounded-xl bg-gold/10 items-center justify-center mr-3">
-                <FontAwesome name="certificate" size={16} color="#FFCB66" />
-              </View>
-              <Text className="flex-1 text-base font-semibold">
-                Thành tựu
-              </Text>
-              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+                onPress={() => navigation.navigate("Achievements")}
+              >
+                <View className="w-10 h-10 rounded-xl bg-gold/10 items-center justify-center mr-3">
+                  <FontAwesome name="certificate" size={16} color="#FFCB66" />
+                </View>
+                <Text className="flex-1 text-base font-semibold">
+                  Thành tựu
+                </Text>
+                <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
-              onPress={() => navigation.push("ChangePassword")}
-            >
-              <View className="w-10 h-10 rounded-xl bg-skyBlue/10 items-center justify-center mr-3">
-                <FontAwesome name="lock" size={16} color="#A5C4FB" />
-              </View>
-              <Text className="flex-1 text-base font-semibold">
-                Đổi mật khẩu
-              </Text>
-              <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
+                onPress={() => navigation.navigate("ChangePassword")}
+              >
+                <View className="w-10 h-10 rounded-xl bg-skyBlue/10 items-center justify-center mr-3">
+                  <FontAwesome name="lock" size={16} color="#A5C4FB" />
+                </View>
+                <Text className="flex-1 text-base font-semibold">
+                  Đổi mật khẩu
+                </Text>
+                <FontAwesome name="chevron-right" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               className="bg-coral rounded-2xl py-4 items-center mb-6"

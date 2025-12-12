@@ -1,7 +1,7 @@
 import { ThemedButton } from "@/components/themed-button";
 import { AuthStackScreenProps } from "@/navigation/types";
 import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Animated, Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = AuthStackScreenProps<"Welcome">;
@@ -49,8 +49,12 @@ export function WelcomeScreen({ navigation }: Props) {
             }}
           >
             <View className="w-48 h-48 rounded-full items-center justify-center bg-skyBlue/20 dark:bg-lavender/20">
-              <View className="w-40 h-40 rounded-full bg-white/50 dark:bg-dark-card/50 items-center justify-center">
-                <Text className="text-8xl">🍳</Text>
+              <View className="w-40 h-40 rounded-full overflow-hidden items-center justify-center bg-white">
+                <Image 
+                  source={require('../../../../assets/images/icon.png')}
+                  style={{ width: 140, height: 140, borderRadius: 80 }}
+                  resizeMode="cover"
+                />
               </View>
             </View>
             
@@ -102,8 +106,6 @@ export function WelcomeScreen({ navigation }: Props) {
           </Pressable>
 
           <View className="mt-6 items-center">
-           
-            
             <View className="mt-4 items-center">
               <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm opacity-60">
                 Bằng việc tiếp tục, bạn đồng ý với

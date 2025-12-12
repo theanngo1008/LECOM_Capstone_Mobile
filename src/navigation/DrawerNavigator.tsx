@@ -234,7 +234,7 @@ export function DrawerNavigator() {
         }}
       />
       <Drawer.Screen
-        name="ShopMain"
+        name="ShopStack"
         component={ShopStackNavigator}
         options={{
           title: "Cửa hàng của tôi",

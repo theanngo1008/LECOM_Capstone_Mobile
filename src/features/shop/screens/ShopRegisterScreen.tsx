@@ -5,27 +5,26 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
-  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RegisterShopPayload } from "../../../api/shop";
+import { useCourseCategories } from "../../../hooks/useCourseCategories";
 import { useUploadFile } from "../../../hooks/useUploadFile";
 import { useRegisterShop } from "../hooks/useRegisterShop";
-import { useCourseCategories } from "../../../hooks/useCourseCategories";
 
 export function ShopRegisterScreen({ navigation }: any) {
   const { mutate: registerShop, isPending: isRegistering } = useRegisterShop();
   const { uploadFile, isLoading: isUploading } = useUploadFile();
-  // ✅ Fetch categories
   const { data: categories, isLoading: isLoadingCategories } = useCourseCategories();
 
   // Owner Info
@@ -40,9 +39,9 @@ export function ShopRegisterScreen({ navigation }: any) {
   const [shopDescription, setShopDescription] = useState("");
   const [shopPhoneNumber, setShopPhoneNumber] = useState("");
   const [shopAddress, setShopAddress] = useState("");
-  const [businessType, setBusinessType] = useState("");
+  const [businessType, setBusinessType] = useState<"Cá nhân" | "Doanh nghiệp" | "">("");
   const [categoryId, setCategoryId] = useState("");
-  const [categoryName, setCategoryName] = useState(""); // ✅ Display name
+  const [categoryName, setCategoryName] = useState("");
   const [ownershipDocumentUrl, setOwnershipDocumentUrl] = useState("");
   const [shopAvatar, setShopAvatar] = useState("");
   const [shopBanner, setShopBanner] = useState("");
@@ -51,8 +50,14 @@ export function ShopRegisterScreen({ navigation }: any) {
   const [shopInstagram, setShopInstagram] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // ✅ Category Modal State
+  // Modal States
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showBusinessTypeModal, setShowBusinessTypeModal] = useState(false);
+
+  const businessTypeOptions = [
+    { value: "Cá nhân", label: "Cá nhân", icon: "user" },
+    { value: "Doanh nghiệp", label: "Doanh nghiệp", icon: "building" },
+  ] as const;
 
   const pickAndUpload = async (
     setUrl: (url: string) => void,
@@ -80,9 +85,9 @@ export function ShopRegisterScreen({ navigation }: any) {
         const uploaded = await uploadFile(file, "document");
         if (uploaded?.url) {
           setUrl(uploaded.url);
-          Alert.alert("✅ Upload Success", "Document uploaded successfully!");
+          Alert.alert("Tải lên thành công", "Tài liệu đã được tải lên!");
         } else {
-          Alert.alert("❌ Upload failed", "No URL returned from server.");
+          Alert.alert("Tải lên thất bại", "Không nhận được URL từ server.");
         }
         return;
       }
@@ -90,7 +95,7 @@ export function ShopRegisterScreen({ navigation }: any) {
       // image flow
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission needed", "Please allow access to your photos");
+        Alert.alert("Cần quyền truy cập", "Vui lòng cho phép truy cập thư viện ảnh");
         return;
       }
 
@@ -114,13 +119,13 @@ export function ShopRegisterScreen({ navigation }: any) {
 
       if (uploaded?.url) {
         setUrl(uploaded.url);
-        Alert.alert("✅ Upload Success", "Image uploaded successfully!");
+        Alert.alert("Tải lên thành công", "Ảnh đã được tải lên!");
       } else {
-        Alert.alert("❌ Upload failed", "No URL returned from server.");
+        Alert.alert("Tải lên thất bại", "Không nhận được URL từ server.");
       }
     } catch (err: any) {
       console.error("❌ Upload error:", err);
-      Alert.alert("Upload Failed", err.message || "Could not upload file");
+      Alert.alert("Tải lên thất bại", err.message || "Không thể tải tệp lên");
     }
   };
 
@@ -142,7 +147,7 @@ export function ShopRegisterScreen({ navigation }: any) {
       shopPhoneNumber: shopPhoneNumber.trim(),
       shopAddress: shopAddress.trim(),
       businessType: businessType.trim(),
-      categoryId: categoryId.trim(), // ✅ Send ID
+      categoryId: categoryId.trim(),
       shopAvatar: shopAvatar.trim(),
       shopBanner: shopBanner.trim(),
       shopFacebook: shopFacebook.trim() || undefined,
@@ -203,7 +208,7 @@ export function ShopRegisterScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -218,7 +223,7 @@ export function ShopRegisterScreen({ navigation }: any) {
             <FontAwesome name="arrow-left" size={16} color="#4A5568" />
           </TouchableOpacity>
           <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-            Register Shop
+            Đăng ký cửa hàng
           </Text>
           <View className="w-10" />
         </View>
@@ -235,10 +240,10 @@ export function ShopRegisterScreen({ navigation }: any) {
                 <Text className="text-4xl">🏪</Text>
               </View>
               <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-1">
-                Register Your Shop
+                Đăng ký cửa hàng của riêng bạn
               </Text>
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center">
-                Complete the form to start selling
+                Hoàn thành biểu mẫu để bắt đầu bán hàng
               </Text>
             </View>
 
@@ -247,7 +252,7 @@ export function ShopRegisterScreen({ navigation }: any) {
               <View className="flex-row items-center mb-4">
                 <View className="w-1 h-6 bg-skyBlue dark:bg-lavender rounded-full mr-3" />
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                  Owner Information
+                  Thông tin chủ sở hữu
                 </Text>
               </View>
 
@@ -255,11 +260,11 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Owner Full Name */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Full Name <Text className="text-coral">*</Text>
+                    Họ và tên <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
-                    placeholder="John Doe"
+                    placeholder="Nguyễn Văn A"
                     placeholderTextColor="#9CA3AF"
                     value={ownerFullName}
                     onChangeText={setOwnerFullName}
@@ -270,7 +275,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Date of Birth */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Date of Birth <Text className="text-coral">*</Text>
+                    Ngày sinh <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
@@ -285,7 +290,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Personal ID Number */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Personal ID Number <Text className="text-coral">*</Text>
+                    Số CMND/CCCD <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
@@ -301,10 +306,10 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Personal ID Images */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Personal ID Front <Text className="text-coral">*</Text>
+                    Ảnh CMND/CCCD mặt trước <Text className="text-coral">*</Text>
                   </Text>
                   <ImageUploadButton
-                    title="Upload ID Front"
+                    title="Tải ảnh mặt trước"
                     imageUrl={ownerPersonalIdFrontUrl}
                     onPress={() => pickAndUpload(setOwnerPersonalIdFrontUrl, { type: "image" })}
                   />
@@ -312,10 +317,10 @@ export function ShopRegisterScreen({ navigation }: any) {
 
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Personal ID Back <Text className="text-coral">*</Text>
+                    Ảnh CMND/CCCD mặt sau <Text className="text-coral">*</Text>
                   </Text>
                   <ImageUploadButton
-                    title="Upload ID Back"
+                    title="Tải ảnh mặt sau"
                     imageUrl={ownerPersonalIdBackUrl}
                     onPress={() => pickAndUpload(setOwnerPersonalIdBackUrl, { type: "image" })}
                   />
@@ -328,7 +333,7 @@ export function ShopRegisterScreen({ navigation }: any) {
               <View className="flex-row items-center mb-4">
                 <View className="w-1 h-6 bg-mint dark:bg-gold rounded-full mr-3" />
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                  Shop Information
+                  Thông tin Shop
                 </Text>
               </View>
 
@@ -336,11 +341,11 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Shop Name */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Shop Name <Text className="text-coral">*</Text>
+                    Tên Shop <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
-                    placeholder="My Awesome Shop"
+                    placeholder="Shop của tôi"
                     placeholderTextColor="#9CA3AF"
                     value={shopName}
                     onChangeText={setShopName}
@@ -351,11 +356,11 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Shop Description */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Shop Description <Text className="text-coral">*</Text>
+                    Mô tả Shop <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
-                    placeholder="Tell us about your shop..."
+                    placeholder="Giới thiệu về shop của bạn..."
                     placeholderTextColor="#9CA3AF"
                     value={shopDescription}
                     onChangeText={setShopDescription}
@@ -369,7 +374,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Shop Phone */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Phone Number <Text className="text-coral">*</Text>
+                    Số điện thoại <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
@@ -385,11 +390,11 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Shop Address */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Shop Address <Text className="text-coral">*</Text>
+                    Địa chỉ Shop <Text className="text-coral">*</Text>
                   </Text>
                   <TextInput
                     className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
-                    placeholder="123 Street, City"
+                    placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
                     placeholderTextColor="#9CA3AF"
                     value={shopAddress}
                     onChangeText={setShopAddress}
@@ -397,25 +402,33 @@ export function ShopRegisterScreen({ navigation }: any) {
                   />
                 </View>
 
-                {/* Business Type */}
+                {/* Business Type Selector */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Business Type <Text className="text-coral">*</Text>
+                    Loại hình kinh doanh <Text className="text-coral">*</Text>
                   </Text>
-                  <TextInput
-                    className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
-                    placeholder="e.g., Retail, Service"
-                    placeholderTextColor="#9CA3AF"
-                    value={businessType}
-                    onChangeText={setBusinessType}
-                    editable={!isRegistering}
-                  />
+                  <TouchableOpacity
+                    className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border flex-row items-center justify-between"
+                    onPress={() => setShowBusinessTypeModal(true)}
+                    disabled={isRegistering}
+                  >
+                    <Text
+                      className={`${
+                        businessType
+                          ? "text-light-text dark:text-dark-text"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {businessType || "Chọn loại hình kinh doanh"}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+                  </TouchableOpacity>
                 </View>
 
-                {/* ✅ Category Selector */}
+                {/* Category Selector */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Category <Text className="text-coral">*</Text>
+                    Danh mục <Text className="text-coral">*</Text>
                   </Text>
                   <TouchableOpacity
                     className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border flex-row items-center justify-between"
@@ -429,7 +442,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                           : "text-gray-400"
                       }`}
                     >
-                      {categoryName || "Select a category"}
+                      {categoryName || "Chọn danh mục"}
                     </Text>
                     <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
                   </TouchableOpacity>
@@ -438,10 +451,10 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Shop Avatar */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Shop Avatar <Text className="text-coral">*</Text>
+                    Ảnh đại diện Shop <Text className="text-coral">*</Text>
                   </Text>
                   <ImageUploadButton
-                    title="Upload Shop Avatar"
+                    title="Tải ảnh đại diện"
                     imageUrl={shopAvatar}
                     onPress={() => pickAndUpload(setShopAvatar, { type: "image" })}
                   />
@@ -450,10 +463,10 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Shop Banner */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Shop Banner <Text className="text-coral">*</Text>
+                    Ảnh bìa Shop <Text className="text-coral">*</Text>
                   </Text>
                   <ImageUploadButton
-                    title="Upload Shop Banner"
+                    title="Tải ảnh bìa"
                     imageUrl={shopBanner}
                     onPress={() => pickAndUpload(setShopBanner, { type: "image" })}
                   />
@@ -462,10 +475,10 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Ownership Document */}
                 <View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Ownership Document <Text className="text-coral">*</Text>
+                    Giấy tờ sở hữu <Text className="text-coral">*</Text>
                   </Text>
                   <ImageUploadButton
-                    title="Upload Document"
+                    title="Tải tài liệu"
                     imageUrl={ownershipDocumentUrl}
                     onPress={() => pickAndUpload(setOwnershipDocumentUrl, { type: "document" })}
                   />
@@ -474,7 +487,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {/* Social Media */}
                 <View className="bg-skyBlue/10 dark:bg-lavender/10 rounded-2xl p-4 gap-3">
                   <Text className="text-sm font-bold text-light-text dark:text-dark-text mb-1">
-                    Social Media (Optional)
+                    Mạng xã hội (Tùy chọn)
                   </Text>
 
                   <TextInput
@@ -526,9 +539,9 @@ export function ShopRegisterScreen({ navigation }: any) {
                 {acceptedTerms && <Text className="text-white text-sm">✓</Text>}
               </View>
               <Text className="flex-1 text-sm text-light-text dark:text-dark-text">
-                I accept the{" "}
+                Tôi đồng ý với{" "}
                 <Text className="text-mint dark:text-gold font-semibold">
-                  Terms & Conditions
+                  Điều khoản & Điều kiện
                 </Text>
               </Text>
             </TouchableOpacity>
@@ -543,7 +556,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                 <ActivityIndicator size="small" color="white" />
               ) : (
                 <Text className="text-white font-bold text-lg">
-                  Register Shop
+                  Đăng ký Shop
                 </Text>
               )}
             </TouchableOpacity>
@@ -551,7 +564,78 @@ export function ShopRegisterScreen({ navigation }: any) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ✅ Category Modal */}
+      {/* Business Type Modal */}
+      <Modal
+        visible={showBusinessTypeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowBusinessTypeModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white dark:bg-dark-card rounded-t-3xl">
+            {/* Modal Header */}
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn loại hình
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowBusinessTypeModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Business Type Options */}
+            <View className="p-6 gap-3">
+              {businessTypeOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  className={`p-4 rounded-xl border-2 flex-row items-center ${
+                    businessType === option.value
+                      ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
+                      : "border-beige/30 dark:border-dark-border/30 bg-white dark:bg-dark-card"
+                  }`}
+                  onPress={() => {
+                    setBusinessType(option.value);
+                    setShowBusinessTypeModal(false);
+                  }}
+                >
+                  <View
+                    className={`w-12 h-12 rounded-xl items-center justify-center mr-3 ${
+                      businessType === option.value
+                        ? "bg-mint/20 dark:bg-gold/20"
+                        : "bg-beige/20 dark:bg-dark-border/20"
+                    }`}
+                  >
+                    <FontAwesome
+                      name={option.icon as any}
+                      size={20}
+                      color={businessType === option.value ? "#ACD6B8" : "#9CA3AF"}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className={`text-base font-bold ${
+                        businessType === option.value
+                          ? "text-mint dark:text-gold"
+                          : "text-light-text dark:text-dark-text"
+                      }`}
+                    >
+                      {option.label}
+                    </Text>
+                  </View>
+                  {businessType === option.value && (
+                    <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Category Modal */}
       <Modal
         visible={showCategoryModal}
         transparent
@@ -563,7 +647,7 @@ export function ShopRegisterScreen({ navigation }: any) {
             {/* Modal Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Select Category
+                Chọn danh mục
               </Text>
               <TouchableOpacity
                 onPress={() => setShowCategoryModal(false)}
@@ -578,7 +662,7 @@ export function ShopRegisterScreen({ navigation }: any) {
               <View className="py-12 items-center">
                 <ActivityIndicator size="large" color="#ACD6B8" />
                 <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                  Loading categories...
+                  Đang tải danh mục...
                 </Text>
               </View>
             ) : (
@@ -618,7 +702,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                   <View className="py-12 items-center">
                     <FontAwesome name="inbox" size={48} color="#D1D5DB" />
                     <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                      No categories available
+                      Không có danh mục nào
                     </Text>
                   </View>
                 )}

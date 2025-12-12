@@ -25,7 +25,6 @@ import { ProductsStackParamList } from "@/navigation/types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// ✅ Type-safe props
 type Props = NativeStackScreenProps<ProductsStackParamList, "ProductDetail">;
 
 export function ProductDetailScreen({ navigation, route }: Props) {
@@ -38,10 +37,8 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const startChat = useStartChat();
   const startAIChat = useStartAIChat();
 
-  // ✅ Lấy giỏ hàng để đếm số lượng
   const { items: cartShopGroups } = useCart();
 
-  // ✅ Tính tổng số lượng sản phẩm từ tất cả shop
   const cartItemCount = cartShopGroups.reduce((total, shopGroup) => {
     const shopTotal = shopGroup.items.reduce(
       (sum, item) => sum + item.quantity,
@@ -50,7 +47,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     return total + shopTotal;
   }, 0);
 
-  // ✅ Quantity Modal State
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
@@ -73,7 +69,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
             return;
           }
 
-          // ✅ Navigate with type safety
           navigation.navigate("ChatDetail", {
             conversationId: conversation.id,
           });
@@ -106,7 +101,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
             return;
           }
 
-          // ✅ Navigate with type safety
           navigation.navigate("ChatDetail", {
             conversationId: conversation.id,
             isAIChat: conversation.isAIChat,
@@ -221,7 +215,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
 
   const statusConfig = getStatusConfig(product.status);
 
-  // ✅ Handle Quantity Changes
   const handleIncreaseQuantity = () => {
     if (quantity < product.stock) {
       setQuantity(quantity + 1);
@@ -248,7 +241,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     }
   };
 
-  // ✅ Handle Add to Cart
   const handleAddToCart = () => {
     if (product.status !== "Published" || product.stock === 0) {
       Alert.alert(
@@ -262,7 +254,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     setShowQuantityModal(true);
   };
 
-  // ✅ Confirm Add to Cart
   const confirmAddToCart = () => {
     addToCart.mutate(
       {
@@ -297,10 +288,10 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     );
   };
 
-  // ✅ Navigate to recommended product
   const handleRecommendedProductPress = (recommendedSlug: string) => {
     navigation.push("ProductDetail", { slug: recommendedSlug });
   };
+
   return (
     <SafeAreaView
       edges={["top"]}
@@ -331,7 +322,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
             onPress={() => navigation.navigate("CartMain")}
           >
             <FontAwesome name="shopping-cart" size={18} color="#ACD6B8" />
-            {/* ✅ Cart Badge */}
             {cartItemCount > 0 && (
               <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
                 <Text className="text-white text-[10px] font-bold">
@@ -550,10 +540,10 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               </View>
             </View>
 
-            {/* ✨ FEEDBACK SECTION - Using Component */}
+            {/* FEEDBACK SECTION */}
             <FeedbackSection productId={product.id} />
 
-            {/* 🎯 RECOMMENDED PRODUCTS */}
+            {/* RECOMMENDED PRODUCTS */}
             {!isLoadingRecommended && recommendedProducts.length > 0 && (
               <View className="mb-6">
                 <View className="flex-row items-center justify-between mb-4">
@@ -703,38 +693,27 @@ export function ProductDetailScreen({ navigation, route }: Props) {
           </View>
         </ScrollView>
 
-        {/* Bottom Actions */}
+        {/* Bottom Actions - ✅ Only Add to Cart */}
         <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
-          <View className="flex-row space-x-3">
-            <TouchableOpacity
-              className="flex-1 bg-beige/50 dark:bg-dark-border/50 rounded-full py-4 items-center"
-              onPress={() => {
-                Alert.alert("Danh sách yêu thích", "Tính năng sắp ra mắt");
-              }}
-            >
-              <FontAwesome name="heart-o" size={20} color="#ACD6B8" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="flex-3 bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
-              onPress={handleAddToCart}
-              disabled={
-                product.status !== "Published" || product.stock === 0
-              }
-            >
-              <FontAwesome name="shopping-cart" size={20} color="white" />
-              <Text className="text-white text-base font-bold ml-2">
-                {product.status === "OutOfStock" || product.stock === 0
-                  ? "Hết hàng"
-                  : product.status === "Published"
-                  ? "Thêm vào giỏ"
-                  : statusConfig.label}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            className="bg-mint dark:bg-gold rounded-full py-4 items-center flex-row justify-center"
+            onPress={handleAddToCart}
+            disabled={
+              product.status !== "Published" || product.stock === 0
+            }
+          >
+            <FontAwesome name="shopping-cart" size={20} color="white" />
+            <Text className="text-white text-base font-bold ml-2">
+              {product.status === "OutOfStock" || product.stock === 0
+                ? "Hết hàng"
+                : product.status === "Published"
+                ? "Thêm vào giỏ"
+                : statusConfig.label}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* ✅ Quantity Modal */}
+        {/* Quantity Modal */}
         <Modal
           visible={showQuantityModal}
           transparent

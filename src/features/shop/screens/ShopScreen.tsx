@@ -1,5 +1,4 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   ActivityIndicator,
@@ -259,23 +258,54 @@ export function ShopScreen({ navigation }: any) {
             )}
           </View>
 
-          {/* Rejection Reason */}
-          {shopData.status === "Rejected" && shopData.rejectedReason && (
-            <View className="bg-coral/10 border-2 border-coral/30 rounded-2xl p-4 mb-6">
-              <View className="flex-row items-center mb-2">
-                <FontAwesome
-                  name="exclamation-circle"
-                  size={14}
-                  color="#F2A297"
-                />
-                <Text className="text-sm font-bold text-coral ml-2">
-                  Lý do từ chối
-                </Text>
+          {/* Rejection Reason & Re-register */}
+          {shopData.status === "Rejected" && (
+            <>
+              {shopData.rejectedReason && (
+                <View className="bg-coral/10 border-2 border-coral/30 rounded-2xl p-4 mb-4">
+                  <View className="flex-row items-center mb-2">
+                    <FontAwesome
+                      name="exclamation-circle"
+                      size={14}
+                      color="#F2A297"
+                    />
+                    <Text className="text-sm font-bold text-coral ml-2">
+                      Lý do từ chối
+                    </Text>
+                  </View>
+                  <Text className="text-sm text-light-text dark:text-dark-text">
+                    {shopData.rejectedReason}
+                  </Text>
+                </View>
+              )}
+
+              {/* Rejected Message & Re-register Button */}
+              <View className="bg-white dark:bg-dark-card rounded-2xl p-6 mb-6 shadow-sm border-2 border-coral/20">
+                <View className="items-center mb-4">
+                  <View className="w-16 h-16 rounded-full bg-coral/20 items-center justify-center mb-3">
+                    <FontAwesome name="times-circle" size={32} color="#F2A297" />
+                  </View>
+                  <Text className="text-base font-bold text-light-text dark:text-dark-text text-center mb-2">
+                    Đơn đăng ký đã bị từ chối
+                  </Text>
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center">
+                    Đơn đăng ký của bạn đã bị quản trị viên từ chối. Vui lòng kiểm tra lại nguyên nhân và thử đăng ký lại.
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  className="bg-gold dark:bg-mint rounded-xl py-3.5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("RegisterShop")}
+                >
+                  <View className="flex-row items-center">
+                    <FontAwesome name="refresh" size={16} color="white" />
+                    <Text className="text-white font-bold text-base ml-2">
+                      Đăng ký shop lại
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
-              <Text className="text-sm text-light-text dark:text-dark-text">
-                {shopData.rejectedReason}
-              </Text>
-            </View>
+            </>
           )}
 
           {/* Quick Stats */}
@@ -355,111 +385,113 @@ export function ShopScreen({ navigation }: any) {
             ]}
           />
 
-                   {/* Manage Your Shop Section */}
-          <View className="mt-8 mb-6">
-            <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
-              Quản lý Shop
-            </Text>
-            
-            {/* First Row - Products & Courses */}
-            <View className="flex-row gap-3 mb-3">
-              <TouchableOpacity
-                className="flex-1 bg-skyBlue rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
-                onPress={() => navigation.navigate("ShopProductsMain")}
-              >
-                <FontAwesome name="cube" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Sản phẩm
-                </Text>
-              </TouchableOpacity>
+          {/* Manage Your Shop Section - Only show if Approved */}
+          {shopData.status === "Approved" && (
+            <View className="mt-8 mb-6">
+              <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
+                Quản lý Shop
+              </Text>
+              
+              {/* First Row - Products & Courses */}
+              <View className="flex-row gap-3 mb-3">
+                <TouchableOpacity
+                  className="flex-1 bg-skyBlue rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("ShopProductsMain")}
+                >
+                  <FontAwesome name="cube" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Sản phẩm
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                className="flex-1 bg-mint rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
-                onPress={() => navigation.navigate("ShopCoursesMain")}
-              >
-                <FontAwesome name="graduation-cap" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Khóa học
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 bg-mint rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("ShopCoursesMain")}
+                >
+                  <FontAwesome name="graduation-cap" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Khóa học
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Second Row - Orders & Customer Chats */}
+              <View className="flex-row gap-3 mb-3">
+                <TouchableOpacity
+                  className="flex-1 bg-gold rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("ShopOrdersMain")}
+                >
+                  <FontAwesome name="shopping-bag" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Đơn hàng
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-lavender rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("SellerChatList")}
+                >
+                  <FontAwesome name="comments" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Tin nhắn KH
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Third Row - Statistics & Refunds */}
+              <View className="flex-row gap-3 mb-3">
+                <TouchableOpacity
+                  className="flex-1 bg-coral rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => {
+                    navigation.navigate("ShopDashboard");
+                  }}
+                >
+                  <FontAwesome name="bar-chart" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Thống kê
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-beige rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => {
+                    navigation.navigate("ShopRefundsMain");
+                  }}
+                >
+                  <FontAwesome name="undo" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Hoàn tiền
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Fourth Row - Reviews & Shop Wallet */}
+              <View className="flex-row gap-3 mb-3">
+                <TouchableOpacity
+                  className="flex-1 rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  style={{ backgroundColor: '#E5C068' }}
+                  onPress={() => {
+                    navigation.navigate("ShopReviews");
+                  }}
+                >
+                  <FontAwesome name="star" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Đánh giá
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-mint rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("ShopWalletMain")}
+                >
+                  <FontAwesome name="money" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Ví Shop
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            {/* Second Row - Orders & Customer Chats */}
-            <View className="flex-row gap-3 mb-3">
-              <TouchableOpacity
-                className="flex-1 bg-gold rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
-                onPress={() => navigation.navigate("ShopOrdersMain")}
-              >
-                <FontAwesome name="shopping-bag" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Đơn hàng
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="flex-1 bg-lavender rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
-                onPress={() => navigation.navigate("SellerChatList")}
-              >
-                <FontAwesome name="comments" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Tin nhắn KH
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Third Row - Statistics & Refunds */}
-            <View className="flex-row gap-3 mb-3">
-              <TouchableOpacity
-                className="flex-1 bg-coral rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
-                onPress={() => {
-                  // navigation.navigate("ShopStatistics");
-                 navigation.navigate("ShopDashboard");
-                }}
-              >
-                <FontAwesome name="bar-chart" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Thống kê
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="flex-1 bg-beige rounded-2xl p-4 items-center justify-center shadow-md active:opacity-80"
-                onPress={() => {
-               navigation.navigate("ShopRefundsMain");
-                }}
-              >
-                <FontAwesome name="undo" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Hoàn tiền
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Fourth Row - Shop Wallet (Full Width) */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate("ShopWalletMain")}
-            >
-              <LinearGradient
-                colors={['#ACD6B8', '#FFCB66']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                className="rounded-2xl p-4 items-center justify-center shadow-md"
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                }}
-              >
-                <FontAwesome name="money" size={20} color="white" />
-                <Text className="text-white font-bold mt-2">
-                  Ví Shop
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+          )}
 
           {/* Social Media */}
           {(shopData.shopFacebook ||
