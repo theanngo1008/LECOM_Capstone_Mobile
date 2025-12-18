@@ -1,7 +1,6 @@
 import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
 import { SellerChatListScreen } from "@/features/chat/screens/SellerChatListScreen";
 import { ShopDashboardScreen } from "@/features/shop/screens/SelletDashboardScreen";
-import { ShopFeedbackScreen } from "@/features/shop/screens/ShopFeedbackScreen";
 import { CreateShopCourseScreen } from "@/features/shopCourses/screens/CreateShopCourseScreen";
 import { ShopCourseDetailScreen } from "@/features/shopCourses/screens/ShopCourseDetailScreen";
 import { ShopCoursesScreen } from "@/features/shopCourses/screens/ShopCoursesScreen";
@@ -17,10 +16,12 @@ import { ShopWithdrawalsScreen } from "@/features/shopWallet/screens/ShopWithdra
 import { ShopStackParamList } from "@/navigation/types";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
+import { ShopFeedbackScreen } from "../features/shop/screens/ShopFeedbackScreen";
 import { ShopRegisterScreen } from "../features/shop/screens/ShopRegisterScreen";
 import { ShopScreen } from "../features/shop/screens/ShopScreen";
 import { UpdateShopScreen } from "../features/shop/screens/ShopUpdateScreen";
 import { ShopProductsScreen } from "../features/shopProducts/screens/ShopProductsScreen";
+import { ShopSettingScreen } from "@/features/shop/screens/ShopSettingScreen";
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
 
@@ -136,9 +137,14 @@ export function ShopStackNavigator() {
         options={{ title: "Shop Refunds", presentation: "card" }}
       />
       <Stack.Screen
-        name="ShopReviews"
+        name="ShopFeedbackMain"
         component={ShopFeedbackScreen}
         options={{ title: "Shop Reviews", presentation: "card" }}
+      />
+      <Stack.Screen
+        name="ShopSetting"
+        component={ShopSettingScreen}
+        options={{ title: "Shop Settings", presentation: "modal" }}
       />
 
     </Stack.Navigator>

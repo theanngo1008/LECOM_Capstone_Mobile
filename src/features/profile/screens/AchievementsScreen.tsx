@@ -51,8 +51,6 @@ export function AchievementsScreen({ navigation }: Props) {
   // -----------------------------
   // stable callbacks
   // ----------------------------
-  const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
-
   const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(category);
   }, []);
@@ -231,7 +229,7 @@ export function AchievementsScreen({ navigation }: Props) {
       {/* Header */}
       <View className="px-4 py-4 bg-white dark:bg-dark-card shadow-sm">
         <View className="flex-row items-center mb-4">
-          <TouchableOpacity onPress={handleGoBack} className="mr-3 p-2 -ml-2">
+          <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 p-2 -ml-2">
             <Ionicons name="arrow-back" size={24} color="#374151" />
           </TouchableOpacity>
 

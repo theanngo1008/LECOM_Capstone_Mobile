@@ -12,12 +12,27 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDeleteShop } from "../hooks/useDeleteShop";
+import { useGHNStatus } from "../hooks/useGHNStatus";
 import { useMyShop } from "../hooks/useMyShop";
+import { useShopAddress } from "../hooks/useShopAddress";
 
 export function ShopScreen({ navigation }: any) {
   const { data, isLoading, refetch, isRefetching } = useMyShop();
   const { mutate: deleteShop, isPending: isDeleting } = useDeleteShop();
   const shopData = data?.result || null;
+
+  // Fetch shop address and GHN status
+  const { data: addressData } = useShopAddress();
+  const { data: ghnStatusData } = useGHNStatus();
+
+  // Check for errors - show warning if no address or GHN not connected
+  const noAddress = !addressData?.result;
+  const hasAddressError = addressData && (
+    !addressData.isSuccess || 
+    (addressData as any).errorMessages?.length > 0
+  );
+  // GHN status: check if isConnected is false (even if isSuccess is true)
+  const isGHNNotConnected = ghnStatusData?.result?.isConnected === false;
 
   const handleDeleteShop = () => {
     if (!shopData?.id) {
@@ -258,6 +273,49 @@ export function ShopScreen({ navigation }: any) {
             )}
           </View>
 
+          {/* Shop Settings Warnings - Only show if Approved */}
+          {shopData.status === "Approved" && (
+            <>
+              {/* No Address Warning */}
+              {(noAddress || hasAddressError) && (
+                <View className="bg-gold/10 border-2 border-gold/30 rounded-2xl p-4 mb-4">
+                  <View className="flex-row items-center mb-2">
+                    <FontAwesome
+                      name="exclamation-triangle"
+                      size={16}
+                      color="#FFCB66"
+                    />
+                    <Text className="text-sm font-bold text-gold ml-2">
+                      Chưa thiết lập địa chỉ kho hàng
+                    </Text>
+                  </View>
+                  <Text className="text-sm text-light-text dark:text-dark-text">
+                    Vui lòng thiết lập địa chỉ kho hàng để hoàn tất quá trình đăng ký cửa hàng và bắt đầu bán hàng.
+                  </Text>
+                </View>
+              )}
+
+              {/* GHN Not Connected Warning */}
+              {isGHNNotConnected && (
+                <View className="bg-gold/10 border-2 border-gold/30 rounded-2xl p-4 mb-4">
+                  <View className="flex-row items-center mb-2">
+                    <FontAwesome
+                      name="exclamation-triangle"
+                      size={16}
+                      color="#FFCB66"
+                    />
+                    <Text className="text-sm font-bold text-gold ml-2">
+                      Chưa kết nối với đơn vị vận chuyển Giao Hàng Nhanh
+                    </Text>
+                  </View>
+                  <Text className="text-sm text-light-text dark:text-dark-text">
+                    {ghnStatusData?.result?.message || "Shop chưa kết nối với GHN. Vui lòng cấu hình để có thể tính phí vận chuyển."}
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+
           {/* Rejection Reason & Re-register */}
           {shopData.status === "Rejected" && (
             <>
@@ -471,7 +529,13 @@ export function ShopScreen({ navigation }: any) {
                   className="flex-1 rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
                   style={{ backgroundColor: '#E5C068' }}
                   onPress={() => {
-                    navigation.navigate("ShopReviews");
+                    try {
+                      if (navigation && typeof navigation.navigate === 'function') {
+                        navigation.navigate("ShopFeedbackMain");
+                      }
+                    } catch (error) {
+                      console.warn("Navigation error:", error);
+                    }
                   }}
                 >
                   <FontAwesome name="star" size={24} color="white" />
@@ -487,6 +551,19 @@ export function ShopScreen({ navigation }: any) {
                   <FontAwesome name="money" size={24} color="white" />
                   <Text className="text-white font-bold mt-2.5 text-sm">
                     Ví Shop
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Fifth Row - Settings */}
+              <View className="flex-row gap-3 mb-3">
+                <TouchableOpacity
+                  className="flex-1 bg-skyBlue rounded-2xl py-5 items-center justify-center shadow-md active:opacity-80"
+                  onPress={() => navigation.navigate("ShopSetting")}
+                >
+                  <FontAwesome name="cog" size={24} color="white" />
+                  <Text className="text-white font-bold mt-2.5 text-sm">
+                    Cài đặt cửa hàng
                   </Text>
                 </TouchableOpacity>
               </View>

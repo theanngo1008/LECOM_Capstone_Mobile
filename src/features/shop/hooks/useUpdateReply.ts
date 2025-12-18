@@ -15,7 +15,7 @@ export const useUpdateReply = () => {
 
     onSuccess: () => {
       // 🔥 Refresh lại danh sách feedback shop
-      queryClient.invalidateQueries({ queryKey: ["shop-feedback"] });
+      queryClient.invalidateQueries({ queryKey: ["shopFeedback"], exact: false });
     },
   });
 };

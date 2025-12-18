@@ -1,35 +1,27 @@
+import { ShopStackScreenProps } from "@/navigation/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useNavigation } from "@react-navigation/native";
 import React, {
-  useState,
   useCallback,
-  useMemo,
-  useEffect,
+  useState
 } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   Text,
-  TextInput,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ReplyModal } from "../components/ReplyModal";
 import { useReplyFeedback } from "../hooks/useReplyFeedback";
 import { useShopFeedback } from "../hooks/useShopFeedback";
 import { useUpdateReply } from "../hooks/useUpdateReply";
-import { ShopStackScreenProps } from "@/navigation/types";
-import { ReplyModal } from "../components/ReplyModal";
 
 export function ShopFeedbackScreen({
   navigation,
-}: ShopStackScreenProps<"ShopReviews">) {
- console.log("🔍 ShopFeedbackScreen rendered. Navigation ID =", navigation);
+}: ShopStackScreenProps<"ShopFeedbackMain">) {
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const pageSize = 2;

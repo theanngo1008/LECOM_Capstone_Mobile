@@ -33,6 +33,12 @@ export interface RegisterShopPayload {
   shopDescription: string;
   shopPhoneNumber: string;
   shopAddress: string;
+  provinceId: number;
+  provinceName: string;
+  districtId: number;
+  districtName: string;
+  wardCode: string;
+  wardName: string;
   businessType: string;
   ownershipDocumentUrl: string;
   shopAvatar: string;
@@ -49,7 +55,49 @@ export interface RegisterShopPayload {
   ownerPersonalIdBackUrl: string;
 }
 
+export interface ShopAddress {
+  id: number
+  shopId: number
+  provinceId: number
+  provinceName: string
+  districtId: number
+  districtName: string
+  wardCode: string
+  wardName: string
+  detailAddress: string
+  isDefault: boolean
+  contactName: string
+  contactPhone: string
+}
+
+export interface GHNStatus {
+  isConnected: boolean
+  ghnShopId: string
+  connectedAt: string | null
+  message: string
+}
+
+export interface GHNConnectPayload {
+  ghnToken: string
+  ghnShopId: string
+}
+
+export interface ShopAddressPayload {
+  provinceId: number
+  provinceName: string
+  districtId: number
+  districtName: string
+  wardCode: string
+  wardName: string
+  detailAddress: string
+  contactName: string
+  contactPhone: string
+  isDefault: boolean
+}
+
 export type ShopResponse = ApiResponse<ShopResult>
+export type ShopAddressResponse = ApiResponse<ShopAddress>
+export type GHNStatusResponse = ApiResponse<GHNStatus>
 
 
 export const shopApi = {
@@ -72,6 +120,40 @@ export const shopApi = {
   ): Promise<ShopResponse> => {
     const { data } = await apiClient.post<ShopResponse>(
       "/Seller/register",
+      payload
+    );
+    return data;
+  },
+
+  getShopAddress: async (): Promise<ShopAddressResponse> => {
+    const { data } = await apiClient.get<ShopAddressResponse>("/shop/address/me");
+    return data;
+  },
+
+  setShopAddress: async (payload: ShopAddressPayload): Promise<ShopAddressResponse> => {
+    const { data } = await apiClient.post<ShopAddressResponse>(
+      "/shop/address/me",
+      payload
+    );
+    return data;
+  },
+
+  updateShopAddress: async (addressId: number, payload: ShopAddressPayload): Promise<ShopAddressResponse> => {
+    const { data } = await apiClient.put<ShopAddressResponse>(
+      `/shop/address/me/${addressId}`,
+      payload
+    );
+    return data;
+  },
+
+  getGHNStatus: async (): Promise<GHNStatusResponse> => {
+    const { data } = await apiClient.get<GHNStatusResponse>("/shop/address/me/ghn/status");
+    return data;
+  },
+
+  connectGHN: async (payload: GHNConnectPayload): Promise<GHNStatusResponse> => {
+    const { data } = await apiClient.post<GHNStatusResponse>(
+      "/shop/address/me/ghn/connect",
       payload
     );
     return data;

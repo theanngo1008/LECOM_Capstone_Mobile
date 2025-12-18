@@ -15,7 +15,7 @@ export const useReplyFeedback = () => {
 
     onSuccess: () => {
       // 🔥 Tự động refresh danh sách feedback của shop
-      queryClient.invalidateQueries({ queryKey: ["shop-feedback"] });
+      queryClient.invalidateQueries({ queryKey: ["shopFeedback"], exact: false });
     },
   });
 };

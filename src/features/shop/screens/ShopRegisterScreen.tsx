@@ -19,7 +19,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RegisterShopPayload } from "../../../api/shop";
 import { useCourseCategories } from "../../../hooks/useCourseCategories";
+import { useDistricts } from "../../../hooks/useDistricts";
+import { useProvinces } from "../../../hooks/useProvinces";
 import { useUploadFile } from "../../../hooks/useUploadFile";
+import { useWards } from "../../../hooks/useWards";
 import { useRegisterShop } from "../hooks/useRegisterShop";
 
 export function ShopRegisterScreen({ navigation }: any) {
@@ -39,20 +42,31 @@ export function ShopRegisterScreen({ navigation }: any) {
   const [shopDescription, setShopDescription] = useState("");
   const [shopPhoneNumber, setShopPhoneNumber] = useState("");
   const [shopAddress, setShopAddress] = useState("");
+  const [provinceId, setProvinceId] = useState<number>(0);
+  const [provinceName, setProvinceName] = useState("");
+  const [districtId, setDistrictId] = useState<number>(0);
+  const [districtName, setDistrictName] = useState("");
+  const [wardCode, setWardCode] = useState("");
+  const [wardName, setWardName] = useState("");
   const [businessType, setBusinessType] = useState<"Cá nhân" | "Doanh nghiệp" | "">("");
   const [categoryId, setCategoryId] = useState("");
   const [categoryName, setCategoryName] = useState("");
   const [ownershipDocumentUrl, setOwnershipDocumentUrl] = useState("");
   const [shopAvatar, setShopAvatar] = useState("");
   const [shopBanner, setShopBanner] = useState("");
-  const [shopFacebook, setShopFacebook] = useState("");
-  const [shopTiktok, setShopTiktok] = useState("");
-  const [shopInstagram, setShopInstagram] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Modal States
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showBusinessTypeModal, setShowBusinessTypeModal] = useState(false);
+  const [showProvinceModal, setShowProvinceModal] = useState(false);
+  const [showDistrictModal, setShowDistrictModal] = useState(false);
+  const [showWardModal, setShowWardModal] = useState(false);
+
+  // Address hooks - must be after state declarations
+  const { data: provinces, isLoading: isLoadingProvinces } = useProvinces();
+  const { data: districts, isLoading: isLoadingDistricts } = useDistricts(provinceId || null);
+  const { data: wards, isLoading: isLoadingWards } = useWards(districtId || null);
 
   const businessTypeOptions = [
     { value: "Cá nhân", label: "Cá nhân", icon: "user" },
@@ -146,13 +160,19 @@ export function ShopRegisterScreen({ navigation }: any) {
       shopDescription: shopDescription.trim(),
       shopPhoneNumber: shopPhoneNumber.trim(),
       shopAddress: shopAddress.trim(),
+      provinceId,
+      provinceName: provinceName.trim(),
+      districtId,
+      districtName: districtName.trim(),
+      wardCode: wardCode.trim(),
+      wardName: wardName.trim(),
       businessType: businessType.trim(),
       categoryId: categoryId.trim(),
       shopAvatar: shopAvatar.trim(),
       shopBanner: shopBanner.trim(),
-      shopFacebook: shopFacebook.trim() || undefined,
-      shopTiktok: shopTiktok.trim() || undefined,
-      shopInstagram: shopInstagram.trim() || undefined,
+      shopFacebook: undefined,
+      shopTiktok: undefined,
+      shopInstagram: undefined,
       ownershipDocumentUrl: ownershipDocumentUrl.trim(),
       ownerFullName: ownerFullName.trim(),
       ownerDateOfBirth: formatDateToISO(ownerDateOfBirth.trim()),
@@ -247,12 +267,12 @@ export function ShopRegisterScreen({ navigation }: any) {
               </Text>
             </View>
 
-            {/* SECTION 1: OWNER INFORMATION */}
+            {/* SECTION 1: THÔNG TIN CÁ NHÂN */}
             <View className="mb-6">
               <View className="flex-row items-center mb-4">
                 <View className="w-1 h-6 bg-skyBlue dark:bg-lavender rounded-full mr-3" />
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                  Thông tin chủ sở hữu
+                  Thông tin cá nhân
                 </Text>
               </View>
 
@@ -328,12 +348,12 @@ export function ShopRegisterScreen({ navigation }: any) {
               </View>
             </View>
 
-            {/* SECTION 2: SHOP INFORMATION */}
+            {/* SECTION 2: THÔNG TIN CỬA HÀNG */}
             <View className="mb-6">
               <View className="flex-row items-center mb-4">
                 <View className="w-1 h-6 bg-mint dark:bg-gold rounded-full mr-3" />
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                  Thông tin Shop
+                  Thông tin cửa hàng
                 </Text>
               </View>
 
@@ -383,21 +403,6 @@ export function ShopRegisterScreen({ navigation }: any) {
                     value={shopPhoneNumber}
                     onChangeText={setShopPhoneNumber}
                     keyboardType="phone-pad"
-                    editable={!isRegistering}
-                  />
-                </View>
-
-                {/* Shop Address */}
-                <View>
-                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Địa chỉ Shop <Text className="text-coral">*</Text>
-                  </Text>
-                  <TextInput
-                    className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
-                    placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
-                    placeholderTextColor="#9CA3AF"
-                    value={shopAddress}
-                    onChangeText={setShopAddress}
                     editable={!isRegistering}
                   />
                 </View>
@@ -483,42 +488,101 @@ export function ShopRegisterScreen({ navigation }: any) {
                     onPress={() => pickAndUpload(setOwnershipDocumentUrl, { type: "document" })}
                   />
                 </View>
+              </View>
+            </View>
 
-                {/* Social Media */}
-                <View className="bg-skyBlue/10 dark:bg-lavender/10 rounded-2xl p-4 gap-3">
-                  <Text className="text-sm font-bold text-light-text dark:text-dark-text mb-1">
-                    Mạng xã hội (Tùy chọn)
+            {/* SECTION 3: ĐỊA CHỈ CỬA HÀNG */}
+            <View className="mb-6">
+              <View className="flex-row items-center mb-4">
+                <View className="w-1 h-6 bg-gold dark:bg-mint rounded-full mr-3" />
+                <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                  Địa chỉ cửa hàng
+                </Text>
+              </View>
+
+              <View className="gap-4">
+                {/* Shop Address */}
+                <View>
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                    Địa chỉ chi tiết <Text className="text-coral">*</Text>
                   </Text>
-
                   <TextInput
-                    className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3 rounded-xl border border-beige dark:border-dark-border"
-                    placeholder="https://facebook.com/yourshop"
+                    className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border"
+                    placeholder="123 Đường ABC"
                     placeholderTextColor="#9CA3AF"
-                    value={shopFacebook}
-                    onChangeText={setShopFacebook}
-                    autoCapitalize="none"
+                    value={shopAddress}
+                    onChangeText={setShopAddress}
                     editable={!isRegistering}
                   />
+                </View>
 
-                  <TextInput
-                    className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3 rounded-xl border border-beige dark:border-dark-border"
-                    placeholder="https://tiktok.com/@yourshop"
-                    placeholderTextColor="#9CA3AF"
-                    value={shopTiktok}
-                    onChangeText={setShopTiktok}
-                    autoCapitalize="none"
-                    editable={!isRegistering}
-                  />
+                {/* Province */}
+                <View>
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                    Tỉnh/Thành phố <Text className="text-coral">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border flex-row items-center justify-between"
+                    onPress={() => setShowProvinceModal(true)}
+                    disabled={isRegistering || isLoadingProvinces}
+                  >
+                    <Text
+                      className={`${
+                        provinceName
+                          ? "text-light-text dark:text-dark-text"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {provinceName || "Chọn tỉnh/thành phố"}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
 
-                  <TextInput
-                    className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3 rounded-xl border border-beige dark:border-dark-border"
-                    placeholder="https://instagram.com/yourshop"
-                    placeholderTextColor="#9CA3AF"
-                    value={shopInstagram}
-                    onChangeText={setShopInstagram}
-                    autoCapitalize="none"
-                    editable={!isRegistering}
-                  />
+                {/* District */}
+                <View>
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                    Quận/Huyện <Text className="text-coral">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border flex-row items-center justify-between"
+                    onPress={() => setShowDistrictModal(true)}
+                    disabled={isRegistering || !provinceId || isLoadingDistricts}
+                  >
+                    <Text
+                      className={`${
+                        districtName
+                          ? "text-light-text dark:text-dark-text"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {districtName || (provinceId ? "Chọn quận/huyện" : "Chọn tỉnh trước")}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Ward */}
+                <View>
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                    Phường/Xã <Text className="text-coral">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-2xl border-2 border-beige dark:border-dark-border flex-row items-center justify-between"
+                    onPress={() => setShowWardModal(true)}
+                    disabled={isRegistering || !districtId || isLoadingWards}
+                  >
+                    <Text
+                      className={`${
+                        wardName
+                          ? "text-light-text dark:text-dark-text"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {wardName || (districtId ? "Chọn phường/xã" : "Chọn quận trước")}
+                    </Text>
+                    <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -568,11 +632,11 @@ export function ShopRegisterScreen({ navigation }: any) {
       <Modal
         visible={showBusinessTypeModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowBusinessTypeModal(false)}
       >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white dark:bg-dark-card rounded-t-3xl">
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md">
             {/* Modal Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
@@ -639,11 +703,11 @@ export function ShopRegisterScreen({ navigation }: any) {
       <Modal
         visible={showCategoryModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowCategoryModal(false)}
       >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white dark:bg-dark-card rounded-t-3xl max-h-[70%]">
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
             {/* Modal Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
@@ -703,6 +767,209 @@ export function ShopRegisterScreen({ navigation }: any) {
                     <FontAwesome name="inbox" size={48} color="#D1D5DB" />
                     <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
                       Không có danh mục nào
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Province Modal */}
+      <Modal
+        visible={showProvinceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProvinceModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn tỉnh/thành phố
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowProvinceModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingProvinces ? (
+              <View className="py-12 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                  Đang tải...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={provinces || []}
+                keyExtractor={(item) => item.ProvinceID.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
+                    onPress={() => {
+                      setProvinceId(item.ProvinceID);
+                      setProvinceName(item.ProvinceName);
+                      // Reset district and ward when province changes
+                      setDistrictId(0);
+                      setDistrictName("");
+                      setWardCode("");
+                      setWardName("");
+                      setShowProvinceModal(false);
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-light-text dark:text-dark-text">
+                        {item.ProvinceName}
+                      </Text>
+                      {provinceId === item.ProvinceID && (
+                        <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View className="py-12 items-center">
+                    <FontAwesome name="inbox" size={48} color="#D1D5DB" />
+                    <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                      Không có dữ liệu
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* District Modal */}
+      <Modal
+        visible={showDistrictModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDistrictModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn quận/huyện
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowDistrictModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingDistricts ? (
+              <View className="py-12 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                  Đang tải...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={districts || []}
+                keyExtractor={(item) => item.DistrictID.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
+                    onPress={() => {
+                      setDistrictId(item.DistrictID);
+                      setDistrictName(item.DistrictName);
+                      // Reset ward when district changes
+                      setWardCode("");
+                      setWardName("");
+                      setShowDistrictModal(false);
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-light-text dark:text-dark-text">
+                        {item.DistrictName}
+                      </Text>
+                      {districtId === item.DistrictID && (
+                        <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View className="py-12 items-center">
+                    <FontAwesome name="inbox" size={48} color="#D1D5DB" />
+                    <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                      {provinceId ? "Không có dữ liệu" : "Vui lòng chọn tỉnh trước"}
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Ward Modal */}
+      <Modal
+        visible={showWardModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWardModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn phường/xã
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowWardModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingWards ? (
+              <View className="py-12 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                  Đang tải...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={wards || []}
+                keyExtractor={(item) => item.WardCode}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
+                    onPress={() => {
+                      setWardCode(item.WardCode);
+                      setWardName(item.WardName);
+                      setShowWardModal(false);
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-light-text dark:text-dark-text">
+                        {item.WardName}
+                      </Text>
+                      {wardCode === item.WardCode && (
+                        <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View className="py-12 items-center">
+                    <FontAwesome name="inbox" size={48} color="#D1D5DB" />
+                    <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                      {districtId ? "Không có dữ liệu" : "Vui lòng chọn quận trước"}
                     </Text>
                   </View>
                 )}

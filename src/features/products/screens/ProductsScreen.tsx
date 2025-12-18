@@ -1,9 +1,11 @@
+import { useCart } from "@/features/cart/hooks/useCart";
+import { useProductCategories } from "@/hooks/useProductCategories";
+import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Platform,
@@ -11,13 +13,10 @@ import {
   RefreshControl,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useProducts } from "../hooks/useProducts";
-import { useProductCategories } from "@/hooks/useProductCategories"; 
-import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
-import { useCart } from "@/features/cart/hooks/useCart";
 
 
 export function ProductsScreen() {

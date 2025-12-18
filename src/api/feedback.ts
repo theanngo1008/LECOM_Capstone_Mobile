@@ -160,18 +160,13 @@ export const feedbackApi = {
    getShopFeedback: async (
   pageNumber = 1,
   pageSize = 10,
-  rating?: number | null
+  rating?: number
 ): Promise<GetFeedbackListResponse> => {
-  const params: any = { pageNumber, pageSize };
-  
-  // Chỉ thêm rating vào params nếu có giá trị
-  if (rating !== null && rating !== undefined) {
-    params.rating = rating;
-  }
-
   const { data } = await apiClient.get<GetFeedbackListResponse>(
     `/Feedback/shop/me`,
-    { params }
+    { 
+      params: { pageNumber, pageSize, rating }
+    }
   );
 
   return data;

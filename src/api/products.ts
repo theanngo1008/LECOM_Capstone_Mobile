@@ -24,6 +24,8 @@ export interface ProductItem {
   shopName: string
   shopAvatar: string
   shopDescription: string
+  averageRating: number
+  ratingCount: number
 }
 
 export interface ProductListResult {
