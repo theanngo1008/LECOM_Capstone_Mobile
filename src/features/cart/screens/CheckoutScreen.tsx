@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Linking,
   Modal,
@@ -13,8 +14,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDistricts } from "../../../hooks/useDistricts";
+import { useProvinces } from "../../../hooks/useProvinces";
+import { useWards } from "../../../hooks/useWards";
 import { useCart } from "../hooks/useCart";
 import { useCheckout } from "../hooks/useCheckout";
+import { useCheckoutPreview } from "../hooks/useCheckoutPreview";
 import { useVouchers } from "../hooks/useVouchers";
 import { useWalletBalance } from "../hooks/useWalletBalance";
 
@@ -23,11 +28,11 @@ export function CheckoutScreen({ navigation, route }: any) {
 
   const { items, isLoading: cartLoading } = useCart();
   const { checkout, isLoading: isPending } = useCheckout();
+  const { previewCheckout, previewData, shippingFee: previewShippingFee, isLoading: isPreviewLoading } = useCheckoutPreview();
   const { data: vouchers, isLoading: voucherLoading } = useVouchers();
   const { data: walletData, isLoading: walletLoading } = useWalletBalance();
 
   const walletBalance = walletData?.result?.balance ?? 0;
-  const SHIPPING_FEE = 30000;
 
   const [formData, setFormData] = useState({
     shipToName: "",
@@ -36,10 +41,32 @@ export function CheckoutScreen({ navigation, route }: any) {
     note: "",
   });
 
+  // Address state
+  const [toProvinceId, setToProvinceId] = useState<number>(0);
+  const [toProvinceName, setToProvinceName] = useState("");
+  const [toDistrictId, setToDistrictId] = useState<number>(0);
+  const [toDistrictName, setToDistrictName] = useState("");
+  const [toWardCode, setToWardCode] = useState("");
+  const [toWardName, setToWardName] = useState("");
+  const serviceTypeId = 2; // Always 2 - Giao hàng nhanh
+
+  // Modal states
+  const [showProvinceModal, setShowProvinceModal] = useState(false);
+  const [showDistrictModal, setShowDistrictModal] = useState(false);
+  const [showWardModal, setShowWardModal] = useState(false);
+
+  // Preview state
+  const [hasPreviewed, setHasPreviewed] = useState(false);
+
   const [selectedVoucher, setSelectedVoucher] = useState<string | null>(null);
   const [voucherModal, setVoucherModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"payos" | "wallet">("payos");
   const [checkoutResult, setCheckoutResult] = useState<any>(null);
+
+  // Address hooks
+  const { data: provinces, isLoading: isLoadingProvinces } = useProvinces();
+  const { data: districts, isLoading: isLoadingDistricts } = useDistricts(toProvinceId || null);
+  const { data: wards, isLoading: isLoadingWards } = useWards(toDistrictId || null);
 
   const filteredItems =
     items
@@ -57,9 +84,17 @@ export function CheckoutScreen({ navigation, route }: any) {
     0
   );
 
-  const shippingFee = filteredItems.length * SHIPPING_FEE;
+  // Use preview shipping fee if available, otherwise show placeholder
+  const shippingFee = hasPreviewed && previewShippingFee ? previewShippingFee : 0;
+  const discountApplied = hasPreviewed && previewData ? previewData.discountApplied : 0;
 
   const calculateDiscount = () => {
+    // If previewed, use discount from preview
+    if (hasPreviewed && discountApplied > 0) {
+      return discountApplied;
+    }
+    
+    // Otherwise calculate from voucher
     if (!selectedVoucher || !vouchers) return 0;
     const v = vouchers.find((x) => x.code === selectedVoucher);
     if (!v) return 0;
@@ -82,23 +117,95 @@ export function CheckoutScreen({ navigation, route }: any) {
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p);
 
   const validateForm = () => {
-    if (!formData.shipToName.trim()) return Alert.alert("Thiếu tên"), false;
-    if (!formData.shipToPhone.trim()) return Alert.alert("Thiếu số điện thoại"), false;
-    if (!/^[0-9]{10,11}$/.test(formData.shipToPhone.trim()))
-      return Alert.alert("Số điện thoại không hợp lệ"), false;
-    if (!formData.shipToAddress.trim()) return Alert.alert("Thiếu địa chỉ"), false;
+    if (!formData.shipToName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên người nhận");
+      return false;
+    }
+    if (!formData.shipToPhone.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập số điện thoại");
+      return false;
+    }
+    if (!/^[0-9]{10,11}$/.test(formData.shipToPhone.trim())) {
+      Alert.alert("Lỗi", "Số điện thoại không hợp lệ");
+      return false;
+    }
+    if (!toProvinceId || !toProvinceName) {
+      Alert.alert("Lỗi", "Vui lòng chọn tỉnh/thành phố");
+      return false;
+    }
+    if (!toDistrictId || !toDistrictName) {
+      Alert.alert("Lỗi", "Vui lòng chọn quận/huyện");
+      return false;
+    }
+    if (!toWardCode || !toWardName) {
+      Alert.alert("Lỗi", "Vui lòng chọn phường/xã");
+      return false;
+    }
+    if (!formData.shipToAddress.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập địa chỉ cụ thể");
+      return false;
+    }
     return true;
+  };
+
+  const handlePreviewCheckout = () => {
+    if (!validateForm()) return;
+
+    previewCheckout(
+      {
+        shipToName: formData.shipToName.trim(),
+        shipToPhone: formData.shipToPhone.trim(),
+        shipToAddress: formData.shipToAddress.trim(),
+        toProvinceId,
+        toProvinceName,
+        toDistrictId,
+        toDistrictName,
+        toWardCode,
+        toWardName,
+        serviceTypeId,
+        voucherCode: selectedVoucher,
+        selectedProductIds,
+        paymentMethod,
+        note: formData.note.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setHasPreviewed(true);
+          Alert.alert("Thành công", "Đã tính toán phí vận chuyển");
+        },
+        onError: (err: any) => {
+          Alert.alert(
+            "Lỗi",
+            err.response?.data?.errorMessages?.[0] || "Không thể tính phí vận chuyển"
+          );
+        },
+      }
+    );
   };
 
   const handleCheckout = () => {
     if (!validateForm()) return;
+    if (!hasPreviewed) {
+      Alert.alert("Lỗi", "Vui lòng kiểm tra phí vận chuyển trước");
+      return;
+    }
 
     checkout(
       {
-        ...formData,
+        shipToName: formData.shipToName.trim(),
+        shipToPhone: formData.shipToPhone.trim(),
+        shipToAddress: formData.shipToAddress.trim(),
+        toProvinceId,
+        toProvinceName,
+        toDistrictId,
+        toDistrictName,
+        toWardCode,
+        toWardName,
+        serviceTypeId,
         voucherCode: selectedVoucher,
         selectedProductIds,
         paymentMethod,
+        note: formData.note.trim() || undefined,
       },
       {
         onSuccess: (res) => setCheckoutResult(res.result),
@@ -443,13 +550,13 @@ export function CheckoutScreen({ navigation, route }: any) {
             </Text>
           </View>
 
-          {discount > 0 && (
+          {(discount > 0 || (hasPreviewed && discountApplied > 0)) && (
             <View className="flex-row justify-between items-center mb-3">
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                Giảm giá (voucher)
+                Phiếu giảm giá
               </Text>
               <Text className="text-sm font-semibold text-coral">
-                -{formatPrice(discount)}
+                -{formatPrice(discount || discountApplied)}
               </Text>
             </View>
           )}
@@ -459,7 +566,7 @@ export function CheckoutScreen({ navigation, route }: any) {
               Phí vận chuyển
             </Text>
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-              {formatPrice(shippingFee)}
+              {hasPreviewed && shippingFee > 0 ? formatPrice(shippingFee) : "---"}
             </Text>
           </View>
 
@@ -558,14 +665,65 @@ export function CheckoutScreen({ navigation, route }: any) {
 
           <View className="mb-4">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Địa chỉ <Text className="text-coral">*</Text>
+              Tỉnh / Thành phố <Text className="text-coral">*</Text>
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowProvinceModal(true)}
+              className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl border border-beige/50 dark:border-dark-border/50 flex-row items-center justify-between"
+            >
+              <Text className={toProvinceName ? "text-light-text dark:text-dark-text" : "text-gray-400"}>
+                {toProvinceName || "Chọn tỉnh / thành phố..."}
+              </Text>
+              <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Quận / Huyện <Text className="text-coral">*</Text>
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowDistrictModal(true)}
+              disabled={!toProvinceId}
+              className={`bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl border border-beige/50 dark:border-dark-border/50 flex-row items-center justify-between ${
+                !toProvinceId ? "opacity-50" : ""
+              }`}
+            >
+              <Text className={toDistrictName ? "text-light-text dark:text-dark-text" : "text-gray-400"}>
+                {toDistrictName || (toProvinceId ? "Chọn quận / huyện..." : "Chọn tỉnh trước")}
+              </Text>
+              <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Phường / Xã <Text className="text-coral">*</Text>
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowWardModal(true)}
+              disabled={!toDistrictId}
+              className={`bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl border border-beige/50 dark:border-dark-border/50 flex-row items-center justify-between ${
+                !toDistrictId ? "opacity-50" : ""
+              }`}
+            >
+              <Text className={toWardName ? "text-light-text dark:text-dark-text" : "text-gray-400"}>
+                {toWardName || (toDistrictId ? "Chọn phường / xã..." : "Chọn quận trước")}
+              </Text>
+              <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+              Địa chỉ cụ thể <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               multiline
               numberOfLines={3}
               value={formData.shipToAddress}
               onChangeText={(t) => setFormData({ ...formData, shipToAddress: t })}
-              placeholder="Nhập địa chỉ nhận hàng"
+              placeholder="Nhập địa chỉ nhận hàng cụ thể"
               placeholderTextColor="#9CA3AF"
               className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
               textAlignVertical="top"
@@ -581,11 +739,32 @@ export function CheckoutScreen({ navigation, route }: any) {
               numberOfLines={2}
               value={formData.note}
               onChangeText={(t) => setFormData({ ...formData, note: t })}
-              placeholder="Ghi chú cho người bán (không bắt buộc)"
+              placeholder="Thêm ghi chú (không bắt buộc)"
               placeholderTextColor="#9CA3AF"
               className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
               textAlignVertical="top"
             />
+          </View>
+        </View>
+
+        {/* Shipping Method */}
+        <View className="bg-white dark:bg-dark-card rounded-2xl p-5 border-2 border-beige/50 dark:border-dark-border/50 mb-6 shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+          }}
+        >
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+            Phương thức vận chuyển
+          </Text>
+
+          <View className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl border border-beige/50 dark:border-dark-border/50 flex-row items-center justify-between">
+            <Text className="text-light-text dark:text-dark-text">
+              Giao hàng nhanh
+            </Text>
           </View>
         </View>
 
@@ -694,27 +873,51 @@ export function CheckoutScreen({ navigation, route }: any) {
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={handleCheckout}
-          disabled={isPending}
-          className="bg-mint dark:bg-gold rounded-full py-4 items-center shadow-lg"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 5,
-          }}
-          activeOpacity={0.8}
-        >
-          {isPending ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Text className="text-white dark:text-dark-text text-base font-bold">
-              Đặt hàng ngay
-            </Text>
-          )}
-        </TouchableOpacity>
+        {!hasPreviewed ? (
+          <TouchableOpacity
+            onPress={handlePreviewCheckout}
+            disabled={isPreviewLoading}
+            className="bg-skyBlue dark:bg-lavender rounded-full py-4 items-center shadow-lg"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
+            activeOpacity={0.8}
+          >
+            {isPreviewLoading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text className="text-white dark:text-dark-text text-base font-bold">
+                Kiểm tra phí vận chuyển
+              </Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={handleCheckout}
+            disabled={isPending}
+            className="bg-mint dark:bg-gold rounded-full py-4 items-center shadow-lg"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
+            activeOpacity={0.8}
+          >
+            {isPending ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text className="text-white dark:text-dark-text text-base font-bold">
+                Xác nhận thanh toán
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Voucher Modal */}
@@ -763,6 +966,7 @@ export function CheckoutScreen({ navigation, route }: any) {
                     disabled={!eligible}
                     onPress={() => {
                       setSelectedVoucher(v.code);
+                      setHasPreviewed(false); // Reset preview when voucher changes
                       setVoucherModal(false);
                     }}
                     className={`p-4 border-2 rounded-xl mb-3 ${
@@ -812,6 +1016,211 @@ export function CheckoutScreen({ navigation, route }: any) {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      {/* Province Modal */}
+      <Modal
+        visible={showProvinceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProvinceModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn tỉnh/thành phố
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowProvinceModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingProvinces ? (
+              <View className="py-12 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                  Đang tải...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={provinces || []}
+                keyExtractor={(item) => item.ProvinceID.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
+                    onPress={() => {
+                      setToProvinceId(item.ProvinceID);
+                      setToProvinceName(item.ProvinceName);
+                      setToDistrictId(0);
+                      setToDistrictName("");
+                      setToWardCode("");
+                      setToWardName("");
+                      setHasPreviewed(false); // Reset preview when address changes
+                      setShowProvinceModal(false);
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-light-text dark:text-dark-text">
+                        {item.ProvinceName}
+                      </Text>
+                      {toProvinceId === item.ProvinceID && (
+                        <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View className="py-12 items-center">
+                    <FontAwesome name="inbox" size={48} color="#D1D5DB" />
+                    <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                      Không có dữ liệu
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* District Modal */}
+      <Modal
+        visible={showDistrictModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDistrictModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn quận/huyện
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowDistrictModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingDistricts ? (
+              <View className="py-12 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                  Đang tải...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={districts || []}
+                keyExtractor={(item) => item.DistrictID.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
+                    onPress={() => {
+                      setToDistrictId(item.DistrictID);
+                      setToDistrictName(item.DistrictName);
+                      setToWardCode("");
+                      setToWardName("");
+                      setHasPreviewed(false); // Reset preview when address changes
+                      setShowDistrictModal(false);
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-light-text dark:text-dark-text">
+                        {item.DistrictName}
+                      </Text>
+                      {toDistrictId === item.DistrictID && (
+                        <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View className="py-12 items-center">
+                    <FontAwesome name="inbox" size={48} color="#D1D5DB" />
+                    <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                      {toProvinceId ? "Không có dữ liệu" : "Vui lòng chọn tỉnh trước"}
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Ward Modal */}
+      <Modal
+        visible={showWardModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWardModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl w-full max-w-md max-h-[80%]">
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+                Chọn phường/xã
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowWardModal(false)}
+                className="w-8 h-8 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
+              >
+                <FontAwesome name="times" size={16} color="#4A5568" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingWards ? (
+              <View className="py-12 items-center">
+                <ActivityIndicator size="large" color="#ACD6B8" />
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                  Đang tải...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={wards || []}
+                keyExtractor={(item) => item.WardCode}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
+                    onPress={() => {
+                      setToWardCode(item.WardCode);
+                      setToWardName(item.WardName);
+                      setHasPreviewed(false); // Reset preview when address changes
+                      setShowWardModal(false);
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-light-text dark:text-dark-text">
+                        {item.WardName}
+                      </Text>
+                      {toWardCode === item.WardCode && (
+                        <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View className="py-12 items-center">
+                    <FontAwesome name="inbox" size={48} color="#D1D5DB" />
+                    <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+                      {toDistrictId ? "Không có dữ liệu" : "Vui lòng chọn quận trước"}
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }

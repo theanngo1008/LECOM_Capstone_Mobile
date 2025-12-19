@@ -46,11 +46,80 @@ export interface CheckoutPayload {
   shipToName: string
   shipToPhone: string
   shipToAddress: string
+  toProvinceId: number
+  toProvinceName: string
+  toDistrictId: number
+  toDistrictName: string
+  toWardCode: string
+  toWardName: string
+  serviceTypeId: number
   voucherCode?: string | null
   selectedProductIds: string[]
-  paymentMethod: string        // "payos" " | "wallet"
+  paymentMethod: string        // "payos" | "wallet"
   note?: string
 }
+
+// ⭐ Payload checkout preview để xem trước phí ship
+export interface CheckoutPreviewPayload {
+  shipToName: string
+  shipToPhone: string
+  shipToAddress: string
+  toProvinceId: number
+  toProvinceName: string
+  toDistrictId: number
+  toDistrictName: string
+  toWardCode: string
+  toWardName: string
+  serviceTypeId: number
+  voucherCode?: string | null
+  selectedProductIds: string[]
+  paymentMethod: string        // "payos" | "wallet"
+  note?: string
+}
+
+// ⭐ Response types cho checkout preview
+export interface PreviewOrderItem {
+  productId: string
+  productName: string
+  productImage: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+}
+
+export interface PreviewOrder {
+  previewOrderId: string
+  shopId: number
+  shopName: string
+  subtotal: number
+  shippingFee: number
+  discount: number
+  total: number
+  totalWeight: number
+  estimatedDeliveryText: string
+  items: PreviewOrderItem[]
+}
+
+export interface CheckoutPreviewResult {
+  orders: PreviewOrder[]
+  totalAmount: number
+  shippingFee: number
+  discountApplied: number
+  voucherCodeUsed: string | null
+  serviceTypeId: number
+  shipToName: string
+  shipToPhone: string
+  shipToAddress: string
+  toProvinceId: number
+  toProvinceName: string
+  toDistrictId: number
+  toDistrictName: string
+  toWardCode: string
+  toWardName: string
+  note: string
+}
+
+export type CheckoutPreviewResponse = ApiResponse<CheckoutPreviewResult>
 
 // =======================
 // CART API
@@ -87,6 +156,17 @@ export const cartApi = {
   ): Promise<ApiResponse<null>> => {
     const { data } = await apiClient.patch<ApiResponse<null>>(
       `/cart/items/${productId}`,
+      payload
+    )
+    return data
+  },
+
+  // ⭐ Checkout preview — xem trước phí ship
+  checkoutPreview: async (
+    payload: CheckoutPreviewPayload
+  ): Promise<CheckoutPreviewResponse> => {
+    const { data } = await apiClient.post<CheckoutPreviewResponse>(
+      "/orders/checkout/preview",
       payload
     )
     return data
