@@ -1,5 +1,8 @@
+import { useAddressStore } from "@/store/address-store";
+import { useCartSelectionStore } from "@/store/cart-store";
+import { useCheckoutStore } from "@/store/checkout-store";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,7 +27,8 @@ import { useVouchers } from "../hooks/useVouchers";
 import { useWalletBalance } from "../hooks/useWalletBalance";
 
 export function CheckoutScreen({ navigation, route }: any) {
-  const { selectedProductIds } = route.params;
+  // Get selected products from store instead of route params
+  const { selectedProductIds } = useCartSelectionStore();
 
   const { items, isLoading: cartLoading } = useCart();
   const { checkout, isLoading: isPending } = useCheckout();
@@ -34,33 +38,59 @@ export function CheckoutScreen({ navigation, route }: any) {
 
   const walletBalance = walletData?.result?.balance ?? 0;
 
-  const [formData, setFormData] = useState({
-    shipToName: "",
-    shipToPhone: "",
-    shipToAddress: "",
-    note: "",
+  // Use checkout store for form state
+  const {
+    shipToName,
+    shipToPhone,
+    shipToAddress,
+    note,
+    toProvinceId,
+    toProvinceName,
+    toDistrictId,
+    toDistrictName,
+    toWardCode,
+    toWardName,
+    paymentMethod,
+    selectedVoucher,
+    hasPreviewed,
+    previewData: storePreviewData,
+    updateForm,
+    setAddress,
+    setPreviewData,
+    clearPreview,
+  } = useCheckoutStore();
+
+  // Local state for form inputs (will sync with store)
+  const [localFormData, setLocalFormData] = useState({
+    shipToName: shipToName || "",
+    shipToPhone: shipToPhone || "",
+    shipToAddress: shipToAddress || "",
+    note: note || "",
   });
 
-  // Address state
-  const [toProvinceId, setToProvinceId] = useState<number>(0);
-  const [toProvinceName, setToProvinceName] = useState("");
-  const [toDistrictId, setToDistrictId] = useState<number>(0);
-  const [toDistrictName, setToDistrictName] = useState("");
-  const [toWardCode, setToWardCode] = useState("");
-  const [toWardName, setToWardName] = useState("");
+  // Sync local state with store on mount
+  useEffect(() => {
+    if (shipToName) setLocalFormData(prev => ({ ...prev, shipToName }));
+    if (shipToPhone) setLocalFormData(prev => ({ ...prev, shipToPhone }));
+    if (shipToAddress) setLocalFormData(prev => ({ ...prev, shipToAddress }));
+    if (note) setLocalFormData(prev => ({ ...prev, note }));
+  }, [shipToName, shipToPhone, shipToAddress, note]);
+
+  // Reset preview when address or voucher changes
+  useEffect(() => {
+    if (hasPreviewed) {
+      clearPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toProvinceId, toDistrictId, toWardCode, selectedVoucher]);
+
   const serviceTypeId = 2; // Always 2 - Giao hàng nhanh
 
   // Modal states
   const [showProvinceModal, setShowProvinceModal] = useState(false);
   const [showDistrictModal, setShowDistrictModal] = useState(false);
   const [showWardModal, setShowWardModal] = useState(false);
-
-  // Preview state
-  const [hasPreviewed, setHasPreviewed] = useState(false);
-
-  const [selectedVoucher, setSelectedVoucher] = useState<string | null>(null);
   const [voucherModal, setVoucherModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"payos" | "wallet">("payos");
   const [checkoutResult, setCheckoutResult] = useState<any>(null);
 
   // Address hooks
@@ -85,8 +115,9 @@ export function CheckoutScreen({ navigation, route }: any) {
   );
 
   // Use preview shipping fee if available, otherwise show placeholder
+  const finalPreviewData = previewData || storePreviewData;
   const shippingFee = hasPreviewed && previewShippingFee ? previewShippingFee : 0;
-  const discountApplied = hasPreviewed && previewData ? previewData.discountApplied : 0;
+  const discountApplied = hasPreviewed && finalPreviewData ? finalPreviewData.discountApplied : 0;
 
   const calculateDiscount = () => {
     // If previewed, use discount from preview
@@ -117,15 +148,15 @@ export function CheckoutScreen({ navigation, route }: any) {
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p);
 
   const validateForm = () => {
-    if (!formData.shipToName.trim()) {
+    if (!localFormData.shipToName.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập tên người nhận");
       return false;
     }
-    if (!formData.shipToPhone.trim()) {
+    if (!localFormData.shipToPhone.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập số điện thoại");
       return false;
     }
-    if (!/^[0-9]{10,11}$/.test(formData.shipToPhone.trim())) {
+    if (!/^[0-9]{10,11}$/.test(localFormData.shipToPhone.trim())) {
       Alert.alert("Lỗi", "Số điện thoại không hợp lệ");
       return false;
     }
@@ -141,7 +172,7 @@ export function CheckoutScreen({ navigation, route }: any) {
       Alert.alert("Lỗi", "Vui lòng chọn phường/xã");
       return false;
     }
-    if (!formData.shipToAddress.trim()) {
+    if (!localFormData.shipToAddress.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập địa chỉ cụ thể");
       return false;
     }
@@ -151,11 +182,19 @@ export function CheckoutScreen({ navigation, route }: any) {
   const handlePreviewCheckout = () => {
     if (!validateForm()) return;
 
+    // Update store with form data
+    updateForm({
+      shipToName: localFormData.shipToName.trim(),
+      shipToPhone: localFormData.shipToPhone.trim(),
+      shipToAddress: localFormData.shipToAddress.trim(),
+      note: localFormData.note.trim(),
+    });
+
     previewCheckout(
       {
-        shipToName: formData.shipToName.trim(),
-        shipToPhone: formData.shipToPhone.trim(),
-        shipToAddress: formData.shipToAddress.trim(),
+        shipToName: localFormData.shipToName.trim(),
+        shipToPhone: localFormData.shipToPhone.trim(),
+        shipToAddress: localFormData.shipToAddress.trim(),
         toProvinceId,
         toProvinceName,
         toDistrictId,
@@ -166,11 +205,11 @@ export function CheckoutScreen({ navigation, route }: any) {
         voucherCode: selectedVoucher,
         selectedProductIds,
         paymentMethod,
-        note: formData.note.trim() || undefined,
+        note: localFormData.note.trim() || undefined,
       },
       {
-        onSuccess: () => {
-          setHasPreviewed(true);
+        onSuccess: (data) => {
+          setPreviewData(data?.result);
           Alert.alert("Thành công", "Đã tính toán phí vận chuyển");
         },
         onError: (err: any) => {
@@ -190,11 +229,19 @@ export function CheckoutScreen({ navigation, route }: any) {
       return;
     }
 
+    // Update store with form data
+    updateForm({
+      shipToName: localFormData.shipToName.trim(),
+      shipToPhone: localFormData.shipToPhone.trim(),
+      shipToAddress: localFormData.shipToAddress.trim(),
+      note: localFormData.note.trim(),
+    });
+
     checkout(
       {
-        shipToName: formData.shipToName.trim(),
-        shipToPhone: formData.shipToPhone.trim(),
-        shipToAddress: formData.shipToAddress.trim(),
+        shipToName: localFormData.shipToName.trim(),
+        shipToPhone: localFormData.shipToPhone.trim(),
+        shipToAddress: localFormData.shipToAddress.trim(),
         toProvinceId,
         toProvinceName,
         toDistrictId,
@@ -205,10 +252,38 @@ export function CheckoutScreen({ navigation, route }: any) {
         voucherCode: selectedVoucher,
         selectedProductIds,
         paymentMethod,
-        note: formData.note.trim() || undefined,
+        note: localFormData.note.trim() || undefined,
       },
       {
-        onSuccess: (res) => setCheckoutResult(res.result),
+        onSuccess: (res) => {
+          setCheckoutResult(res.result);
+          // Clear form and selection after successful checkout
+          updateForm({
+            shipToName: "",
+            shipToPhone: "",
+            shipToAddress: "",
+            note: "",
+            toProvinceId: 0,
+            toProvinceName: "",
+            toDistrictId: 0,
+            toDistrictName: "",
+            toWardCode: "",
+            toWardName: "",
+            selectedVoucher: null,
+          });
+          clearPreview();
+          // Save address to history
+          const { addAddress } = useAddressStore.getState();
+          addAddress({
+            provinceId: toProvinceId,
+            provinceName: toProvinceName,
+            districtId: toDistrictId,
+            districtName: toDistrictName,
+            wardCode: toWardCode,
+            wardName: toWardName,
+            detailAddress: localFormData.shipToAddress.trim(),
+          });
+        },
         onError: (err: any) =>
           Alert.alert(
             "Lỗi",
@@ -612,7 +687,7 @@ export function CheckoutScreen({ navigation, route }: any) {
 
           {selectedVoucher && (
             <TouchableOpacity
-              onPress={() => setSelectedVoucher(null)}
+              onPress={() => updateForm({ selectedVoucher: null })}
               className="mt-3 py-2 px-4 rounded-full bg-red-100 dark:bg-red-900/30 self-start"
             >
               <Text className="text-red-600 dark:text-red-400 text-xs font-semibold">
@@ -641,8 +716,8 @@ export function CheckoutScreen({ navigation, route }: any) {
               Tên người nhận <Text className="text-coral">*</Text>
             </Text>
             <TextInput
-              value={formData.shipToName}
-              onChangeText={(t) => setFormData({ ...formData, shipToName: t })}
+              value={localFormData.shipToName}
+              onChangeText={(t) => setLocalFormData({ ...localFormData, shipToName: t })}
               placeholder="Nhập tên người nhận"
               placeholderTextColor="#9CA3AF"
               className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
@@ -655,8 +730,8 @@ export function CheckoutScreen({ navigation, route }: any) {
             </Text>
             <TextInput
               keyboardType="phone-pad"
-              value={formData.shipToPhone}
-              onChangeText={(t) => setFormData({ ...formData, shipToPhone: t })}
+              value={localFormData.shipToPhone}
+              onChangeText={(t) => setLocalFormData({ ...localFormData, shipToPhone: t })}
               placeholder="Nhập số điện thoại"
               placeholderTextColor="#9CA3AF"
               className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
@@ -721,8 +796,8 @@ export function CheckoutScreen({ navigation, route }: any) {
             <TextInput
               multiline
               numberOfLines={3}
-              value={formData.shipToAddress}
-              onChangeText={(t) => setFormData({ ...formData, shipToAddress: t })}
+              value={localFormData.shipToAddress}
+              onChangeText={(t) => setLocalFormData({ ...localFormData, shipToAddress: t })}
               placeholder="Nhập địa chỉ nhận hàng cụ thể"
               placeholderTextColor="#9CA3AF"
               className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
@@ -737,8 +812,8 @@ export function CheckoutScreen({ navigation, route }: any) {
             <TextInput
               multiline
               numberOfLines={2}
-              value={formData.note}
-              onChangeText={(t) => setFormData({ ...formData, note: t })}
+              value={localFormData.note}
+              onChangeText={(t) => setLocalFormData({ ...localFormData, note: t })}
               placeholder="Thêm ghi chú (không bắt buộc)"
               placeholderTextColor="#9CA3AF"
               className="bg-beige/30 dark:bg-dark-border/30 px-4 py-3 rounded-xl text-light-text dark:text-dark-text border border-beige/50 dark:border-dark-border/50"
@@ -783,7 +858,7 @@ export function CheckoutScreen({ navigation, route }: any) {
           </Text>
 
           <TouchableOpacity
-            onPress={() => setPaymentMethod("payos")}
+            onPress={() => updateForm({ paymentMethod: "payos" })}
             className={`p-4 rounded-xl border-2 mb-3 ${
               paymentMethod === "payos"
                 ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
@@ -812,7 +887,7 @@ export function CheckoutScreen({ navigation, route }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setPaymentMethod("wallet")}
+            onPress={() => updateForm({ paymentMethod: "wallet" })}
             className={`p-4 rounded-xl border-2 ${
               paymentMethod === "wallet"
                 ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
@@ -965,8 +1040,8 @@ export function CheckoutScreen({ navigation, route }: any) {
                     key={v.code}
                     disabled={!eligible}
                     onPress={() => {
-                      setSelectedVoucher(v.code);
-                      setHasPreviewed(false); // Reset preview when voucher changes
+                      updateForm({ selectedVoucher: v.code });
+                      clearPreview(); // Reset preview when voucher changes
                       setVoucherModal(false);
                     }}
                     className={`p-4 border-2 rounded-xl mb-3 ${
@@ -1053,13 +1128,15 @@ export function CheckoutScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
                     onPress={() => {
-                      setToProvinceId(item.ProvinceID);
-                      setToProvinceName(item.ProvinceName);
-                      setToDistrictId(0);
-                      setToDistrictName("");
-                      setToWardCode("");
-                      setToWardName("");
-                      setHasPreviewed(false); // Reset preview when address changes
+                      setAddress({
+                        provinceId: item.ProvinceID,
+                        provinceName: item.ProvinceName,
+                        districtId: 0,
+                        districtName: "",
+                        wardCode: "",
+                        wardName: "",
+                      });
+                      clearPreview(); // Reset preview when address changes
                       setShowProvinceModal(false);
                     }}
                   >
@@ -1123,11 +1200,15 @@ export function CheckoutScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
                     onPress={() => {
-                      setToDistrictId(item.DistrictID);
-                      setToDistrictName(item.DistrictName);
-                      setToWardCode("");
-                      setToWardName("");
-                      setHasPreviewed(false); // Reset preview when address changes
+                      setAddress({
+                        provinceId: toProvinceId,
+                        provinceName: toProvinceName,
+                        districtId: item.DistrictID,
+                        districtName: item.DistrictName,
+                        wardCode: "",
+                        wardName: "",
+                      });
+                      clearPreview(); // Reset preview when address changes
                       setShowDistrictModal(false);
                     }}
                   >
@@ -1191,9 +1272,15 @@ export function CheckoutScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     className="px-6 py-4 border-b border-beige/30 dark:border-dark-border/30 active:bg-beige/20 dark:active:bg-dark-border/20"
                     onPress={() => {
-                      setToWardCode(item.WardCode);
-                      setToWardName(item.WardName);
-                      setHasPreviewed(false); // Reset preview when address changes
+                      setAddress({
+                        provinceId: toProvinceId,
+                        provinceName: toProvinceName,
+                        districtId: toDistrictId,
+                        districtName: toDistrictName,
+                        wardCode: item.WardCode,
+                        wardName: item.WardName,
+                      });
+                      clearPreview(); // Reset preview when address changes
                       setShowWardModal(false);
                     }}
                   >

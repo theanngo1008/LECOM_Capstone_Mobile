@@ -4,13 +4,17 @@ import {
   ScrollView,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedButton } from "@/components/themed-button";
 import { useChangePassword } from "../hooks/useChangePassword";
+import { useNavigation } from "@react-navigation/native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 export function ChangePasswordScreen() {
+  const navigation = useNavigation();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,10 +37,36 @@ export function ChangePasswordScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-light-background dark:bg-dark-background">
+      {/* Header */}
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row items-center justify-between mb-4">
+          {/* Left - Back Button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3"
+            onPress={() => navigation.goBack()}
+          >
+            <FontAwesome name="arrow-left" size={20} color="#ACD6B8" />
+          </TouchableOpacity>
+
+          {/* Center - Title */}
+          <View className="flex-1">
+            <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
+              Đổi mật khẩu
+            </Text>
+            <View className="flex-row items-center mt-2">
+              <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
+              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                Bảo mật tài khoản
+              </Text>
+            </View>
+          </View>
+
+          {/* Right - Spacer */}
+          <View className="w-12" />
+        </View>
+      </View>
+
       <ScrollView className="flex-1 p-6">
-        <Text className="text-xl font-semibold text-light-text dark:text-dark-text mb-6">
-          Đổi mật khẩu
-        </Text>
 
         <Field
           label="Mật khẩu cũ"

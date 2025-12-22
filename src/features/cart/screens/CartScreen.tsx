@@ -21,6 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useCartSelectionStore } from "@/store/cart-store";
 import { useCart } from "../hooks/useCart";
 import { useRemoveFromCart } from "../hooks/useRemoveFromCart";
 import { useUpdateCartItem } from "../hooks/useUpdateCartItem";
@@ -30,7 +31,13 @@ export function CartScreen({ navigation }: any) {
   const removeFromCart = useRemoveFromCart();
   const updateCartItem = useUpdateCartItem();
 
-  const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
+  // Use Zustand store for cart selection
+  const {
+    selectedProductIds,
+    toggleProduct,
+    isSelected,
+    clearSelection,
+  } = useCartSelectionStore();
 
   const SHIPPING_FEE = 30000;
 
@@ -41,15 +48,9 @@ export function CartScreen({ navigation }: any) {
     }).format(price);
   };
 
-  // ⭐ Chọn / bỏ chọn sản phẩm
+  // ⭐ Chọn / bỏ chọn sản phẩm - sử dụng store
   const toggleSelectItem = (productId: string) => {
-    setSelectedProductIds((prev) => {
-      if (prev.includes(productId)) {
-        return prev.filter((id) => id !== productId);
-      } else {
-        return [...prev, productId];
-      }
-    });
+    toggleProduct(productId);
   };
 
   const handleRemoveItem = (productId: string, productName: string) => {
@@ -191,12 +192,12 @@ const totalWithShipping = selectedSubtotal + shippingFee;
         >
           <View
             className={`w-6 h-6 rounded-md border-2 items-center justify-center ${
-              selectedProductIds.includes(item.productId)
+              isSelected(item.productId)
                 ? "border-mint bg-mint"
                 : "border-beige dark:border-dark-border"
             }`}
           >
-            {selectedProductIds.includes(item.productId) && (
+            {isSelected(item.productId) && (
               <Animated.View entering={ZoomIn} exiting={ZoomOut}>
                 <FontAwesome name="check" size={14} color="white" />
               </Animated.View>
@@ -442,7 +443,8 @@ const totalWithShipping = selectedSubtotal + shippingFee;
               }`}
               onPress={() => {
                 if (selectedSubtotal === 0) return;
-                navigation.navigate("Checkout", { selectedProductIds });
+                // selectedProductIds is already in store, no need to pass via params
+                navigation.navigate("Checkout");
               }}
               disabled={selectedSubtotal === 0}
             >

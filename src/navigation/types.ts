@@ -61,6 +61,7 @@ export type ProfileStackParamList = {
   MyVouchers: undefined;  
   Leaderboard: undefined;
   Achievements: undefined;
+  MyEnrollments: undefined;
 };
 
 export type ProfileStackScreenProps<T extends keyof ProfileStackParamList> =

@@ -2,6 +2,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuthStore } from "@/store/auth-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useSystemThemeListener } from "@/store/theme-store";
+import { useAppBadge } from "@/hooks/useAppBadge";
 import {
   DarkTheme,
   DefaultTheme,
@@ -18,6 +19,10 @@ export function RootNavigator() {
 
   // Listen to system theme changes
   useSystemThemeListener();
+
+  // Update app badge when authenticated (only show badge when logged in)
+  // Note: Hook must be called unconditionally, but it will only update badge when authenticated
+  useAppBadge();
 
   // Custom theme colors
   const CustomLightTheme = {

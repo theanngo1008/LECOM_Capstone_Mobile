@@ -1,17 +1,14 @@
-import { ShopStackScreenProps } from "@/navigation/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import React, {
-  useCallback,
-  useState
-} from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Pressable,
-  Text,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Pressable,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ReplyModal } from "../components/ReplyModal";
@@ -19,12 +16,24 @@ import { useReplyFeedback } from "../hooks/useReplyFeedback";
 import { useShopFeedback } from "../hooks/useShopFeedback";
 import { useUpdateReply } from "../hooks/useUpdateReply";
 
-export function ShopFeedbackScreen({
-  navigation,
-}: ShopStackScreenProps<"ShopFeedbackMain">) {
+/**
+ * Shop Feedback Screen
+ * 
+ * Note: This component uses useNavigation hook which requires NavigationContainer context.
+ * In dev mode with Fast Refresh, if you see navigation context errors, try:
+ * 1. Reload the app completely (not just Fast Refresh)
+ * 2. Or navigate away and back to this screen
+ */
+export function ShopFeedbackScreen() {
+  // Use useNavigation hook - this requires NavigationContainer to be mounted
+  // In production builds, this always works. In dev mode with Fast Refresh,
+  // navigation context might not be available immediately after hot reload.
+  const navigation = useNavigation();
+
+  // Hooks must be called before any early returns
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const pageSize = 2;
+  const pageSize = 10;
 
   const { data, isLoading, isError, refetch } = useShopFeedback(
     pageNumber,
@@ -46,8 +55,7 @@ export function ShopFeedbackScreen({
   const [replyContent, setReplyContent] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
 
-
-  // ⭐ Stable Stars Renderer
+  // Render Stars
   const renderStars = useCallback((rating: number) => {
     return (
       <View className="flex-row gap-0.5">
@@ -63,7 +71,7 @@ export function ShopFeedbackScreen({
     );
   }, []);
 
-  // ⭐ Stable Response Status calculator
+  // Get Response Status
   const getResponseStatus = useCallback((reply: any) => {
     if (reply?.content) {
       return {
@@ -77,7 +85,7 @@ export function ShopFeedbackScreen({
     };
   }, []);
 
-  // ⭐ Stable modal opener
+  // Open Reply Modal
   const handleOpenReplyModal = useCallback((feedback: any) => {
     const hasExistingReply = !!feedback.reply?.content;
     setSelectedFeedback(feedback);
@@ -86,7 +94,7 @@ export function ShopFeedbackScreen({
     setShowReplyModal(true);
   }, []);
 
-  // ⭐ Stable submit handler
+  // Submit Reply
   const handleSubmitReply = useCallback(() => {
     if (!replyContent.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập nội dung trả lời");
@@ -134,7 +142,7 @@ export function ShopFeedbackScreen({
     refetch,
   ]);
 
-  // ⭐ Stable item renderer for FlatList
+  // Render Feedback Item
   const renderFeedbackItem = useCallback(
     ({ item }: any) => {
       const hasResponse = !!item.reply?.content;
@@ -250,13 +258,10 @@ export function ShopFeedbackScreen({
 
   const isSubmitting = isReplying || isUpdating;
 
-  // =============================
-  // LOADING / ERROR UI
-  // =============================
-
+  // Loading State
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#FFCB66" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
@@ -267,9 +272,10 @@ export function ShopFeedbackScreen({
     );
   }
 
+  // Error State
   if (isError) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
         <View className="flex-1 items-center justify-center px-6">
           <FontAwesome name="exclamation-triangle" size={48} color="#F2A297" />
           <Text className="text-coral font-bold text-xl mt-4 mb-2">
@@ -286,10 +292,7 @@ export function ShopFeedbackScreen({
     );
   }
 
-  // =============================
-  // MAIN UI
-  // =============================
-
+  // Main UI
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
       {/* Header */}
@@ -297,9 +300,9 @@ export function ShopFeedbackScreen({
         <View className="flex-row items-center px-6 py-4">
           <Pressable
             onPress={() => navigation.goBack()}
-            className="w-10 h-10 rounded-xl bg-white dark:bg-dark-card items-center justify-center border border-beige/30 dark:border-dark-border/30 active:opacity-70"
+            className="w-12 h-12 rounded-xl bg-white dark:bg-dark-card items-center justify-center border border-beige/30 dark:border-dark-border/30 active:opacity-70"
           >
-            <FontAwesome name="chevron-left" size={16} color="#4A5568" />
+            <FontAwesome name="arrow-left" size={20} color="#4A5568" />
           </Pressable>
 
           <View className="flex-1 ml-4">
@@ -316,7 +319,7 @@ export function ShopFeedbackScreen({
 
           <Pressable
             onPress={() => refetch()}
-            className="w-10 h-10 rounded-xl bg-white dark:bg-dark-card items-center justify-center border border-beige/30 dark:border-dark-border/30 active:opacity-70"
+            className="w-12 h-12 rounded-xl bg-white dark:bg-dark-card items-center justify-center border border-beige/30 dark:border-dark-border/30 active:opacity-70"
           >
             <FontAwesome name="refresh" size={16} color="#4A5568" />
           </Pressable>
@@ -475,18 +478,16 @@ export function ShopFeedbackScreen({
 
       {/* Reply Modal */}
       <ReplyModal
-  visible={showReplyModal}
-  selectedFeedback={selectedFeedback}
-  isEditMode={isEditMode}
-  replyContent={replyContent}
-  isSubmitting={isSubmitting}
-
-  onClose={() => setShowReplyModal(false)}
-  onChangeContent={setReplyContent}
-  onSubmit={handleSubmitReply}
-  renderStars={renderStars}
-/>
-
+        visible={showReplyModal}
+        selectedFeedback={selectedFeedback}
+        isEditMode={isEditMode}
+        replyContent={replyContent}
+        isSubmitting={isSubmitting}
+        onClose={() => setShowReplyModal(false)}
+        onChangeContent={setReplyContent}
+        onSubmit={handleSubmitReply}
+        renderStars={renderStars}
+      />
     </SafeAreaView>
   );
 }

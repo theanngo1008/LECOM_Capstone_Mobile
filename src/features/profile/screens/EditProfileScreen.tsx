@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
+import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +20,7 @@ import { useEditProfile } from "../hooks/useEditProfile";
 import { useMyProfile } from "../hooks/useMyProfile";
 
 export function EditProfileScreen() {
+  const navigation = useNavigation();
   const { data, isLoading } = useMyProfile();
   const profile = data?.result;
 
@@ -163,7 +165,16 @@ export function EditProfileScreen() {
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
       {/* Header */}
       <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center justify-between mb-4">
+          {/* Left - Back Button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3"
+            onPress={() => navigation.goBack()}
+          >
+            <FontAwesome name="arrow-left" size={20} color="#ACD6B8" />
+          </TouchableOpacity>
+
+          {/* Center - Title */}
           <View className="flex-1">
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
               {isEditing ? "Edit Profile" : "My Profile"}
@@ -176,7 +187,7 @@ export function EditProfileScreen() {
             </View>
           </View>
           
-          {/* Mode Toggle Button */}
+          {/* Right - Mode Toggle Button */}
           <TouchableOpacity
             className={`w-12 h-12 rounded-xl items-center justify-center ${
               isEditing 

@@ -2,6 +2,7 @@ import { useCart } from "@/features/cart/hooks/useCart";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { ProductsStackParamList } from "@/navigation/ProductsStackNavigator";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import type { DrawerNavigationProp } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
@@ -11,6 +12,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   Text,
   TextInput,
   View
@@ -20,7 +22,7 @@ import { useProducts } from "../hooks/useProducts";
 
 
 export function ProductsScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<ProductsStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<ProductsStackParamList> & DrawerNavigationProp<any>>();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined); 
@@ -38,13 +40,26 @@ export function ProductsScreen() {
     return total + shopTotal;
   }, 0);
 
-  // ✅ Gửi categoryName lên API khi có chọn
-  const { data, isLoading, isError, refetch, isRefetching } = useProducts({
+  // ✅ Gửi category name lên API khi có chọn
+  // Tạo params object mới mỗi lần để đảm bảo React Query detect thay đổi
+  const productsParams = React.useMemo(() => ({
     search: searchQuery || undefined,
     page,
     pageSize,
     category: selectedCategory || undefined,
-  });
+  }), [searchQuery, page, pageSize, selectedCategory]);
+
+  const { data, isLoading, refetch, isRefetching } = useProducts(productsParams);
+
+  // Debug: Log để kiểm tra filter
+  React.useEffect(() => {
+    console.log("🔍 ProductsScreen Filter:", {
+      selectedCategory,
+      searchQuery,
+      page,
+      categoryParam: selectedCategory || undefined,
+    });
+  }, [selectedCategory, searchQuery, page]);
 
   const productData = data?.result;
 
@@ -59,9 +74,9 @@ export function ProductsScreen() {
     }
   };
 
-  // ✅ Hàm chọn category
-  const handleSelectCategory = (category: string | undefined) => {
-    setSelectedCategory(category);
+  // ✅ Hàm chọn category - dùng category name
+  const handleSelectCategory = (categoryName: string | undefined) => {
+    setSelectedCategory(categoryName);
     setPage(1);
   };
 
@@ -181,13 +196,17 @@ export function ProductsScreen() {
 
       {/* ✅ Category Filter */}
       {categories && (
-        <View className="flex-row flex-wrap">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 16 }}
+        >
           <Pressable
             onPress={() => handleSelectCategory(undefined)}
-            className={`px-3 py-1.5 mr-2 mb-2 rounded-full border ${
+            className={`px-3 py-1.5 mr-2 rounded-full border ${
               !selectedCategory
                 ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
-                : "border-beige/30 dark:border-dark-border/30"
+                : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
             }`}
           >
             <Text
@@ -203,10 +222,10 @@ export function ProductsScreen() {
             <Pressable
               key={cat.id}
               onPress={() => handleSelectCategory(cat.name)}
-              className={`px-3 py-1.5 mr-2 mb-2 rounded-full border ${
+              className={`px-3 py-1.5 mr-2 rounded-full border ${
                 selectedCategory === cat.name
                   ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
-                  : "border-beige/30 dark:border-dark-border/30"
+                  : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
               }`}
             >
               <Text
@@ -220,7 +239,7 @@ export function ProductsScreen() {
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -230,18 +249,29 @@ export function ProductsScreen() {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 16 : 16 }}>
-          <View className="flex-row items-center justify-between">
-            <View>
+          <View className="flex-row items-center justify-between mb-4">
+            {/* Left - Menu Button */}
+            <Pressable
+              className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3"
+              onPress={() => navigation.openDrawer()}
+            >
+              <FontAwesome name="bars" size={20} color="#ACD6B8" />
+            </Pressable>
+
+            {/* Center - Title */}
+            <View className="flex-1">
               <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
                 Sản phẩm
               </Text>
               <View className="flex-row items-center mt-2">
-                <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
+               
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
                   Khám phá tất cả sản phẩm
                 </Text>
               </View>
             </View>
+
+            {/* Right - Icon */}
             <View className="w-14 h-14 rounded-2xl bg-mint/10 dark:bg-gold/10 items-center justify-center">
               <FontAwesome name="shopping-bag" size={24} color="#ACD6B8" />
             </View>

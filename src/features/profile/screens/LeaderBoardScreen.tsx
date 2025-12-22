@@ -1,7 +1,6 @@
 import { LeaderboardEntry, LeaderboardPeriod } from "@/api/gamification";
 import { useLeaderboard } from "@/features/profile/hooks/useLeaderBoard";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
@@ -26,7 +25,7 @@ const DefaultAvatar = ({ size = 48 }: { size?: number }) => (
       justifyContent: "center",
     }}
   >
-    <Ionicons name="person" size={size * 0.6} color="#FFF" />
+    <FontAwesome name="user" size={size * 0.5} color="#FFF" />
   </View>
 );
 
@@ -37,30 +36,28 @@ export function LeaderBoardScreen({ navigation }: any) {
 
   const renderPeriodButton = (
     period: LeaderboardPeriod,
-    label: string,
-    icon: string
+    label: string
   ) => {
     const isActive = selectedPeriod === period;
     return (
       <TouchableOpacity
         onPress={() => setSelectedPeriod(period)}
-        className={`flex-1 py-3 px-4 rounded-xl ${
-          isActive ? "bg-gold" : "bg-white dark:bg-dark-card"
+        className={`flex-1 py-3 px-4 rounded-xl border-2 ${
+          isActive 
+            ? "bg-gold border-gold" 
+            : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
         }`}
         activeOpacity={0.7}
       >
-        <View className="items-center">
-          <Text className="text-xl mb-1">{icon}</Text>
-          <Text
-            className={`text-xs font-bold ${
-              isActive
-                ? "text-white"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
-          >
-            {label}
-          </Text>
-        </View>
+        <Text
+          className={`text-sm font-bold text-center ${
+            isActive
+              ? "text-white"
+              : "text-light-text dark:text-dark-text"
+          }`}
+        >
+          {label}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -72,62 +69,49 @@ export function LeaderBoardScreen({ navigation }: any) {
     const [first, second, third] = topThree;
 
     return (
-      <View className="px-4 py-6">
+      <View className="px-6 py-6 bg-white dark:bg-dark-card mx-4 mb-4 rounded-2xl border border-beige/30 dark:border-dark-border/30">
+        <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-4 text-center">
+          Top 3
+        </Text>
         <View className="flex-row items-end justify-center">
           {/* Second Place */}
           {second && (
             <View className="items-center mx-2 mb-4 flex-1">
               <View className="relative mb-2">
                 {second.avatarUrl && second.avatarUrl.trim() !== "" ? (
-                  <View>
-                    <Image
-                      source={{ uri: second.avatarUrl }}
-                      className="rounded-full"
-                      style={{ width: 64, height: 64 }}
-                    />
-                    {second.userId === data?.currentUser?.userId && (
-                      <View 
-                        className="absolute inset-0 rounded-full" 
-                        style={{ 
-                          width: 64, 
-                          height: 64,
-                          borderWidth: 3,
-                          borderColor: '#E8BA69'
-                        }} 
-                      />
-                    )}
-                  </View>
+                  <Image
+                    source={{ uri: second.avatarUrl }}
+                    className="rounded-full"
+                    style={{ width: 64, height: 64 }}
+                  />
                 ) : (
-                  <View>
-                    <DefaultAvatar size={64} />
-                    {second.userId === data?.currentUser?.userId && (
-                      <View 
-                        className="absolute inset-0 rounded-full" 
-                        style={{ 
-                          width: 64, 
-                          height: 64,
-                          borderWidth: 3,
-                          borderColor: '#E8BA69'
-                        }} 
-                      />
-                    )}
-                  </View>
+                  <DefaultAvatar size={64} />
+                )}
+                {second.userId === data?.currentUser?.userId && (
+                  <View 
+                    className="absolute inset-0 rounded-full" 
+                    style={{ 
+                      width: 64, 
+                      height: 64,
+                      borderWidth: 3,
+                      borderColor: '#E8BA69'
+                    }} 
+                  />
                 )}
                 <View 
-                  className="absolute -bottom-1 -right-1 rounded-full items-center justify-center"
+                  className="absolute -bottom-1 -right-1 rounded-full items-center justify-center bg-gray-400"
                   style={{
-                    width: 26,
-                    height: 26,
-                    backgroundColor: '#C0C0C0',
+                    width: 24,
+                    height: 24,
                   }}
                 >
-                  <Text className="text-xs font-black text-white">2</Text>
+                  <Text className="text-xs font-bold text-white">2</Text>
                 </View>
               </View>
-              <Text className="text-xs font-bold text-gray-800 dark:text-gray-200 text-center mb-1" numberOfLines={1}>
+              <Text className="text-xs font-bold text-light-text dark:text-dark-text text-center mb-1" numberOfLines={1}>
                 {second.displayName}
               </Text>
-              <Text className="text-xs text-gray-600 dark:text-gray-400">
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                 {second.score} điểm
               </Text>
             </View>
@@ -136,66 +120,49 @@ export function LeaderBoardScreen({ navigation }: any) {
           {/* First Place */}
           {first && (
             <View className="items-center mx-2 flex-1">
-              <Text className="text-3xl mb-1">👑</Text>
               <View className="relative mb-2">
                 <View
                   style={{ 
-                    width: 96, 
-                    height: 96,
-                    borderRadius: 48,
+                    width: 88, 
+                    height: 88,
+                    borderRadius: 44,
                     backgroundColor: '#E8BA69',
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
                   {first.avatarUrl && first.avatarUrl.trim() !== "" ? (
-                    <View>
-                      <Image
-                        source={{ uri: first.avatarUrl }}
-                        className="rounded-full"
-                        style={{ width: 88, height: 88 }}
-                      />
-                      {first.userId === data?.currentUser?.userId && (
-                        <View 
-                          className="absolute inset-0 rounded-full" 
-                          style={{ 
-                            width: 88, 
-                            height: 88,
-                            borderWidth: 3,
-                            borderColor: '#E8BA69'
-                          }} 
-                        />
-                      )}
-                    </View>
+                    <Image
+                      source={{ uri: first.avatarUrl }}
+                      className="rounded-full"
+                      style={{ width: 80, height: 80 }}
+                    />
                   ) : (
-                    <View>
-                      <DefaultAvatar size={88} />
-                      {first.userId === data?.currentUser?.userId && (
-                        <View 
-                          className="absolute inset-0 rounded-full" 
-                          style={{ 
-                            width: 88, 
-                            height: 88,
-                            borderWidth: 3,
-                            borderColor: '#E8BA69'
-                          }} 
-                        />
-                      )}
-                    </View>
+                    <DefaultAvatar size={80} />
+                  )}
+                  {first.userId === data?.currentUser?.userId && (
+                    <View 
+                      className="absolute inset-0 rounded-full" 
+                      style={{ 
+                        width: 80, 
+                        height: 80,
+                        borderWidth: 3,
+                        borderColor: '#FFF'
+                      }} 
+                    />
                   )}
                 </View>
                 <View 
-                  className="absolute -bottom-1 -right-1 rounded-full items-center justify-center"
+                  className="absolute -bottom-1 -right-1 rounded-full items-center justify-center bg-gold"
                   style={{
-                    width: 32,
-                    height: 32,
-                    backgroundColor: '#FFD700',
+                    width: 28,
+                    height: 28,
                   }}
                 >
-                  <Text className="text-base font-black text-white">1</Text>
+                  <Text className="text-sm font-bold text-white">1</Text>
                 </View>
               </View>
-              <Text className="text-sm font-black text-gray-800 dark:text-gray-200 text-center mb-1" numberOfLines={1}>
+              <Text className="text-sm font-bold text-light-text dark:text-dark-text text-center mb-1" numberOfLines={1}>
                 {first.displayName}
               </Text>
               <Text className="text-sm font-bold text-gold">
@@ -209,55 +176,39 @@ export function LeaderBoardScreen({ navigation }: any) {
             <View className="items-center mx-2 mb-8 flex-1">
               <View className="relative mb-2">
                 {third.avatarUrl && third.avatarUrl.trim() !== "" ? (
-                  <View>
-                    <Image
-                      source={{ uri: third.avatarUrl }}
-                      className="rounded-full"
-                      style={{ width: 56, height: 56 }}
-                    />
-                    {third.userId === data?.currentUser?.userId && (
-                      <View 
-                        className="absolute inset-0 rounded-full" 
-                        style={{ 
-                          width: 56, 
-                          height: 56,
-                          borderWidth: 3,
-                          borderColor: '#E8BA69'
-                        }} 
-                      />
-                    )}
-                  </View>
+                  <Image
+                    source={{ uri: third.avatarUrl }}
+                    className="rounded-full"
+                    style={{ width: 56, height: 56 }}
+                  />
                 ) : (
-                  <View>
-                    <DefaultAvatar size={56} />
-                    {third.userId === data?.currentUser?.userId && (
-                      <View 
-                        className="absolute inset-0 rounded-full" 
-                        style={{ 
-                          width: 56, 
-                          height: 56,
-                          borderWidth: 3,
-                          borderColor: '#E8BA69'
-                        }} 
-                      />
-                    )}
-                  </View>
+                  <DefaultAvatar size={56} />
+                )}
+                {third.userId === data?.currentUser?.userId && (
+                  <View 
+                    className="absolute inset-0 rounded-full" 
+                    style={{ 
+                      width: 56, 
+                      height: 56,
+                      borderWidth: 3,
+                      borderColor: '#E8BA69'
+                    }} 
+                  />
                 )}
                 <View 
-                  className="absolute -bottom-1 -right-1 rounded-full items-center justify-center"
+                  className="absolute -bottom-1 -right-1 rounded-full items-center justify-center bg-amber-700"
                   style={{
                     width: 22,
                     height: 22,
-                    backgroundColor: '#CD7F32',
                   }}
                 >
-                  <Text className="text-xs font-black text-white">3</Text>
+                  <Text className="text-xs font-bold text-white">3</Text>
                 </View>
               </View>
-              <Text className="text-xs font-bold text-gray-800 dark:text-gray-200 text-center mb-1" numberOfLines={1} style={{ fontSize: 11 }}>
+              <Text className="text-xs font-bold text-light-text dark:text-dark-text text-center mb-1" numberOfLines={1}>
                 {third.displayName}
               </Text>
-              <Text className="text-xs text-gray-600 dark:text-gray-400" style={{ fontSize: 10 }}>
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                 {third.score} điểm
               </Text>
             </View>
@@ -272,20 +223,22 @@ export function LeaderBoardScreen({ navigation }: any) {
     
     return (
       <View
-        className={`mx-4 mb-3 rounded-xl overflow-hidden ${
-          isCurrentUser ? "bg-gold/10" : "bg-white dark:bg-dark-card"
+        className={`mx-4 mb-3 rounded-xl overflow-hidden border ${
+          isCurrentUser 
+            ? "bg-gold/10 border-gold/30" 
+            : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
         }`}
       >
-        <View className="p-3">
+        <View className="p-4">
           <View className="flex-row items-center">
             {/* Rank Badge */}
             <View 
               className={`w-10 h-10 rounded-lg items-center justify-center ${
-                isCurrentUser ? "bg-gold" : "bg-gray-100 dark:bg-gray-800"
+                isCurrentUser ? "bg-gold" : "bg-beige/30 dark:bg-dark-border/30"
               }`}
             >
-              <Text className={`text-sm font-black ${
-                isCurrentUser ? "text-white" : "text-gray-700 dark:text-gray-300"
+              <Text className={`text-sm font-bold ${
+                isCurrentUser ? "text-white" : "text-light-text dark:text-dark-text"
               }`}>
                 {item.rank}
               </Text>
@@ -294,46 +247,31 @@ export function LeaderBoardScreen({ navigation }: any) {
             {/* Avatar */}
             <View className="ml-3 relative">
               {item.avatarUrl && item.avatarUrl.trim() !== "" ? (
-                <View>
-                  <Image
-                    source={{ uri: item.avatarUrl }}
-                    className="rounded-full"
-                    style={{ width: 44, height: 44 }}
-                  />
-                  {isCurrentUser && (
-                    <View 
-                      className="absolute inset-0 rounded-full" 
-                      style={{ 
-                        width: 44, 
-                        height: 44,
-                        borderWidth: 2,
-                        borderColor: '#E8BA69'
-                      }} 
-                    />
-                  )}
-                </View>
+                <Image
+                  source={{ uri: item.avatarUrl }}
+                  className="rounded-full"
+                  style={{ width: 44, height: 44 }}
+                />
               ) : (
-                <View>
-                  <DefaultAvatar size={44} />
-                  {isCurrentUser && (
-                    <View 
-                      className="absolute inset-0 rounded-full" 
-                      style={{ 
-                        width: 44, 
-                        height: 44,
-                        borderWidth: 2,
-                        borderColor: '#E8BA69'
-                      }} 
-                    />
-                  )}
-                </View>
+                <DefaultAvatar size={44} />
+              )}
+              {isCurrentUser && (
+                <View 
+                  className="absolute inset-0 rounded-full" 
+                  style={{ 
+                    width: 44, 
+                    height: 44,
+                    borderWidth: 2,
+                    borderColor: '#E8BA69'
+                  }} 
+                />
               )}
             </View>
 
             {/* User Info */}
             <View className="flex-1 ml-3">
               <View className="flex-row items-center mb-1">
-                <Text className="text-sm font-bold text-gray-800 dark:text-gray-200 flex-1" numberOfLines={1}>
+                <Text className="text-sm font-bold text-light-text dark:text-dark-text flex-1" numberOfLines={1}>
                   {item.displayName}
                 </Text>
                 {isCurrentUser && (
@@ -342,19 +280,19 @@ export function LeaderBoardScreen({ navigation }: any) {
                   </View>
                 )}
               </View>
-              <Text className="text-xs text-gray-500 dark:text-gray-400">
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                 Level {item.level}
               </Text>
             </View>
 
             {/* Score */}
             <View className="items-end ml-2">
-              <Text className={`text-base font-black ${
-                isCurrentUser ? "text-gold" : "text-gray-800 dark:text-gray-200"
+              <Text className={`text-base font-bold ${
+                isCurrentUser ? "text-gold" : "text-light-text dark:text-dark-text"
               }`}>
                 {item.score}
               </Text>
-              <Text className="text-xs text-gray-500 dark:text-gray-400" style={{ fontSize: 10 }}>
+              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                 điểm
               </Text>
             </View>
@@ -367,10 +305,23 @@ export function LeaderBoardScreen({ navigation }: any) {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Bảng xếp hạng
+            </Text>
+          </View>
+        </View>
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#E8BA69" />
-          <Text className="text-gray-600 dark:text-gray-400 mt-4 font-medium">
-            Đang tải bảng xếp hạng...
+          <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+            Đang tải...
           </Text>
         </View>
       </SafeAreaView>
@@ -380,19 +331,34 @@ export function LeaderBoardScreen({ navigation }: any) {
   if (error) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Bảng xếp hạng
+            </Text>
+          </View>
+        </View>
         <View className="flex-1 justify-center items-center px-6">
-          <Text className="text-6xl mb-4">😔</Text>
-          <Text className="text-gray-800 dark:text-gray-200 text-center text-lg font-bold mb-2">
+          <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
+            <FontAwesome name="exclamation-triangle" size={32} color="#F2A297" />
+          </View>
+          <Text className="text-light-text dark:text-dark-text text-center text-lg font-bold mb-2">
             Không thể tải bảng xếp hạng
           </Text>
-          <Text className="text-gray-600 dark:text-gray-400 text-center mb-4 text-sm">
+          <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-4">
             Đã xảy ra lỗi khi tải dữ liệu
           </Text>
           <TouchableOpacity
             onPress={() => refetch()}
-            className="bg-gold rounded-full px-6 py-3"
+            className="bg-gold rounded-xl px-6 py-3"
           >
-            <Text className="text-white font-bold text-sm">Thử lại</Text>
+            <Text className="text-white font-bold">Thử lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -404,21 +370,20 @@ export function LeaderBoardScreen({ navigation }: any) {
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       {/* Header */}
-      <View className="px-4 py-3 bg-white dark:bg-dark-card">
-        <View className="flex-row items-center mb-3">
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row items-center mb-4">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="mr-3 p-2 -ml-2"
-            activeOpacity={0.7}
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
           >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
+            <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
           </TouchableOpacity>
           
           <View className="flex-1">
-            <Text className="text-xl font-black text-gray-800 dark:text-gray-200">
-              Bảng Xếp Hạng
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Bảng xếp hạng
             </Text>
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-0.5">
               Cạnh tranh với cộng đồng
             </Text>
           </View>
@@ -426,9 +391,9 @@ export function LeaderBoardScreen({ navigation }: any) {
 
         {/* Period Tabs */}
         <View className="flex-row gap-2">
-          {renderPeriodButton("weekly", "Tuần", "📅")}
-          {renderPeriodButton("monthly", "Tháng", "📆")}
-          {renderPeriodButton("all", "Tất cả", "🌟")}
+          {renderPeriodButton("weekly", "Tuần")}
+          {renderPeriodButton("monthly", "Tháng")}
+          {renderPeriodButton("all", "Tất cả")}
         </View>
       </View>
 
@@ -448,11 +413,13 @@ export function LeaderBoardScreen({ navigation }: any) {
         }
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center py-16 px-6">
-            <Text className="text-6xl mb-4">🏆</Text>
-            <Text className="text-gray-800 dark:text-gray-200 text-lg font-bold mb-2 text-center">
+            <View className="w-20 h-20 rounded-full bg-beige/20 dark:bg-dark-border/20 items-center justify-center mb-4">
+              <FontAwesome name="trophy" size={32} color="#9CA3AF" />
+            </View>
+            <Text className="text-light-text dark:text-dark-text text-lg font-bold mb-2 text-center">
               Chưa có dữ liệu
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center text-sm">
+            <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
               Bảng xếp hạng sẽ được cập nhật khi có người tham gia
             </Text>
           </View>
@@ -461,7 +428,7 @@ export function LeaderBoardScreen({ navigation }: any) {
 
       {/* Current User Card - Fixed Bottom */}
       {data?.currentUser && (
-        <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t border-gray-200 dark:border-gray-700">
+        <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
           <View className="px-4 py-3">
             <View className="flex-row items-center">
               <View 
@@ -471,59 +438,46 @@ export function LeaderBoardScreen({ navigation }: any) {
                   height: 40,
                 }}
               >
-                <Text className="text-sm font-black text-white">
+                <Text className="text-sm font-bold text-white">
                   #{data.currentUser.rank}
                 </Text>
               </View>
               
               <View className="relative">
                 {data.currentUser.avatarUrl && data.currentUser.avatarUrl.trim() !== "" ? (
-                  <View>
-                    <Image
-                      source={{ uri: data.currentUser.avatarUrl }}
-                      className="rounded-full"
-                      style={{ width: 40, height: 40 }}
-                    />
-                    <View 
-                      className="absolute inset-0 rounded-full" 
-                      style={{ 
-                        width: 40, 
-                        height: 40,
-                        borderWidth: 2,
-                        borderColor: '#E8BA69'
-                      }} 
-                    />
-                  </View>
+                  <Image
+                    source={{ uri: data.currentUser.avatarUrl }}
+                    className="rounded-full"
+                    style={{ width: 40, height: 40 }}
+                  />
                 ) : (
-                  <View>
-                    <DefaultAvatar size={40} />
-                    <View 
-                      className="absolute inset-0 rounded-full" 
-                      style={{ 
-                        width: 40, 
-                        height: 40,
-                        borderWidth: 2,
-                        borderColor: '#E8BA69'
-                      }} 
-                    />
-                  </View>
+                  <DefaultAvatar size={40} />
                 )}
+                <View 
+                  className="absolute inset-0 rounded-full" 
+                  style={{ 
+                    width: 40, 
+                    height: 40,
+                    borderWidth: 2,
+                    borderColor: '#E8BA69'
+                  }} 
+                />
               </View>
               
               <View className="flex-1 ml-3">
-                <Text className="text-sm font-bold text-gray-800 dark:text-gray-200" numberOfLines={1}>
+                <Text className="text-sm font-bold text-light-text dark:text-dark-text" numberOfLines={1}>
                   {data.currentUser.displayName}
                 </Text>
-                <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-0.5">
                   Level {data.currentUser.level}
                 </Text>
               </View>
               
               <View className="items-end">
-                <Text className="text-lg font-black text-gold">
+                <Text className="text-lg font-bold text-gold">
                   {data.currentUser.score}
                 </Text>
-                <Text className="text-xs text-gray-500 dark:text-gray-400">
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                   điểm
                 </Text>
               </View>

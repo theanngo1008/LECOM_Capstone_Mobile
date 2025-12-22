@@ -22,17 +22,32 @@ export interface LinkedProduct {
   shopName: string
 }
 
+export interface QuizAnswer {
+  content: string
+  isCorrect: boolean
+}
+
+export interface QuizQuestion {
+  content: string
+  answers: QuizAnswer[]
+}
+
+export interface Quiz {
+  questions: QuizQuestion[]
+}
+
 export interface CourseLesson {
   id: string
-  courseSectionId: string
+  courseSectionId: string | null
   title: string
   type: string
-  durationSeconds: number
-  contentUrl: string
+  durationSeconds: number | null
+  contentUrl: string | null
   orderIndex: number
-
-
   linkedProducts: LinkedProduct[]
+  approvalStatus: "Approved" | "Pending" | "Rejected"
+  moderatorNote: string | null
+  quiz: Quiz | null
 }
 
 
@@ -41,6 +56,8 @@ export interface CourseSection {
   title: string
   orderIndex: number
   lessons: CourseLesson[]
+  approvalStatus: "Approved" | "Pending" | "Rejected"
+  moderatorNote: string | null
 }
 
 export interface CreateCoursePayload {
@@ -65,6 +82,7 @@ export interface CreateLessonPayload {
   contentUrl: string
   orderIndex: number
   type?: string
+  quiz?: Quiz | null
 }
 
 export interface UpdateCoursePayload {

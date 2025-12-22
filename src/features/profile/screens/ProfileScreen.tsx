@@ -14,10 +14,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useMyProfile } from "../hooks/useMyProfile";
 import { useGamificationProfile } from "../hooks/useGamificationProfile";
 import { useLeaderboard } from "../hooks/useLeaderBoard";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMyProfile } from "../hooks/useMyProfile";
 
 type Props = ProfileStackScreenProps<"ProfileMain">;
 
@@ -27,9 +26,6 @@ export function ProfileScreen({ navigation }: Props) {
   const { data: walletData, isLoading: walletLoading } = useWalletBalance();
   const { data: gmData, isLoading: gmLoading } = useGamificationProfile();
   const { data: leaderboardData, isLoading: leaderboardLoading } = useLeaderboard("weekly");
-  
-  // ✅ Get query client để clear cache
-  const queryClient = useQueryClient();
   
   const g = gmData?.result;
   const currentUserRank = leaderboardData?.currentUser?.rank;
@@ -55,15 +51,11 @@ export function ProfileScreen({ navigation }: Props) {
           try {
             console.log("🚪 Starting logout process...");
             
-            // ✅ 1. Clear React Query cache
-            queryClient.clear();
-            console.log("✅ React Query cache cleared");
-            
-            // ✅ 2. Logout (clears AsyncStorage & Zustand)
+            // ✅ Logout (clears React Query cache, AsyncStorage & Zustand)
             await logout();
             console.log("✅ Logout complete");
             
-            // ✅ 3. Navigation sẽ tự động redirect về Login
+            // ✅ Navigation sẽ tự động redirect về Login
             // do App.tsx detect isAuthenticated = false
             
           } catch (error) {
@@ -315,7 +307,7 @@ export function ProfileScreen({ navigation }: Props) {
 
               <TouchableOpacity
                 className="flex-row items-center bg-white dark:bg-dark-card p-4 rounded-2xl border border-beige/30 dark:border-dark-border/30 mb-3"
-                onPress={() => console.log("Courses")}
+                onPress={() => navigation.navigate("MyEnrollments")}
               >
                 <View className="w-10 h-10 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
                   <FontAwesome name="book" size={16} color="#ACD6B8" />

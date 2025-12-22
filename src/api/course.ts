@@ -132,14 +132,30 @@ export interface CourseEnrollment {
   completedAt: string | null
 }
 
+export interface MyEnrollment {
+  id: string
+  userId: string
+  courseId: string
+  courseTitle: string
+  courseSlug: string
+  progress: number
+  enrolledAt: string
+  completedAt: string | null
+  shopName: string
+  categoryName: string
+  courseThumbnail: string
+}
+
 export type CourseListResponse = ApiResponse<CourseListResult>
 export type CourseDetailResponse = ApiResponse<CourseDetailResult>
 export type CourseEnrollmentResponse = ApiResponse<CourseEnrollment>
+export type MyEnrollmentsResponse = ApiResponse<MyEnrollment[]>
 
 export interface CourseQueryParams {
   limit?: number
   category?: string
   page?: number
+  search?: string
 }
 
 export const courseApi = {
@@ -178,13 +194,18 @@ export const courseApi = {
     return data
   },
   // POST /courses/lessons/{lessonId}/complete
-completeLesson: async (lessonId: string): Promise<ApiResponse<boolean>> => {
-  const { data } = await apiClient.post<ApiResponse<boolean>>(
-    `/courses/lessons/${lessonId}/complete`
-  )
-  return data
-},
+  completeLesson: async (lessonId: string): Promise<ApiResponse<boolean>> => {
+    const { data } = await apiClient.post<ApiResponse<boolean>>(
+      `/courses/lessons/${lessonId}/complete`
+    )
+    return data
+  },
 
+  // GET /courses/my-enrollments
+  getMyEnrollments: async (): Promise<MyEnrollmentsResponse> => {
+    const { data } = await apiClient.get<MyEnrollmentsResponse>("/courses/my-enrollments")
+    return data
+  },
 }
 
 

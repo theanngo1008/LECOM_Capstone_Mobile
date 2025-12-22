@@ -498,7 +498,7 @@ export function ShopRegisterScreen({ navigation }: any) {
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text">
                   Địa chỉ cửa hàng
                 </Text>
-              </View>
+                </View>
 
               <View className="gap-4">
                 {/* Shop Address */}

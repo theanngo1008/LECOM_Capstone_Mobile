@@ -13,14 +13,19 @@ import {
   FlatList,
   Image,
   Modal,
-  Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useShopProducts } from "../../shopProducts/hooks/useShopProducts";
+import {
+  LessonDetailModal,
+  LessonItem,
+  SectionItem
+} from "../components";
 import { useCreateLesson } from "../hooks/useCreateLesson";
 import { useCreateSection } from "../hooks/useCreateSection";
 import { useDeleteCourse } from "../hooks/useDeleteCourse";
@@ -29,6 +34,14 @@ import { useDeleteSection } from "../hooks/useDeleteSection";
 import { useLinkProductToLesson } from "../hooks/useLinkProductToLesson";
 import { useShopCourseDetail } from "../hooks/useShopCourseDetail";
 import { useUpdateCourse } from "../hooks/useUpdateCourse";
+import {
+  formatDuration,
+  formatPrice,
+  getApprovalStatusColor,
+  getApprovalStatusText,
+  getApprovalStatusTextColor,
+  toRomanNumeral,
+} from "../utils/helpers";
 
 export function ShopCourseDetailScreen({ navigation, route }: any) {
   const { courseId } = route.params;
@@ -57,8 +70,17 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonType, setLessonType] = useState<"Video" | "Quiz">("Video");
   const [lessonVideoUrl, setLessonVideoUrl] = useState("");
   const [videoDuration, setVideoDuration] = useState<number>(0);
+  
+  // Quiz state
+  const [quizQuestions, setQuizQuestions] = useState<
+    {
+      content: string;
+      answers: { content: string; isCorrect: boolean }[];
+    }[]
+  >([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
 
   // Edit Course Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -74,6 +96,10 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
+  // Lesson Detail Modal
+  const [showLessonDetailModal, setShowLessonDetailModal] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
+
   console.log("📚 Shop Course Detail:", { course, sections, isLoading, isError });
 
   const toggleSection = (sectionId: string) => {
@@ -88,14 +114,6 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     });
   };
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const formatPrice = (price: number) =>
-    `${new Intl.NumberFormat("vi-VN").format(price)}₫`;
 
   const getTotalLessons = () => {
     if (!sections) return 0;
@@ -107,7 +125,10 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     return sections.reduce(
       (total, section) =>
         total +
-        section.lessons.reduce((sum, lesson) => sum + lesson.durationSeconds, 0),
+        section.lessons.reduce(
+          (sum, lesson) => sum + (lesson.durationSeconds || 0),
+          0
+        ),
       0
     );
   };
@@ -147,8 +168,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
 
       if (asset.size && asset.size > 10 * 1024 * 1024) {
         Alert.alert(
-          "File Too Large",
-          "Please select a video smaller than 10MB."
+          "File quá lớn",
+          "Vui lòng chọn video nhỏ hơn 10MB."
         );
         return;
       }
@@ -164,26 +185,26 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       setVideoDuration(duration);
       console.log("✅ Duration set:", duration);
 
-      Alert.alert("Uploading", "Please wait while the video is being uploaded...");
+      Alert.alert("Đang tải lên", "Vui lòng đợi trong khi video đang được tải lên...");
       const uploaded = await uploadFile(file, "video");
       const uploadedUrl = typeof uploaded === "string" ? uploaded : uploaded?.url;
       if (!uploadedUrl) throw new Error("Upload failed");
 
       setLessonVideoUrl(uploadedUrl);
       Alert.alert(
-        "Success",
-        `Video uploaded successfully! Duration: ${formatDuration(duration)}`
+        "Thành công",
+        `Tải video lên thành công! Thời lượng: ${formatDuration(duration)}`
       );
     } catch (err: any) {
       console.error("Upload error:", err);
 
       if (err.message?.includes("413") || err.status === 413) {
         Alert.alert(
-          "File Too Large",
-          "The video file is too large for the server. Please select a smaller file."
+          "File quá lớn",
+          "File video quá lớn cho server. Vui lòng chọn file nhỏ hơn."
         );
       } else {
-        Alert.alert("Error", err.message || "Failed to upload video");
+        Alert.alert("Lỗi", err.message || "Không thể tải video lên");
       }
     }
   };
@@ -205,17 +226,17 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         type: "image/jpeg",
       };
 
-      Alert.alert("Uploading", "Uploading thumbnail...");
+      Alert.alert("Đang tải lên", "Đang tải thumbnail lên...");
       const uploaded = await uploadFile(file, "image");
       const uploadedUrl = typeof uploaded === "string" ? uploaded : uploaded?.url;
 
       if (!uploadedUrl) throw new Error("Upload failed");
 
       setEditThumbnail(uploadedUrl);
-      Alert.alert("Success", "Thumbnail uploaded successfully!");
+      Alert.alert("Thành công", "Tải thumbnail lên thành công!");
     } catch (err: any) {
       console.error("Upload error:", err);
-      Alert.alert("Error", err.message || "Failed to upload thumbnail");
+      Alert.alert("Lỗi", err.message || "Không thể tải thumbnail lên");
     }
   };
 
@@ -229,7 +250,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   // 🆕 Handle Link Product
   const handleLinkProduct = () => {
     if (!selectedLessonId || !selectedProductId) {
-      Alert.alert("Error", "Please select a product");
+      Alert.alert("Lỗi", "Vui lòng chọn sản phẩm");
       return;
     }
 
@@ -240,7 +261,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       },
       {
         onSuccess: () => {
-          Alert.alert("Success", "Product linked successfully!");
+          Alert.alert("Thành công", "Liên kết sản phẩm thành công!");
           setShowProductModal(false);
           setSelectedLessonId(null);
           setSelectedProductId(null);
@@ -253,29 +274,128 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         onError: (error: any) => {
           console.error("Link product error:", error);
           Alert.alert(
-            "Error",
-            error.response?.data?.message || error.message || "Failed to link product"
+            "Lỗi",
+            error.response?.data?.message || error.message || "Không thể liên kết sản phẩm"
           );
         },
       }
     );
   };
 
+  // Quiz helper functions
+  const addQuestion = () => {
+    setQuizQuestions([
+      ...quizQuestions,
+      { content: "", answers: [{ content: "", isCorrect: false }] },
+    ]);
+  };
+
+  const removeQuestion = (index: number) => {
+    if (quizQuestions.length > 1) {
+      setQuizQuestions(quizQuestions.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateQuestion = (index: number, content: string) => {
+    const updated = [...quizQuestions];
+    updated[index].content = content;
+    setQuizQuestions(updated);
+  };
+
+  const addAnswer = (questionIndex: number) => {
+    const updated = [...quizQuestions];
+    updated[questionIndex].answers.push({ content: "", isCorrect: false });
+    setQuizQuestions(updated);
+  };
+
+  const removeAnswer = (questionIndex: number, answerIndex: number) => {
+    const updated = [...quizQuestions];
+    if (updated[questionIndex].answers.length > 1) {
+      updated[questionIndex].answers = updated[questionIndex].answers.filter(
+        (_, i) => i !== answerIndex
+      );
+      setQuizQuestions(updated);
+    }
+  };
+
+  const updateAnswer = (
+    questionIndex: number,
+    answerIndex: number,
+    content: string
+  ) => {
+    const updated = [...quizQuestions];
+    updated[questionIndex].answers[answerIndex].content = content;
+    setQuizQuestions(updated);
+  };
+
+  const toggleCorrectAnswer = (questionIndex: number, answerIndex: number) => {
+    const updated = [...quizQuestions];
+    updated[questionIndex].answers[answerIndex].isCorrect =
+      !updated[questionIndex].answers[answerIndex].isCorrect;
+    setQuizQuestions(updated);
+  };
+
   const handleCreateLesson = () => {
-    if (!lessonTitle.trim() || !lessonVideoUrl) {
-      Alert.alert("Validation Error", "Please fill in lesson title and upload a video");
+    if (!lessonTitle.trim()) {
+      Alert.alert("Lỗi xác thực", "Vui lòng điền tiêu đề bài học");
       return;
     }
 
-    const payload = {
+    if (lessonType === "Video" && !lessonVideoUrl) {
+      Alert.alert("Lỗi xác thực", "Vui lòng tải video lên");
+      return;
+    }
+
+    if (lessonType === "Quiz") {
+      // Validate quiz
+      const validQuestions = quizQuestions.filter(
+        (q) => q.content.trim() && q.answers.length >= 2
+      );
+      
+      if (validQuestions.length === 0) {
+        Alert.alert("Lỗi xác thực", "Vui lòng thêm ít nhất 1 câu hỏi với ít nhất 2 đáp án");
+        return;
+      }
+
+      // Validate each question has at least one correct answer
+      const hasCorrectAnswer = validQuestions.every((q) =>
+        q.answers.some((a) => a.isCorrect && a.content.trim())
+      );
+
+      if (!hasCorrectAnswer) {
+        Alert.alert("Lỗi xác thực", "Mỗi câu hỏi phải có ít nhất 1 đáp án đúng");
+        return;
+      }
+    }
+
+    const payload: any = {
       courseSectionId: selectedSectionId,
       title: lessonTitle.trim(),
-      type: "Video" as const,
-      contentUrl: lessonVideoUrl,
-      durationSeconds: videoDuration,
+      type: lessonType,
       orderIndex:
         sections?.find((s) => s.id === selectedSectionId)?.lessons.length || 0,
     };
+
+    if (lessonType === "Video") {
+      payload.contentUrl = lessonVideoUrl;
+      payload.durationSeconds = videoDuration;
+    } else if (lessonType === "Quiz") {
+      payload.quiz = {
+        questions: quizQuestions
+          .filter((q) => q.content.trim() && q.answers.length >= 2)
+          .map((q) => ({
+            content: q.content.trim(),
+            answers: q.answers
+              .filter((a) => a.content.trim())
+              .map((a) => ({
+                content: a.content.trim(),
+                isCorrect: a.isCorrect,
+              })),
+          })),
+      };
+      payload.contentUrl = null;
+      payload.durationSeconds = null;
+    }
 
     console.log("📤 Creating lesson payload:", payload);
 
@@ -287,17 +407,19 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
           queryKey: ["shopCourseDetail", courseId],
         });
 
-        Alert.alert("Success", "Lesson created successfully!");
+        Alert.alert("Thành công", "Tạo bài học thành công!");
         setShowLessonModal(false);
         setLessonTitle("");
+        setLessonType("Video");
         setLessonVideoUrl("");
         setVideoDuration(0);
+        setQuizQuestions([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
       },
       onError: (error: any) => {
         console.log("❌ Full error:", error);
         Alert.alert(
-          "Error",
-          error.response?.data?.message || error.message || "Failed to create lesson"
+          "Lỗi",
+          error.response?.data?.message || error.message || "Không thể tạo bài học"
         );
       },
     });
@@ -316,12 +438,12 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
 
   const handleUpdateCourse = () => {
     if (!editTitle.trim()) {
-      Alert.alert("Validation Error", "Course title is required");
+      Alert.alert("Lỗi xác thực", "Tiêu đề khóa học là bắt buộc");
       return;
     }
 
     if (!editCategoryId) {
-      Alert.alert("Validation Error", "Please select a category");
+      Alert.alert("Lỗi xác thực", "Vui lòng chọn danh mục");
       return;
     }
 
@@ -337,7 +459,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
       { courseId, payload },
       {
         onSuccess: () => {
-          Alert.alert("Success", "Course updated successfully!");
+          Alert.alert("Thành công", "Cập nhật khóa học thành công!");
           setShowEditModal(false);
           queryClient.invalidateQueries({
             queryKey: ["shopCourseDetail", courseId],
@@ -345,8 +467,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         },
         onError: (error: any) => {
           Alert.alert(
-            "Error",
-            error.response?.data?.message || "Failed to update course"
+            "Lỗi",
+            error.response?.data?.message || "Không thể cập nhật khóa học"
           );
         },
       }
@@ -359,28 +481,28 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     const hasContent = sections && sections.length > 0;
 
     Alert.alert(
-      "Delete Course",
+      "Xóa khóa học",
       hasContent
-        ? `"${course.title}" has ${sections.length} section(s). Deleting this course will also delete all sections and lessons. This action cannot be undone. Continue?`
-        : `Are you sure you want to delete "${course.title}"? This action cannot be undone.`,
+        ? `"${course.title}" có ${sections.length} phần. Xóa khóa học này sẽ xóa tất cả các phần và bài học. Hành động này không thể hoàn tác. Tiếp tục?`
+        : `Bạn có chắc muốn xóa "${course.title}"? Hành động này không thể hoàn tác.`,
       [
         {
-          text: "Cancel",
+          text: "Hủy",
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: "Xóa",
           style: "destructive",
           onPress: () => {
             deleteCourse.mutate(courseId, {
               onSuccess: () => {
-                Alert.alert("Success", "Course deleted successfully!");
+                Alert.alert("Thành công", "Xóa khóa học thành công!");
                 navigation.goBack();
               },
               onError: (error: any) => {
                 Alert.alert(
-                  "Error",
-                  error.response?.data?.message || "Failed to delete course"
+                  "Lỗi",
+                  error.response?.data?.message || "Không thể xóa khóa học"
                 );
               },
             });
@@ -391,26 +513,26 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   };
 
   const handleDeleteLesson = (lessonId: string, lessonTitle: string) => {
-    Alert.alert("Delete Lesson", `Are you sure you want to delete "${lessonTitle}"?`, [
+    Alert.alert("Xóa bài học", `Bạn có chắc muốn xóa "${lessonTitle}"?`, [
       {
-        text: "Cancel",
+        text: "Hủy",
         style: "cancel",
       },
       {
-        text: "Delete",
+        text: "Xóa",
         style: "destructive",
         onPress: () => {
           deleteLesson.mutate(lessonId, {
             onSuccess: () => {
-              Alert.alert("Success", "Lesson deleted successfully!");
+              Alert.alert("Thành công", "Xóa bài học thành công!");
               queryClient.invalidateQueries({
                 queryKey: ["shopCourseDetail", courseId],
               });
             },
             onError: (error: any) => {
               Alert.alert(
-                "Error",
-                error.response?.data?.message || "Failed to delete lesson"
+                "Lỗi",
+                error.response?.data?.message || "Không thể xóa bài học"
               );
             },
           });
@@ -424,30 +546,30 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     const hasLessons = section && section.lessons.length > 0;
 
     Alert.alert(
-      "Delete Section",
+      "Xóa phần",
       hasLessons
-        ? `"${sectionTitle}" has ${section.lessons.length} lesson(s). Deleting this section will also delete all its lessons. Continue?`
-        : `Are you sure you want to delete "${sectionTitle}"?`,
+        ? `"${sectionTitle}" có ${section.lessons.length} bài học. Xóa phần này sẽ xóa tất cả các bài học. Tiếp tục?`
+        : `Bạn có chắc muốn xóa "${sectionTitle}"?`,
       [
         {
-          text: "Cancel",
+          text: "Hủy",
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: "Xóa",
           style: "destructive",
           onPress: () => {
             deleteSection.mutate(sectionId, {
               onSuccess: () => {
-                Alert.alert("Success", "Section deleted successfully!");
+                Alert.alert("Thành công", "Xóa phần thành công!");
                 queryClient.invalidateQueries({
                   queryKey: ["shopCourseDetail", courseId],
                 });
               },
               onError: (error: any) => {
                 Alert.alert(
-                  "Error",
-                  error.response?.data?.message || "Failed to delete section"
+                  "Lỗi",
+                  error.response?.data?.message || "Không thể xóa phần"
                 );
               },
             });
@@ -459,240 +581,85 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
 
   // ✅ Lesson item + Linked Products + Link Button
   const renderLesson = (lesson: CourseLesson, index: number) => {
-    const hasLinkedProducts = lesson.linkedProducts && lesson.linkedProducts.length > 0;
-
     return (
-      <View
+      <LessonItem
         key={lesson.id}
-        className="p-4 bg-beige/20 dark:bg-dark-border/20 rounded-xl mb-2"
-      >
-        {/* Row chính: info + play + delete */}
-        <View className="flex-row items-center mb-3">
-          <TouchableOpacity
-            className="flex-1 flex-row items-center"
-            activeOpacity={0.7}
-            onPress={() => {
-              Alert.alert("Lesson", `Playing: ${lesson.title}`);
-            }}
-          >
-            <View className="w-10 h-10 rounded-full bg-mint/20 dark:bg-gold/20 items-center justify-center mr-3">
-              <Text className="text-mint dark:text-gold font-bold">{index + 1}</Text>
-            </View>
-
-            <View className="flex-1">
-              <Text
-                className="text-base font-semibold text-light-text dark:text-dark-text mb-1"
-                numberOfLines={2}
-              >
-                {lesson.title}
-              </Text>
-
-              <View className="flex-row items-center flex-wrap">
-                <FontAwesome name="video-camera" size={12} color="#9CA3AF" />
-                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
-                  {lesson.type}
-                </Text>
-
-                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
-                  •
-                </Text>
-
-                <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
-                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-1">
-                  {formatDuration(lesson.durationSeconds)}
-                </Text>
-
-                {hasLinkedProducts && (
-                  <>
-                    <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mx-2">
-                      •
-                    </Text>
-                    <FontAwesome name="shopping-bag" size={12} color="#ACD6B8" />
-                    <Text className="text-xs text-mint dark:text-gold ml-1">
-                      {lesson.linkedProducts.length}{" "}
-                      {lesson.linkedProducts.length === 1 ? "product" : "products"}
-                    </Text>
-                  </>
-                )}
-              </View>
-            </View>
-
-            <View className="w-10 h-10 rounded-full bg-mint/10 dark:bg-gold/10 items-center justify-center mr-2">
-              <FontAwesome name="play" size={14} color="#ACD6B8" />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="w-10 h-10 rounded-full bg-coral/10 items-center justify-center"
-            onPress={() => handleDeleteLesson(lesson.id, lesson.title)}
-            disabled={deleteLesson.isPending}
-          >
-            {deleteLesson.isPending ? (
-              <ActivityIndicator size="small" color="#FF6B6B" />
-            ) : (
-              <FontAwesome name="trash-o" size={16} color="#FF6B6B" />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* 🆕 Link Product Button */}
-        <TouchableOpacity
-          className="flex-row items-center justify-center p-3 bg-skyBlue/10 dark:bg-lavender/10 rounded-xl border border-skyBlue/30 dark:border-lavender/30 mb-3 active:opacity-70"
-          onPress={() => openProductModal(lesson.id)}
-        >
-          <FontAwesome name="link" size={14} color="#87CEEB" />
-          <Text className="text-skyBlue dark:text-lavender font-semibold text-sm ml-2">
-            Link Product to Lesson
-          </Text>
-        </TouchableOpacity>
-
-        {/* ✅ Linked Products block */}
-        {hasLinkedProducts && (
-          <View className="bg-white/80 dark:bg-dark-card rounded-xl p-3 border border-beige/30 dark:border-dark-border/30">
-            <View className="flex-row items-center mb-2">
-              <FontAwesome name="shopping-basket" size={14} color="#ACD6B8" />
-              <Text className="text-xs font-semibold text-light-text dark:text-dark-text ml-2">
-                Linked Products ({lesson.linkedProducts.length})
-              </Text>
-            </View>
-
-            {lesson.linkedProducts.map((product) => (
-              <View
-                key={product.id}
-                className="flex-row items-center mb-2 last:mb-0"
-              >
-                {product.thumbnailUrl ? (
-                  <Image
-                    source={{ uri: product.thumbnailUrl }}
-                    className="w-10 h-10 rounded-lg mr-3"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="w-10 h-10 rounded-lg bg-beige/40 dark:bg-dark-border/40 items-center justify-center mr-3">
-                    <FontAwesome name="image" size={14} color="#9CA3AF" />
-                  </View>
-                )}
-
-                <View className="flex-1">
-                  <Text
-                    className="text-xs font-semibold text-light-text dark:text-dark-text"
-                    numberOfLines={1}
-                  >
-                    {product.name}
-                  </Text>
-                  <Text className="text-[11px] text-light-textSecondary dark:text-dark-textSecondary" numberOfLines={1}>
-                    {product.shopName}
-                  </Text>
-                </View>
-
-                <Text className="text-xs font-bold text-mint dark:text-gold ml-2">
-                  {formatPrice(product.price)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+        lesson={lesson}
+        index={index}
+        onPress={() => {
+          setSelectedLesson(lesson);
+          setShowLessonDetailModal(true);
+        }}
+        onDelete={handleDeleteLesson}
+        onLinkProduct={openProductModal}
+        isDeleting={deleteLesson.isPending}
+        getApprovalStatusColor={getApprovalStatusColor}
+        getApprovalStatusTextColor={getApprovalStatusTextColor}
+        getApprovalStatusText={getApprovalStatusText}
+        formatDuration={formatDuration}
+        formatPrice={formatPrice}
+      />
     );
   };
 
-  const renderSection = (section: CourseSection) => {
+  const renderSection = (section: CourseSection, romanIndex: number) => {
     const isExpanded = expandedSections.has(section.id);
 
     return (
-      <View
+      <SectionItem
         key={section.id}
-        className="mb-4 bg-white dark:bg-dark-card rounded-2xl overflow-hidden border border-beige/30 dark:border-dark-border/30"
-      >
-        <View className="flex-row items-center justify-between p-4">
-          <TouchableOpacity
-            className="flex-1 flex-row items-center"
-            onPress={() => toggleSection(section.id)}
-            activeOpacity={0.7}
-          >
-            <View className="w-8 h-8 rounded-lg bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3">
-              <FontAwesome name="folder-open" size={16} color="#ACD6B8" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
-                {section.title}
-              </Text>
-              <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                {section.lessons.length}{" "}
-                {section.lessons.length === 1 ? "lesson" : "lessons"}
-              </Text>
-            </View>
-            <FontAwesome
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={16}
-              color="#9CA3AF"
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="w-10 h-10 rounded-full bg-coral/10 items-center justify-center ml-2"
-            onPress={() => handleDeleteSection(section.id, section.title)}
-            disabled={deleteSection.isPending}
-          >
-            {deleteSection.isPending ? (
-              <ActivityIndicator size="small" color="#FF6B6B" />
-            ) : (
-              <FontAwesome name="trash-o" size={16} color="#FF6B6B" />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {isExpanded && (
-          <View className="px-4 pb-4">
+        section={section}
+        romanIndex={romanIndex}
+        isExpanded={isExpanded}
+        onToggle={() => toggleSection(section.id)}
+        onDelete={handleDeleteSection}
+        onAddLesson={() => {
+          setSelectedSectionId(section.id);
+          setShowLessonModal(true);
+        }}
+        isDeleting={deleteSection.isPending}
+        getApprovalStatusColor={getApprovalStatusColor}
+        getApprovalStatusTextColor={getApprovalStatusTextColor}
+        getApprovalStatusText={getApprovalStatusText}
+        toRomanNumeral={toRomanNumeral}
+        renderLessons={() => (
+          <>
             {section.lessons.map((lesson, index) => renderLesson(lesson, index))}
-
-            <TouchableOpacity
-              className="flex-row items-center justify-center p-4 bg-mint/10 dark:bg-gold/10 rounded-xl border-2 border-dashed border-mint/30 dark:border-gold/30 mt-2"
-              onPress={() => {
-                setSelectedSectionId(section.id);
-                setShowLessonModal(true);
-              }}
-            >
-              <FontAwesome name="plus-circle" size={18} color="#ACD6B8" />
-              <Text className="text-mint dark:text-gold font-semibold ml-2">
-                Add Lesson
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </>
         )}
-      </View>
+      />
     );
   };
 
   const renderLoading = () => (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#ACD6B8" />
         <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-          Loading course...
+          Đang tải khóa học...
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   const renderError = () => (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
       <View className="flex-1 items-center justify-center px-6">
         <FontAwesome name="exclamation-circle" size={64} color="#FF6B6B" />
         <Text className="text-xl font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-          Something went wrong
+          Có lỗi xảy ra
         </Text>
         <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-          Unable to load course information
+          Không thể tải thông tin khóa học
         </Text>
         <TouchableOpacity
           className="px-6 py-3 rounded-full bg-mint dark:bg-gold"
           onPress={() => navigation.goBack()}
         >
-          <Text className="text-white font-semibold">Go Back</Text>
+          <Text className="text-white font-semibold">Quay lại</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   if (isLoading) return renderLoading();
@@ -701,10 +668,9 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const selectedCategory = categories?.find((cat) => cat.id === editCategoryId);
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       <View
         className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30"
-        style={{ paddingTop: Platform.OS === "ios" ? 50 : 16 }}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -762,7 +728,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
             }`}
           >
             <Text className="text-white text-xs font-bold">
-              {course.active === 1 ? "Active" : "Inactive"}
+              {course.active === 1 ? "Hoạt động" : "Tạm dừng"}
             </Text>
           </View>
         </View>
@@ -791,7 +757,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 {sections?.length || 0}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                {sections?.length === 1 ? "Section" : "Sections"}
+                {sections?.length === 1 ? "Phần" : "Phần"}
               </Text>
             </View>
 
@@ -801,7 +767,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 {getTotalLessons()}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                {getTotalLessons() === 1 ? "Lesson" : "Lessons"}
+                {getTotalLessons() === 1 ? "Bài học" : "Bài học"}
               </Text>
             </View>
 
@@ -811,14 +777,14 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 {Math.floor(getTotalDuration() / 60)}
               </Text>
               <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                {Math.floor(getTotalDuration() / 60) === 1 ? "Minute" : "Minutes"}
+                {Math.floor(getTotalDuration() / 60) === 1 ? "Phút" : "Phút"}
               </Text>
             </View>
           </View>
 
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-              Course Content
+              Nội dung khóa học
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -836,22 +802,24 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
             >
               <Text className="text-sm text-mint dark:text-gold font-semibold">
                 {sections?.every((s) => expandedSections.has(s.id))
-                  ? "Collapse All"
-                  : "Expand All"}
+                  ? "Thu gọn tất cả"
+                  : "Mở rộng tất cả"}
               </Text>
             </TouchableOpacity>
           </View>
 
           {sections && sections.length > 0 ? (
-            sections.map((section) => renderSection(section))
+            [...sections]
+              .sort((a, b) => a.orderIndex - b.orderIndex)
+              .map((section, index) => renderSection(section, index + 1))
           ) : (
             <View className="bg-white dark:bg-dark-card rounded-2xl p-8 items-center border border-beige/30 dark:border-dark-border/30">
               <FontAwesome name="folder-open-o" size={48} color="#D1D5DB" />
               <Text className="text-lg font-bold text-light-text dark:text-dark-text mt-4 mb-2">
-                No Content Yet
+                Chưa có nội dung
               </Text>
               <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-                Add sections and lessons to complete your course
+                Thêm phần và bài học để hoàn thành khóa học của bạn
               </Text>
             </View>
           )}
@@ -863,7 +831,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
           className="bg-mint dark:bg-gold rounded-full py-4 items-center"
           onPress={() => setShowSectionModal(true)}
         >
-          <Text className="text-white text-base font-bold">+ Add New Section</Text>
+          <Text className="text-white text-base font-bold">+ Thêm chương</Text>
         </TouchableOpacity>
       </View>
 
@@ -877,23 +845,23 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         <View className="flex-1 bg-black/50 justify-center items-center px-6">
           <View className="bg-white dark:bg-dark-card rounded-2xl p-6 w-full">
             <Text className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
-              Create New Section
+              Tạo phần mới
             </Text>
             <TextInput
               value={newSectionTitle}
               onChangeText={setNewSectionTitle}
-              placeholder="Enter section title"
+              placeholder="Nhập tiêu đề phần"
               placeholderTextColor="#999"
               className="border border-gray-300 dark:border-dark-border rounded-lg p-3 text-light-text dark:text-dark-text mb-4"
             />
             <View className="flex-row justify-end space-x-4">
               <TouchableOpacity onPress={() => setShowSectionModal(false)}>
-                <Text className="text-gray-500 font-medium mr-4">Cancel</Text>
+                <Text className="text-gray-500 font-medium mr-4">Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
                   if (!newSectionTitle.trim()) {
-                    Alert.alert("Error", "Section title cannot be empty.");
+                    Alert.alert("Lỗi", "Tiêu đề phần không được để trống.");
                     return;
                   }
 
@@ -914,7 +882,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 disabled={createSection.isPending}
               >
                 <Text className="text-mint dark:text-gold font-bold">
-                  {createSection.isPending ? "Creating..." : "Create"}
+                  {createSection.isPending ? "Đang tạo..." : "Tạo"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -930,18 +898,22 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         onRequestClose={() => {
           setShowLessonModal(false);
           setVideoDuration(0);
+          setLessonType("Video");
+          setQuizQuestions([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
         }}
       >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white dark:bg-dark-card rounded-t-3xl p-6">
+        <View className="flex-1 bg-black/50 justify-center items-center px-4">
+          <View className="bg-white dark:bg-dark-card rounded-3xl p-6 w-full" style={{ maxHeight: "90%" }}>
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Add New Lesson
+                Thêm bài học mới
               </Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowLessonModal(false);
                   setVideoDuration(0);
+                  setLessonType("Video");
+                  setQuizQuestions([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
                 }}
               >
                 <FontAwesome name="times" size={20} color="#9CA3AF" />
@@ -951,23 +923,93 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Lesson Title <Text className="text-coral">*</Text>
+                  Tiêu đề bài học <Text className="text-coral">*</Text>
                 </Text>
                 <TextInput
                   value={lessonTitle}
                   onChangeText={setLessonTitle}
-                  placeholder="Enter lesson title"
+                  placeholder="Nhập tiêu đề bài học"
                   placeholderTextColor="#9CA3AF"
                   className="border border-gray-300 dark:border-dark-border rounded-lg p-3 text-light-text dark:text-dark-text"
                 />
               </View>
 
-              <View className="mb-6">
+              {/* Type Selector */}
+              <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Video <Text className="text-coral">*</Text>
+                  Loại bài học <Text className="text-coral">*</Text>
                 </Text>
-                {lessonVideoUrl ? (
-                  <View className="bg-mint/10 dark:bg-gold/10 rounded-lg p-4">
+                <View className="flex-row gap-3">
+                  <TouchableOpacity
+                    className={`flex-1 p-4 rounded-lg border-2 ${
+                      lessonType === "Video"
+                        ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
+                        : "border-gray-300 dark:border-dark-border"
+                    }`}
+                    onPress={() => {
+                      setLessonType("Video");
+                      setLessonVideoUrl("");
+                      setVideoDuration(0);
+                    }}
+                  >
+                    <View className="items-center">
+                      <FontAwesome
+                        name="video-camera"
+                        size={24}
+                        color={lessonType === "Video" ? "#ACD6B8" : "#9CA3AF"}
+                      />
+                      <Text
+                        className={`mt-2 font-semibold ${
+                          lessonType === "Video"
+                            ? "text-mint dark:text-gold"
+                            : "text-light-textSecondary dark:text-dark-textSecondary"
+                        }`}
+                      >
+                        Video
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className={`flex-1 p-4 rounded-lg border-2 ${
+                      lessonType === "Quiz"
+                        ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
+                        : "border-gray-300 dark:border-dark-border"
+                    }`}
+                    onPress={() => {
+                      setLessonType("Quiz");
+                      setLessonVideoUrl("");
+                      setVideoDuration(0);
+                    }}
+                  >
+                    <View className="items-center">
+                      <FontAwesome
+                        name="question-circle"
+                        size={24}
+                        color={lessonType === "Quiz" ? "#ACD6B8" : "#9CA3AF"}
+                      />
+                      <Text
+                        className={`mt-2 font-semibold ${
+                          lessonType === "Quiz"
+                            ? "text-mint dark:text-gold"
+                            : "text-light-textSecondary dark:text-dark-textSecondary"
+                        }`}
+                      >
+                        Quiz
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Video Form */}
+              {lessonType === "Video" && (
+                <View className="mb-6">
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                    Video <Text className="text-coral">*</Text>
+                  </Text>
+                  {lessonVideoUrl ? (
+                    <View className="bg-mint/10 dark:bg-gold/10 rounded-lg p-4">
                     <View className="flex-row items-center justify-between mb-2">
                       <View className="flex-row items-center flex-1">
                         <FontAwesome name="check-circle" size={20} color="#ACD6B8" />
@@ -975,7 +1017,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                           className="text-mint dark:text-gold ml-2 flex-1"
                           numberOfLines={1}
                         >
-                          Video uploaded
+                          Video đã tải lên
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -991,7 +1033,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                       <View className="flex-row items-center mt-2">
                         <FontAwesome name="clock-o" size={14} color="#ACD6B8" />
                         <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary ml-2">
-                          Duration: {formatDuration(videoDuration)}
+                          Thời lượng: {formatDuration(videoDuration)}
                         </Text>
                       </View>
                     )}
@@ -1008,16 +1050,121 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                       <>
                         <FontAwesome name="cloud-upload" size={32} color="#ACD6B8" />
                         <Text className="text-mint dark:text-gold font-semibold mt-2">
-                          Upload Video
+                          Tải video lên
                         </Text>
                         <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                          Max size: 10MB
+                          Kích thước tối đa: 10MB
                         </Text>
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-              </View>
+                  )}
+                </View>
+              )}
+
+              {/* Quiz Form */}
+              {lessonType === "Quiz" && (
+                <View className="mb-6">
+                  <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+                      Câu hỏi <Text className="text-coral">*</Text>
+                    </Text>
+                    <TouchableOpacity
+                      className="px-3 py-1 bg-mint/10 dark:bg-gold/10 rounded-lg"
+                      onPress={addQuestion}
+                    >
+                      <View className="flex-row items-center">
+                        <FontAwesome name="plus" size={14} color="#ACD6B8" />
+                        <Text className="text-mint dark:text-gold font-semibold ml-1 text-xs">
+                          Thêm câu hỏi
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+
+                  {quizQuestions.map((question, questionIndex) => (
+                    <View
+                      key={questionIndex}
+                      className="mb-4 p-4 bg-beige/20 dark:bg-dark-border/20 rounded-xl border border-beige/30 dark:border-dark-border/30"
+                    >
+                      <View className="flex-row items-start justify-between mb-3">
+                        <Text className="text-xs font-semibold text-light-text dark:text-dark-text">
+                          Câu hỏi {questionIndex + 1}
+                        </Text>
+                        {quizQuestions.length > 1 && (
+                          <TouchableOpacity
+                            onPress={() => removeQuestion(questionIndex)}
+                          >
+                            <FontAwesome name="trash-o" size={16} color="#FF6B6B" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      <TextInput
+                        value={question.content}
+                        onChangeText={(text) => updateQuestion(questionIndex, text)}
+                        placeholder="Nhập nội dung câu hỏi"
+                        placeholderTextColor="#9CA3AF"
+                        className="border border-gray-300 dark:border-dark-border rounded-lg p-3 text-light-text dark:text-dark-text mb-3"
+                        multiline
+                      />
+
+                      <Text className="text-xs font-semibold text-light-text dark:text-dark-text mb-2">
+                        Đáp án:
+                      </Text>
+
+                      {question.answers.map((answer, answerIndex) => (
+                        <View
+                          key={answerIndex}
+                          className="flex-row items-center mb-2"
+                        >
+                          <TouchableOpacity
+                            className="w-6 h-6 rounded-full border-2 border-mint dark:border-gold items-center justify-center mr-2"
+                            onPress={() =>
+                              toggleCorrectAnswer(questionIndex, answerIndex)
+                            }
+                          >
+                            {answer.isCorrect && (
+                              <View className="w-3 h-3 rounded-full bg-mint dark:bg-gold" />
+                            )}
+                          </TouchableOpacity>
+
+                          <TextInput
+                            value={answer.content}
+                            onChangeText={(text) =>
+                              updateAnswer(questionIndex, answerIndex, text)
+                            }
+                            placeholder={`Đáp án ${answerIndex + 1}`}
+                            placeholderTextColor="#9CA3AF"
+                            className="flex-1 border border-gray-300 dark:border-dark-border rounded-lg p-2 text-light-text dark:text-dark-text text-sm"
+                          />
+
+                          {question.answers.length > 1 && (
+                            <TouchableOpacity
+                              className="ml-2"
+                              onPress={() =>
+                                removeAnswer(questionIndex, answerIndex)
+                              }
+                            >
+                              <FontAwesome name="times-circle" size={18} color="#FF6B6B" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      ))}
+
+                      <TouchableOpacity
+                        className="mt-2 flex-row items-center"
+                        onPress={() => addAnswer(questionIndex)}
+                      >
+                        <FontAwesome name="plus-circle" size={16} color="#ACD6B8" />
+                        <Text className="text-mint dark:text-gold font-semibold text-xs ml-1">
+                          Thêm đáp án
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               <TouchableOpacity
                 className="bg-mint dark:bg-gold rounded-full py-4 items-center"
@@ -1027,7 +1174,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 {createLesson.isPending ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-base font-bold">Create Lesson</Text>
+                  <Text className="text-white text-base font-bold">Tạo bài học</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -1042,14 +1189,14 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         animationType="slide"
         onRequestClose={() => setShowEditModal(false)}
       >
-        <View className="flex-1 bg-black/50 justify-end">
+        <View className="flex-1 bg-black/50 justify-center items-center px-4">
           <View
-            className="bg-white dark:bg-dark-card rounded-t-3xl p-6"
+            className="bg-white dark:bg-dark-card rounded-3xl p-6 w-full"
             style={{ maxHeight: "90%" }}
           >
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Edit Course
+                Chỉnh sửa khóa học
               </Text>
               <TouchableOpacity onPress={() => setShowEditModal(false)}>
                 <FontAwesome name="times" size={20} color="#9CA3AF" />
@@ -1060,12 +1207,12 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               {/* Title */}
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Course Title <Text className="text-coral">*</Text>
+                  Tiêu đề khóa học <Text className="text-coral">*</Text>
                 </Text>
                 <TextInput
                   value={editTitle}
                   onChangeText={setEditTitle}
-                  placeholder="Enter course title"
+                  placeholder="Nhập tiêu đề khóa học"
                   placeholderTextColor="#9CA3AF"
                   className="border border-gray-300 dark:border-dark-border rounded-lg p-3 text-light-text dark:text-dark-text"
                 />
@@ -1074,7 +1221,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               {/* Category Selector */}
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Category <Text className="text-coral">*</Text>
+                  Danh mục <Text className="text-coral">*</Text>
                 </Text>
                 <TouchableOpacity
                   className="border border-gray-300 dark:border-dark-border rounded-lg p-3 flex-row items-center justify-between"
@@ -1092,7 +1239,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                             : "text-gray-400"
                         }`}
                       >
-                        {selectedCategory?.name || "Select a category"}
+                        {selectedCategory?.name || "Chọn danh mục"}
                       </Text>
                       <FontAwesome name="chevron-down" size={16} color="#9CA3AF" />
                     </>
@@ -1103,12 +1250,12 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               {/* Summary */}
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Summary
+                  Tóm tắt
                 </Text>
                 <TextInput
                   value={editSummary}
                   onChangeText={setEditSummary}
-                  placeholder="Enter course summary"
+                  placeholder="Nhập tóm tắt khóa học"
                   placeholderTextColor="#9CA3AF"
                   multiline
                   numberOfLines={4}
@@ -1120,7 +1267,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               {/* Thumbnail */}
               <View className="mb-4">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Thumbnail
+                  Hình ảnh đại diện
                 </Text>
                 {editThumbnail ? (
                   <View className="relative">
@@ -1148,7 +1295,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                       <>
                         <FontAwesome name="image" size={32} color="#ACD6B8" />
                         <Text className="text-mint dark:text-gold font-semibold mt-2">
-                          Upload Thumbnail
+                          Tải hình ảnh đại diện lên
                         </Text>
                       </>
                     )}
@@ -1159,7 +1306,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               {/* Status */}
               <View className="mb-6">
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Status
+                  Trạng thái
                 </Text>
                 <View className="flex-row">
                   <TouchableOpacity
@@ -1177,7 +1324,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                           : "text-light-textSecondary dark:text-dark-textSecondary"
                       }`}
                     >
-                      Active
+                      Hoạt động
                     </Text>
                   </TouchableOpacity>
 
@@ -1196,7 +1343,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                           : "text-light-textSecondary dark:text-dark-textSecondary"
                       }`}
                     >
-                      Inactive
+                      Tạm dừng
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1211,7 +1358,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 {updateCourse.isPending ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-base font-bold">Update Course</Text>
+                  <Text className="text-white text-base font-bold">Cập nhật khóa học</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -1230,7 +1377,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
           <View className="bg-white dark:bg-dark-card rounded-2xl p-6 w-full max-h-96">
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-                Select Category
+                Chọn danh mục
               </Text>
               <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
                 <FontAwesome name="times" size={20} color="#9CA3AF" />
@@ -1267,7 +1414,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 ))
               ) : (
                 <Text className="text-center text-light-textSecondary dark:text-dark-textSecondary py-4">
-                  No categories available
+                  Không có danh mục nào
                 </Text>
               )}
             </ScrollView>
@@ -1282,17 +1429,17 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         transparent={true}
         onRequestClose={() => setShowProductModal(false)}
       >
-        <View className="flex-1 bg-black/50">
-          <View className="flex-1 mt-20 bg-cream dark:bg-dark-background rounded-t-3xl">
+        <View className="flex-1 bg-black/50 justify-center items-center px-4">
+          <View className="flex-1 bg-cream dark:bg-dark-background rounded-3xl w-full" style={{ maxHeight: "90%" }}>
             {/* Modal Header */}
             <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30 rounded-t-3xl">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
                   <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
-                    Link Product
+                    Liên kết sản phẩm
                   </Text>
                   <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                    {selectedProductId ? "1 product selected" : "Select one product"}
+                    {selectedProductId ? "Đã chọn 1 sản phẩm" : "Chọn một sản phẩm"}
                   </Text>
                 </View>
                 
@@ -1311,7 +1458,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
               <View className="flex-1 items-center justify-center">
                 <ActivityIndicator size="large" color="#ACD6B8" />
                 <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4 text-base">
-                  Loading products...
+                  Đang tải sản phẩm...
                 </Text>
               </View>
             ) : products.length === 0 ? (
@@ -1320,10 +1467,10 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                   <FontAwesome name="shopping-bag" size={40} color="#87CEEB" />
                 </View>
                 <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
-                  No Products
+                  Chưa có sản phẩm
                 </Text>
                 <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-                  Add products to your shop first
+                  Thêm sản phẩm vào cửa hàng trước
                 </Text>
               </View>
             ) : (
@@ -1369,7 +1516,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                           </Text>
                           {product.stock !== undefined && (
                             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                              Stock: {product.stock}
+                              Tồn kho: {product.stock}
                             </Text>
                           )}
                         </View>
@@ -1408,7 +1555,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                       {linkProductMutation.isPending ? (
                         <>
                           <ActivityIndicator size="small" color="white" />
-                          <Text className="text-white font-bold text-lg ml-2">Linking...</Text>
+                          <Text className="text-white font-bold text-lg ml-2">Đang liên kết...</Text>
                         </>
                       ) : (
                         <>
@@ -1422,7 +1569,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                               ? 'text-white'
                               : 'text-light-textSecondary dark:text-dark-textSecondary'
                           }`}>
-                            Link Product
+                            Liên kết sản phẩm
                           </Text>
                         </>
                       )}
@@ -1435,7 +1582,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                     disabled={linkProductMutation.isPending}
                   >
                     <Text className="text-light-text dark:text-dark-text font-bold text-lg text-center">
-                      Cancel
+                      Hủy
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1444,6 +1591,19 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
           </View>
         </View>
       </Modal>
-    </View>
+
+      {/* Lesson Detail Modal */}
+      <LessonDetailModal
+        visible={showLessonDetailModal}
+        lesson={selectedLesson}
+        onClose={() => setShowLessonDetailModal(false)}
+        onLinkProduct={openProductModal}
+        getApprovalStatusColor={getApprovalStatusColor}
+        getApprovalStatusTextColor={getApprovalStatusTextColor}
+        getApprovalStatusText={getApprovalStatusText}
+        formatDuration={formatDuration}
+        formatPrice={formatPrice}
+      />
+    </SafeAreaView>
   );
 }

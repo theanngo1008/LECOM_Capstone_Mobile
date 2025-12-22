@@ -1,7 +1,7 @@
 import { AchievementItem } from "@/api/achievements";
 import { useAchievements } from "@/features/profile/hooks/useAchievements";
 import { ProfileStackScreenProps } from "@/navigation/types";
-import { Ionicons } from "@expo/vector-icons";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,11 +20,11 @@ type Props = ProfileStackScreenProps<"Achievements">;
 // CONSTANTS OUTSIDE COMPONENT
 // =============================
 const CATEGORY_TABS = [
-  { key: "all", label: "Tất cả", icon: "" },
-  { key: "account", label: "Tài khoản", icon: "" },
-  { key: "learning", label: "Học tập", icon: "" },
-  { key: "shopping", label: "Mua sắm", icon: "" },
-  { key: "social", label: "Tương tác", icon: "" },
+  { key: "all", label: "Tất cả", icon: "list" },
+  { key: "account", label: "Tài khoản", icon: "user" },
+  { key: "learning", label: "Học tập", icon: "book" },
+  { key: "shopping", label: "Mua sắm", icon: "shopping-cart" },
+  { key: "social", label: "Tương tác", icon: "comments" },
 ] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -35,10 +35,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  account: "👤",
-  learning: "📚",
-  shopping: "🛒",
-  social: "💬",
+  account: "user",
+  learning: "book",
+  shopping: "shopping-cart",
+  social: "comments",
 };
 
 // =============================
@@ -89,7 +89,7 @@ export function AchievementsScreen({ navigation }: Props) {
   // helpers
   // -----------------------------
   const getCategoryIcon = useCallback(
-    (category: string) => CATEGORY_ICONS[category.toLowerCase()] || "🏅",
+    (category: string) => CATEGORY_ICONS[category.toLowerCase()] || "trophy",
     []
   );
 
@@ -108,8 +108,10 @@ export function AchievementsScreen({ navigation }: Props) {
     return (
       <View
         key={item.id}
-        className={`rounded-2xl p-4 mb-3 ${
-          isCompleted ? "bg-white dark:bg-dark-card" : "bg-gray-50 dark:bg-gray-800"
+        className={`rounded-2xl p-4 mb-3 border ${
+          isCompleted 
+            ? "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30" 
+            : "bg-beige/10 dark:bg-dark-border/10 border-beige/20 dark:border-dark-border/20"
         }`}
         style={{ opacity: isCompleted ? 1 : 0.7 }}
       >
@@ -117,7 +119,7 @@ export function AchievementsScreen({ navigation }: Props) {
           {/* Image */}
           <View className="relative mr-4">
             <View
-              className={`w-20 h-20 rounded-2xl overflow-hidden ${
+              className={`w-20 h-20 rounded-2xl overflow-hidden items-center justify-center ${
                 !isCompleted ? "opacity-50" : ""
               }`}
               style={{
@@ -128,45 +130,47 @@ export function AchievementsScreen({ navigation }: Props) {
                 <Image source={{ uri: item.imageUrl }} className="w-full h-full" resizeMode="cover" />
               ) : (
                 <View className="w-full h-full items-center justify-center">
-                  <Text className="text-3xl">
-                    {CATEGORY_ICONS[item.category.toLowerCase()] || "🏅"}
-                  </Text>
+                  <FontAwesome 
+                    name={getCategoryIcon(item.category) as any} 
+                    size={32} 
+                    color={isCompleted ? "#FFF" : "#9CA3AF"} 
+                  />
                 </View>
               )}
             </View>
 
             {isCompleted && (
-              <View className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 items-center justify-center border-2 border-white">
-                <Ionicons name="checkmark" size={14} color="white" />
+              <View className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-mint items-center justify-center border-2 border-white dark:border-dark-card">
+                <FontAwesome name="check" size={12} color="white" />
               </View>
             )}
           </View>
 
           {/* Info */}
           <View className="flex-1">
-            <Text className="text-base font-bold text-gray-800 dark:text-gray-200 mb-1">
+            <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
               {item.title}
             </Text>
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mb-2">
               {item.description}
             </Text>
 
             {/* Rewards */}
             <View className="flex-row items-center mb-2">
               {item.xpReward > 0 && (
-                <View className="flex-row items-center mr-3">
-                  <Text className="text-xs font-bold text-gray-700 dark:text-gray-300 mr-1">
+                <View className="flex-row items-center mr-3 bg-gold/10 dark:bg-gold/10 rounded-full px-2 py-1">
+                  <Text className="text-xs font-bold text-gold mr-1">
                     +{item.xpReward} XP
                   </Text>
-                  <Text className="text-sm">🏅</Text>
+                  <FontAwesome name="star" size={12} color="#E8BA69" />
                 </View>
               )}
               {item.coinReward > 0 && (
-                <View className="flex-row items-center">
-                  <Text className="text-xs font-bold text-gray-700 dark:text-gray-300 mr-1">
+                <View className="flex-row items-center bg-mint/10 dark:bg-mint/10 rounded-full px-2 py-1">
+                  <Text className="text-xs font-bold text-mint mr-1">
                     +{item.coinReward}
                   </Text>
-                  <Text className="text-sm">🪙</Text>
+                  <FontAwesome name="money" size={12} color="#ACD6B8" />
                 </View>
               )}
             </View>
@@ -174,13 +178,13 @@ export function AchievementsScreen({ navigation }: Props) {
             {/* Progress */}
             <View>
               <View className="flex-row justify-between items-center mb-1">
-                <Text className="text-xs text-gray-500 dark:text-gray-400">
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                   Tiến độ {item.currentCount} / {item.targetCount}
                 </Text>
                 <Text className="text-xs font-bold text-gold">{Math.round(progress)}%</Text>
               </View>
 
-              <View className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <View className="h-2 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
                 <View
                   className="h-full bg-gold rounded-full"
                   style={{ width: `${progress}%` }}
@@ -191,32 +195,67 @@ export function AchievementsScreen({ navigation }: Props) {
         </View>
       </View>
     );
-  }, []);
+  }, [getCategoryIcon]);
 
   // =============================
   // LOADING & ERROR UI
   // =============================
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background justify-center items-center">
-        <ActivityIndicator size="large" color="#E8BA69" />
-        <Text className="text-gray-500 dark:text-gray-400 mt-4">Đang tải thành tựu...</Text>
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Thành tựu
+            </Text>
+          </View>
+        </View>
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#E8BA69" />
+          <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
+            Đang tải...
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background justify-center items-center px-6">
-        <Text className="text-6xl mb-4">😔</Text>
-        <Text className="text-red-500 text-xl font-bold mb-2">Không thể tải thành tựu</Text>
-        <Text className="text-gray-500 dark:text-gray-400 text-center mb-4">
-          Vui lòng thử lại sau
-        </Text>
-
-        <TouchableOpacity onPress={() => refetch()} className="bg-gold rounded-full px-6 py-3">
-          <Text className="text-white font-bold">Thử lại</Text>
-        </TouchableOpacity>
+      <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Thành tựu
+            </Text>
+          </View>
+        </View>
+        <View className="flex-1 justify-center items-center px-6">
+          <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
+            <FontAwesome name="exclamation-triangle" size={32} color="#F2A297" />
+          </View>
+          <Text className="text-light-text dark:text-dark-text text-xl font-bold mb-2">
+            Không thể tải thành tựu
+          </Text>
+          <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-4">
+            Vui lòng thử lại sau
+          </Text>
+          <TouchableOpacity onPress={() => refetch()} className="bg-gold rounded-xl px-6 py-3">
+            <Text className="text-white font-bold">Thử lại</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -227,38 +266,41 @@ export function AchievementsScreen({ navigation }: Props) {
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       {/* Header */}
-      <View className="px-4 py-4 bg-white dark:bg-dark-card shadow-sm">
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
         <View className="flex-row items-center mb-4">
-          <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3 p-2 -ml-2">
-            <Ionicons name="arrow-back" size={24} color="#374151" />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+          >
+            <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
           </TouchableOpacity>
 
-          <View className="bg-gold/20 rounded-full p-2 mr-3">
-            <Text className="text-2xl">🏆</Text>
+          <View className="w-12 h-12 rounded-xl bg-gold/10 dark:bg-gold/10 items-center justify-center mr-3">
+            <FontAwesome name="trophy" size={20} color="#E8BA69" />
           </View>
 
           <View className="flex-1">
-            <Text className="text-xl font-bold text-gray-800 dark:text-gray-200">
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
               Thành tựu của bạn
             </Text>
-            <Text className="text-sm text-gray-500 dark:text-gray-400">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
               Khám phá và nhận thưởng cho các thành tựu
             </Text>
           </View>
         </View>
 
         {/* Stats */}
-        <View className="bg-gold/10 rounded-2xl p-4 mb-3">
+        <View className="bg-gold/10 dark:bg-gold/10 rounded-2xl p-4 mb-3 border border-gold/20 dark:border-gold/20">
           <View className="flex-row items-center justify-center">
-            <Text className="text-3xl font-black text-gold mr-2">
+            <Text className="text-3xl font-bold text-gold mr-2">
               {stats.completed}
             </Text>
-            <Text className="text-base text-gray-600 dark:text-gray-400">
+            <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary">
               / {stats.total} Thành tựu đã đạt được
             </Text>
           </View>
 
-          <View className="mt-3 h-3 bg-white dark:bg-gray-700 rounded-full overflow-hidden">
+          <View className="mt-3 h-3 bg-white dark:bg-dark-background rounded-full overflow-hidden border border-gold/20">
             <View
               className="h-full bg-gold rounded-full"
               style={{
@@ -269,21 +311,28 @@ export function AchievementsScreen({ navigation }: Props) {
         </View>
 
         {/* Category Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
           {CATEGORY_TABS.map((tab) => {
             const isActive = selectedCategory === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
                 onPress={() => handleCategoryChange(tab.key)}
-                className={`mr-2 px-4 py-2 rounded-full flex-row items-center ${
-                  isActive ? "bg-gold" : "bg-gray-100 dark:bg-gray-800"
+                className={`mr-2 px-4 py-2.5 rounded-full flex-row items-center border-2 ${
+                  isActive 
+                    ? "bg-gold border-gold" 
+                    : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
                 }`}
               >
-                <Text className="text-base mr-1">{tab.icon}</Text>
+                <FontAwesome 
+                  name={tab.icon as any} 
+                  size={14} 
+                  color={isActive ? "#FFF" : "#9CA3AF"} 
+                  style={{ marginRight: 6 }}
+                />
                 <Text
                   className={`text-sm font-bold ${
-                    isActive ? "text-white" : "text-gray-600 dark:text-gray-400"
+                    isActive ? "text-white" : "text-light-text dark:text-dark-text"
                   }`}
                 >
                   {tab.label}
@@ -312,11 +361,17 @@ export function AchievementsScreen({ navigation }: Props) {
             Object.entries(groupedAchievements).map(([category, items]) => (
               <View key={category} className="mb-6">
                 <View className="flex-row items-center mb-3">
-                  <Text className="text-2xl mr-2">{getCategoryIcon(category)}</Text>
-                  <Text className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                  <View className="w-8 h-8 rounded-lg bg-gold/10 dark:bg-gold/10 items-center justify-center mr-2">
+                    <FontAwesome 
+                      name={getCategoryIcon(category) as any} 
+                      size={16} 
+                      color="#E8BA69" 
+                    />
+                  </View>
+                  <Text className="text-lg font-bold text-light-text dark:text-dark-text">
                     {getCategoryLabel(category)}
                   </Text>
-                  <Text className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                  <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary ml-2">
                     ({items.filter((i) => i.isCompleted).length}/{items.length})
                   </Text>
                 </View>
@@ -330,14 +385,14 @@ export function AchievementsScreen({ navigation }: Props) {
 
           {filteredAchievements.length === 0 && (
             <View className="flex-1 justify-center items-center py-20 px-6">
-              <View className="bg-white dark:bg-dark-card rounded-3xl p-10 items-center shadow-lg w-full">
-                <View className="bg-gold/10 rounded-full p-6 mb-4">
-                  <Text className="text-7xl">🏆</Text>
+              <View className="bg-white dark:bg-dark-card rounded-3xl p-10 items-center border border-beige/30 dark:border-dark-border/30 w-full">
+                <View className="bg-gold/10 dark:bg-gold/10 rounded-full p-6 mb-4">
+                  <FontAwesome name="trophy" size={48} color="#E8BA69" />
                 </View>
-                <Text className="text-gray-800 dark:text-gray-200 text-xl font-bold mb-2 text-center">
+                <Text className="text-light-text dark:text-dark-text text-xl font-bold mb-2 text-center">
                   Chưa có thành tựu
                 </Text>
-                <Text className="text-gray-500 dark:text-gray-400 text-center leading-5">
+                <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center leading-5">
                   Hãy bắt đầu học tập và hoàn thành{"\n"}các nhiệm vụ để mở khóa thành tựu!
                 </Text>
               </View>

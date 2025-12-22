@@ -5,7 +5,8 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { LinearGradient } from 'expo-linear-gradient';
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CoursesStackNavigator } from "./CoursesStackNavigator";
 import { HomeStackNavigator } from "./HomeStackNavigator";
 import { ProductsStackNavigator } from "./ProductsStackNavigator";
@@ -13,9 +14,102 @@ import { ProfileStackNavigator } from "./ProfileStackNavigator";
 
 const Tab = createBottomTabNavigator<any>();
 
+// Custom Tab Bar Component with SafeArea
+function CustomTabBar(props: any) {
+  const insets = useSafeAreaInsets();
+  
+  return (
+    <View style={{ backgroundColor: '#F0FDFA' }}>
+      <LinearGradient
+        colors={['#FFFFFF', '#F0FDFA']} // White → Teal-50
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: "rgba(20, 184, 166, 0.15)",
+          paddingTop: 6,
+          paddingBottom: 6,
+          // Shadow
+          shadowColor: "#14B8A6",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+          elevation: 8,
+        }}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 8 }}>
+          {props.state.routes.map((route: any, index: number) => {
+            const { options } = props.descriptors[route.key];
+            const isFocused = props.state.index === index;
+            const label = options.tabBarLabel !== undefined
+              ? options.tabBarLabel
+              : options.title !== undefined
+              ? options.title
+              : route.name;
+
+            const onPress = () => {
+              const event = props.navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                props.navigation.navigate(route.name);
+              }
+            };
+
+            const onLongPress = () => {
+              props.navigation.emit({
+                type: 'tabLongPress',
+                target: route.key,
+              });
+            };
+
+            const icon = options.tabBarIcon?.({ focused: isFocused, color: isFocused ? "#14B8A6" : "#6B7280", size: 24 });
+
+            return (
+              <View key={route.key} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <View
+                  style={[
+                    styles.tabButton,
+                    isFocused && styles.tabButtonActive,
+                  ]}
+                >
+                  <TouchableOpacity
+                    onPress={onPress}
+                    onLongPress={onLongPress}
+                    style={styles.tabTouchable}
+                    activeOpacity={0.7}
+                  >
+                    {icon}
+                  </TouchableOpacity>
+                </View>
+                {options.tabBarLabel && (
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      isFocused && styles.tabLabelActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </LinearGradient>
+      {/* Safe Area with matching gradient color */}
+      <View style={{ height: insets.bottom, backgroundColor: '#F0FDFA' }} />
+    </View>
+  );
+}
+
 export function MainTabNavigator() {
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerStyle: {
           backgroundColor: "#ACD6B8",
@@ -24,46 +118,9 @@ export function MainTabNavigator() {
         headerTitleStyle: {
           fontWeight: "bold",
         },
-
-        tabBarActiveTintColor: "#237c72ff", // Teal-600 - đậm hơn để đọc được
-        tabBarInactiveTintColor: "#222428ff", // Slate-400 - nhạt hơn
-
-        // ✨ Gradient background
-        tabBarBackground: () => (
-          <View style={StyleSheet.absoluteFill}>
-            <LinearGradient
-              colors={['#FFFFFF', '#F0FDFA']} // White → Teal-50
-              style={StyleSheet.absoluteFill}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-            />
-          </View>
-        ),
-
-        tabBarStyle: {
-          backgroundColor: "transparent",
-          borderTopWidth: 1,
-          borderTopColor: "rgba(20, 184, 166, 0.1)", // Teal border nhẹ
-          paddingBottom: Platform.OS === "android" ? 8 : 20, // ✅ iOS cần padding nhiều hơn
-          paddingTop: 12,
-          height: Platform.OS === "android" ? 70 : 88, // ✅ iOS cao hơn
-          elevation: 0,
-          shadowColor: "#14B8A6",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 8,
-        },
-
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "700", // Bold hơn
-          marginTop: 6,
-          marginBottom: 2,
-        },
-
-        tabBarIconStyle: {
-          marginTop: 2,
-        },
+        tabBarActiveTintColor: "#14B8A6",
+        tabBarInactiveTintColor: "#6B7280",
+        headerShown: false,
       }}
     >
       <Tab.Screen
@@ -71,21 +128,14 @@ export function MainTabNavigator() {
         component={HomeStackNavigator}
         options={{
           title: "Trang chủ",
-          tabBarIcon: ({ focused, color }) => (
-            <View
-              style={[
-                styles.iconContainer,
-                focused && styles.iconContainerActive,
-              ]}
-            >
-              <AntDesign 
-                name="home" 
-                size={focused ? 26 : 24} 
-                color={focused ? "#14B8A6" : color}
-              />
-            </View>
+          tabBarLabel: "Trang chủ",
+          tabBarIcon: ({ focused, color, size }) => (
+            <AntDesign 
+              name="home" 
+              size={size || 24} 
+              color={focused ? "#14B8A6" : color}
+            />
           ),
-          headerShown: false,
         }}
       />
 
@@ -94,21 +144,14 @@ export function MainTabNavigator() {
         component={CoursesStackNavigator}
         options={{
           title: "Học tập",
-          tabBarIcon: ({ focused, color }) => (
-            <View
-              style={[
-                styles.iconContainer,
-                focused && styles.iconContainerActive,
-              ]}
-            >
-              <MaterialCommunityIcons 
-                name="book-open-variant" 
-                size={focused ? 26 : 24} 
-                color={focused ? "#14B8A6" : color}
-              />
-            </View>
+          tabBarLabel: "Học tập",
+          tabBarIcon: ({ focused, color, size }) => (
+            <MaterialCommunityIcons 
+              name="book-open-variant" 
+              size={size || 24} 
+              color={focused ? "#14B8A6" : color}
+            />
           ),
-          headerShown: false,
         }}
       />
 
@@ -117,21 +160,14 @@ export function MainTabNavigator() {
         component={ProductsStackNavigator}
         options={{
           title: "Mua sắm",
-          tabBarIcon: ({ focused, color }) => (
-            <View
-              style={[
-                styles.iconContainer,
-                focused && styles.iconContainerActive,
-              ]}
-            >
-              <Fontisto 
-                name="shopping-store" 
-                size={focused ? 24 : 22} 
-                color={focused ? "#14B8A6" : color}
-              />
-            </View>
+          tabBarLabel: "Mua sắm",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Fontisto 
+              name="shopping-store" 
+              size={(size || 24) - 2} 
+              color={focused ? "#14B8A6" : color}
+            />
           ),
-          headerShown: false,
         }}
       />
 
@@ -140,21 +176,14 @@ export function MainTabNavigator() {
         component={ProfileStackNavigator}
         options={{
           title: "Cá nhân",
-          tabBarIcon: ({ focused, color }) => (
-            <View
-              style={[
-                styles.iconContainer,
-                focused && styles.iconContainerActive,
-              ]}
-            >
-              <Ionicons 
-                name={focused ? "person" : "person-outline"} 
-                size={focused ? 26 : 24} 
-                color={focused ? "#14B8A6" : color}
-              />
-            </View>
+          tabBarLabel: "Cá nhân",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons 
+              name={focused ? "person" : "person-outline"} 
+              size={size || 24} 
+              color={focused ? "#14B8A6" : color}
+            />
           ),
-          headerShown: false,
         }}
       />
     </Tab.Navigator>
@@ -162,23 +191,33 @@ export function MainTabNavigator() {
 }
 
 const styles = StyleSheet.create({
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  tabButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+    marginBottom: -3,
   },
-  iconContainerActive: {
-    backgroundColor: 'rgba(20, 184, 166, 0.12)', // Teal 12% - nhẹ hơn
-    borderWidth: 2,
-    borderColor: 'rgba(20, 184, 166, 0.3)', // Teal border 30%
-    // ✨ Shadow nhẹ nhàng hơn
-    shadowColor: "#14B8A6",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+  tabButtonActive: {
+    // Không có background, chỉ đổi màu icon và text
+  },
+  tabTouchable: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: -3,
+  },
+  tabLabelActive: {
+    color: '#14B8A6',
+    fontWeight: '800', // Bold hơn
+    fontSize: 12, // Tăng size một chút
   },
 });

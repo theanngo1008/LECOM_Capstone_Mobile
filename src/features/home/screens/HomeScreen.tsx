@@ -1,25 +1,25 @@
+import { Notifications } from "@/components/Notifications";
 import { useCart } from "@/features/cart/hooks/useCart";
+import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import type { DrawerNavigationProp } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { DrawerNavigationProp } from "@react-navigation/drawer";
 import { useURL } from "expo-linking";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
   Text,
-  View,
-  Alert
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLandingPage } from "../hooks/useLandingPage";
-import { useBrowseProducts } from "../hooks/useBrowseProducts";
 import { useBrowseCourses } from "../hooks/useBrowseCourses";
-import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
-import { Notifications } from "@/components/Notifications";
+import { useBrowseProducts } from "../hooks/useBrowseProducts";
+import { useLandingPage } from "../hooks/useLandingPage";
 export function HomeScreen() {
   const { data: landingData, isLoading: isLoadingLanding, isError: isErrorLanding } = useLandingPage();
   const { data: productsData, isLoading: isLoadingProducts } = useBrowseProducts();
@@ -98,7 +98,7 @@ useEffect(() => {
               Khám phá
             </Text>
             <View className="flex-row items-center mt-2">
-              <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
+              
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
                 Tìm yêu thích tiếp theo của bạn
               </Text>

@@ -8,7 +8,12 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "logs:android": "./scripts/view-logs.sh",
+    "logs:app": "adb logcat | grep -E '(ReactNativeJS|ReactNative|Expo|AppBadge|NotificationsHub|com.yourcompany.lecom|🔔|📊|🔌|✅|❌|⚠️|ERROR|FATAL)'",
+    "logs:package": "adb logcat | grep 'com.yourcompany.lecom'",
+    "logs:clear": "adb logcat -c",
+    "logs:all": "adb logcat"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

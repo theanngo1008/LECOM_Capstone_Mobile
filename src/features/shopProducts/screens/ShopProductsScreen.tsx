@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ScrollView,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -120,7 +121,13 @@ export function ShopProductsScreen() {
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       {/* Header */}
       <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+          >
+            <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+          </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
               Sản phẩm của tôi

@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useCreateCourse } from "../hooks/useCreateCourse";
 
 export const CreateShopCourseScreen = () => {
@@ -47,7 +48,7 @@ export const CreateShopCourseScreen = () => {
       const { status: permissionStatus } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permissionStatus !== "granted") {
-        Alert.alert("Permission required", "Please allow access to your photos");
+        Alert.alert("Cần quyền truy cập", "Vui lòng cho phép truy cập ảnh của bạn");
         return;
       }
 
@@ -72,16 +73,16 @@ export const CreateShopCourseScreen = () => {
       if (!uploadedUrl) throw new Error("Upload failed");
 
       setCourseThumbnail(uploadedUrl);
-      Alert.alert("Success", "Thumbnail uploaded successfully!");
+      Alert.alert("Thành công", "Tải hình ảnh đại diện lên thành công!");
     } catch (err: any) {
       console.error("Upload error:", err);
-      Alert.alert("Error", err.message || "Failed to upload thumbnail");
+      Alert.alert("Lỗi", err.message || "Không thể tải hình ảnh đại diện lên");
     }
   };
 
   const handleSubmit = () => {
     if (!title || !summary || !categoryId || !courseThumbnail) {
-      Alert.alert("Validation Error", "Please fill in all fields and upload a thumbnail");
+      Alert.alert("Lỗi xác thực", "Vui lòng điền đầy đủ các trường và tải hình ảnh đại diện lên");
       return;
     }
 
@@ -98,7 +99,7 @@ export const CreateShopCourseScreen = () => {
       },
       {
         onSuccess: () => {
-          Alert.alert("Success", "Course created successfully!", [
+          Alert.alert("Thành công", "Tạo khóa học thành công!", [
             {
               text: "OK",
               onPress: () => {
@@ -113,20 +114,20 @@ export const CreateShopCourseScreen = () => {
           ]);
         },
         onError: (error: any) => {
-          Alert.alert("Error", error.message || "Failed to create course");
+          Alert.alert("Lỗi", error.message || "Không thể tạo khóa học");
         },
       }
     );
   };
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         {/* Header */}
-        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 50 : 16 }}>
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
           <View className="flex-row items-center justify-between">
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -135,7 +136,7 @@ export const CreateShopCourseScreen = () => {
               <FontAwesome name="arrow-left" size={16} color="#4A5568" />
             </TouchableOpacity>
             <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-              Create Course
+              Tạo khóa học
             </Text>
             <View className="w-10" />
           </View>
@@ -149,12 +150,12 @@ export const CreateShopCourseScreen = () => {
           {/* Course Title */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Course Title <Text className="text-coral">*</Text>
+              Tiêu đề khóa học <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="Enter course title"
+              placeholder="Nhập tiêu đề khóa học"
               placeholderTextColor="#9CA3AF"
               className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30"
             />
@@ -163,12 +164,12 @@ export const CreateShopCourseScreen = () => {
           {/* Summary */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Summary <Text className="text-coral">*</Text>
+              Tóm tắt <Text className="text-coral">*</Text>
             </Text>
             <TextInput
               value={summary}
               onChangeText={setSummary}
-              placeholder="Enter course summary"
+              placeholder="Nhập tóm tắt khóa học"
               placeholderTextColor="#9CA3AF"
               className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30"
               multiline
@@ -180,7 +181,7 @@ export const CreateShopCourseScreen = () => {
           {/* ✅ Category Selector */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-              Category <Text className="text-coral">*</Text>
+              Danh mục <Text className="text-coral">*</Text>
             </Text>
             <TouchableOpacity
               className="bg-white dark:bg-dark-card px-4 py-3.5 rounded-xl border border-beige/30 dark:border-dark-border/30 flex-row items-center justify-between"
@@ -194,7 +195,7 @@ export const CreateShopCourseScreen = () => {
                     : "text-gray-400"
                 }`}
               >
-                {categoryName || "Select a category"}
+                {categoryName || "Chọn danh mục"}
               </Text>
               <FontAwesome name="chevron-down" size={14} color="#9CA3AF" />
             </TouchableOpacity>
@@ -203,7 +204,7 @@ export const CreateShopCourseScreen = () => {
           {/* Course Thumbnail */}
           <View className="mb-5">
             <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-              Course Thumbnail <Text className="text-coral">*</Text>
+              Hình ảnh đại diện <Text className="text-coral">*</Text>
             </Text>
             
             {courseThumbnail ? (
@@ -235,10 +236,10 @@ export const CreateShopCourseScreen = () => {
                   <View className="items-center">
                     <FontAwesome name="image" size={40} color="#ACD6B8" />
                     <Text className="text-mint dark:text-gold font-semibold mt-3">
-                      Upload Thumbnail
+                      Tải hình ảnh đại diện lên
                     </Text>
                     <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary mt-1">
-                      Recommended: Square (1:1)
+                      Khuyến nghị: Hình vuông (1:1)
                     </Text>
                   </View>
                 )}
@@ -258,7 +259,7 @@ export const CreateShopCourseScreen = () => {
               <View className="flex-row items-center">
                 <FontAwesome name="check" size={16} color="white" />
                 <Text className="text-white font-bold text-base ml-2">
-                  Create Course
+                  Tạo khóa học
                 </Text>
               </View>
             )}
@@ -278,7 +279,7 @@ export const CreateShopCourseScreen = () => {
             {/* Modal Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-beige/50 dark:border-dark-border/50">
               <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-                Select Category
+                Chọn danh mục
               </Text>
               <TouchableOpacity
                 onPress={() => setShowCategoryModal(false)}
@@ -293,7 +294,7 @@ export const CreateShopCourseScreen = () => {
               <View className="py-12 items-center">
                 <ActivityIndicator size="large" color="#ACD6B8" />
                 <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                  Loading categories...
+                  Đang tải danh mục...
                 </Text>
               </View>
             ) : (
@@ -333,7 +334,7 @@ export const CreateShopCourseScreen = () => {
                   <View className="py-12 items-center">
                     <FontAwesome name="inbox" size={48} color="#D1D5DB" />
                     <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4">
-                      No categories available
+                      Không có danh mục nào
                     </Text>
                   </View>
                 )}
@@ -342,6 +343,6 @@ export const CreateShopCourseScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };

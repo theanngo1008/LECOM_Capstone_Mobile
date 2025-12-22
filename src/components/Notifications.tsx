@@ -2,6 +2,7 @@ import { useMarkAllAsRead } from "@/hooks/useMarkAllAsRead";
 import { useMarkAsRead } from "@/hooks/useMarkAsRead";
 import { useNotificationsHub } from "@/hooks/useNotificationsHub";
 import { useNotificationsList } from "@/hooks/useNotificationsList";
+import { useNotificationsStore } from "@/store/notifications-store";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -44,11 +45,16 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
   const markAsReadMutation = useMarkAsRead();
   const markAllAsReadMutation = useMarkAllAsRead();
 
+  // Get unread count from store
+  const { unreadCount } = useNotificationsStore();
+
   const notifications = data?.result || [];
 
-  // ✅ Tính unreadCount từ danh sách thực tế
-  const unreadCount = useMemo(() => {
-    return notifications.filter(notif => !notif.isRead).length;
+  // Sync unread count from API to store when notifications change
+  useEffect(() => {
+    const apiUnreadCount = notifications.filter(notif => !notif.isRead).length;
+    const { setUnreadCount } = useNotificationsStore.getState();
+    setUnreadCount(apiUnreadCount);
   }, [notifications]);
 
   // ✅ Fetch data ngay khi component mount
@@ -84,6 +90,8 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
   const handleMarkAsRead = async (id: string) => {
     try {
       await markAsReadMutation.mutateAsync(id);
+      const { decrementUnreadCount } = useNotificationsStore.getState();
+      decrementUnreadCount();
       refetch(); // ✅ Refetch để cập nhật danh sách
     } catch (error) {
       console.error("❌ Error marking as read:", error);
@@ -93,6 +101,8 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsReadMutation.mutateAsync();
+      const { resetUnreadCount } = useNotificationsStore.getState();
+      resetUnreadCount();
       refetch(); // ✅ Refetch để cập nhật danh sách
     } catch (error) {
       console.error("❌ Error marking all as read:", error);

@@ -185,25 +185,36 @@ export function ShopScreen({ navigation }: any) {
           <View className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40" />
 
           {/* Top Actions */}
-          <View className="absolute top-4 left-4 right-4 flex-row justify-end gap-2">
+          <View className="absolute top-4 left-4 right-4 flex-row justify-between items-center">
+            {/* Left - Drawer Button */}
             <TouchableOpacity
-              onPress={handleEditShop}
-              className="w-10 h-10 rounded-full bg-skyBlue items-center justify-center shadow-lg"
-              disabled={isDeleting}
+              onPress={() => navigation.getParent()?.openDrawer()}
+              className="w-10 h-10 rounded-full bg-white/20 dark:bg-black/20 items-center justify-center shadow-lg backdrop-blur-sm"
             >
-              <FontAwesome name="edit" size={16} color="white" />
+              <FontAwesome name="bars" size={18} color="white" />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDeleteShop}
-              className="w-10 h-10 rounded-full bg-coral items-center justify-center shadow-lg"
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <FontAwesome name="trash" size={16} color="white" />
-              )}
-            </TouchableOpacity>
+
+            {/* Right - Edit & Delete Buttons */}
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={handleEditShop}
+                className="w-10 h-10 rounded-full bg-skyBlue items-center justify-center shadow-lg"
+                disabled={isDeleting}
+              >
+                <FontAwesome name="edit" size={16} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDeleteShop}
+                className="w-10 h-10 rounded-full bg-coral items-center justify-center shadow-lg"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <FontAwesome name="trash" size={16} color="white" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Shop Avatar - Positioned at bottom of banner */}

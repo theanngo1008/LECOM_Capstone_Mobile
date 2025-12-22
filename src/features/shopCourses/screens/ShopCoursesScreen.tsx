@@ -1,3 +1,4 @@
+import type { ShopStackParamList } from "@/navigation/ShopStackNavigator";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -5,7 +6,6 @@ import React, { useState } from "react";
 import {
     ActivityIndicator,
     Image,
-    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCourseProducts } from "../hooks/useCourseProducts";
-import type { ShopStackParamList } from "@/navigation/ShopStackNavigator";
 
 export function ShopCoursesScreen() {
   const { data, isLoading, isError } = useCourseProducts();
@@ -40,7 +39,7 @@ export function ShopCoursesScreen() {
         <View className="items-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4 text-base">
-            Loading courses...
+            Đang tải khóa học...
           </Text>
         </View>
       </SafeAreaView>
@@ -56,7 +55,7 @@ export function ShopCoursesScreen() {
           </View>
           <Text className="text-coral font-bold text-xl mb-2">Oops!</Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center">
-            Failed to load courses
+            Không thể tải khóa học
           </Text>
         </View>
       </SafeAreaView>
@@ -64,18 +63,24 @@ export function ShopCoursesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-cream dark:bg-dark-background">
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top']}>
       {/* Header */}
-      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 50 : 16 }}>
-        <View className="flex-row items-center justify-between">
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+          >
+            <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+          </Pressable>
           <View className="flex-1">
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
-              My Courses
+              Khóa học của tôi
             </Text>
             <View className="flex-row items-center mt-2">
               <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                {courses.length} courses available
+                {courses.length} khóa học
               </Text>
             </View>
           </View>
@@ -97,10 +102,10 @@ export function ShopCoursesScreen() {
               <FontAwesome name="inbox" size={40} color="#9CA3AF" />
             </View>
             <Text className="text-light-textSecondary dark:text-dark-textSecondary text-base font-medium">
-              No courses found
+              Chưa có khóa học
             </Text>
             <Text className="text-light-textSecondary dark:text-dark-textSecondary text-sm mt-1">
-              Create your first course to get started
+              Tạo khóa học đầu tiên để bắt đầu
             </Text>
           </View>
         ) : (
@@ -136,7 +141,7 @@ export function ShopCoursesScreen() {
                       }`}
                     >
                       <Text className="text-white text-[10px] font-bold">
-                        {course.active === 1 ? 'Active' : 'Inactive'}
+                        {course.active === 1 ? 'Hoạt động' : 'Tạm dừng'}
                       </Text>
                     </View>
                   </View>
@@ -203,7 +208,7 @@ export function ShopCoursesScreen() {
                       <View className="flex-row items-center">
                         <FontAwesome name="eye" size={12} color="#ACD6B8" />
                         <Text className="text-xs font-semibold text-mint dark:text-gold ml-1">
-                          View
+                          Xem
                         </Text>
                       </View>
                     </Pressable>
@@ -228,7 +233,7 @@ export function ShopCoursesScreen() {
           <View className="flex-row items-center">
             <FontAwesome name="plus" size={16} color="white" />
             <Text className="text-white font-bold text-base ml-2">
-              Add New Course
+              Thêm khóa học mới
             </Text>
           </View>
         </Pressable>
@@ -256,7 +261,7 @@ export function ShopCoursesScreen() {
                       : "text-light-text dark:text-dark-text"
                   }`}
                 >
-                  Previous
+                  Trước
                 </Text>
               </View>
             </Pressable>
@@ -284,7 +289,7 @@ export function ShopCoursesScreen() {
                       : "text-light-text dark:text-dark-text"
                   }`}
                 >
-                  Next
+                  Sau
                 </Text>
                 <FontAwesome
                   name="chevron-right"
@@ -296,6 +301,6 @@ export function ShopCoursesScreen() {
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

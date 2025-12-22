@@ -2,12 +2,14 @@ import { CourseItem } from "@/api/course";
 import { useCourseCategories } from "@/hooks/useCourseCategories";
 import { CoursesStackScreenProps } from "@/navigation/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import type { DrawerNavigationProp } from "@react-navigation/drawer";
 import React, { useState } from "react";
 
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Platform,
   RefreshControl,
   ScrollView,
   Text,
@@ -21,10 +23,11 @@ import { useCourses } from "../hooks/useCourses";
 type Props = CoursesStackScreenProps<"CoursesList">;
 
 export function CoursesScreen({ navigation }: Props) {
+  const drawerNavigation = navigation.getParent<DrawerNavigationProp<any>>();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCategories();
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCategories();
 
   const {
     data: coursesData,
@@ -36,12 +39,8 @@ const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCatego
     page,
     limit: 10,
     category: selectedCategory || undefined,
+    search: searchQuery || undefined,
   });
-
-  // ✅ Debug logs
-  console.log("🎯 CoursesScreen - Raw data:", coursesData);
-  console.log("🎯 Type of coursesData:", typeof coursesData);
-  console.log("🎯 Is Array?:", Array.isArray(coursesData));
 
   // ✅ FIX: Check if data is array or object
   const coursesList = Array.isArray(coursesData) 
@@ -56,27 +55,29 @@ const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCatego
     ? 1
     : coursesData?.totalPages || 1;
 
-  console.log("📊 Processed data:", {
-    coursesList: coursesList.length,
-    totalItems,
-    totalPages,
-  });
-
   const categories = [
-  { id: "", name: "Tất cả" },
-  ...(categoriesData?.map((item: any) => ({
-    id: item.id,
-    name: item.name,
-  })) || []),
-];
+    { id: "", name: "Tất cả" },
+    ...(categoriesData?.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+    })) || []),
+  ];
 
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    setPage(1);
+  };
 
-  // ✅ FIX: Filter from coursesList
-  const filteredCourses = coursesList.filter((course) =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSelectCategory = (categoryName: string | undefined) => {
+    setSelectedCategory(categoryName);
+    setPage(1);
+  };
 
-  console.log("🔍 Filtered courses:", filteredCourses.length);
+  const handleLoadMore = () => {
+    if (totalPages && page < totalPages && !isLoading) {
+      setPage((prev) => prev + 1);
+    }
+  };
 
   const renderCourseCard = ({ item }: { item: CourseItem }) => (
     <TouchableOpacity
@@ -201,93 +202,103 @@ const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCatego
   );
 
   const renderHeader = () => (
-    <View className="pb-4">
-      {/* Title */}
+    <View className="mb-4">
+      {/* Stats */}
       <View className="flex-row items-center justify-between mb-4">
         <View>
-          <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
-            Khóa học
+          <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
+            {totalItems} Khóa học
           </Text>
           <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-1">
-            {totalItems} khóa học
+            Trang {page} / {totalPages || 1}
           </Text>
-        </View>
-        <View className="w-12 h-12 rounded-2xl bg-mint/10 dark:bg-gold/10 items-center justify-center">
-          <FontAwesome name="graduation-cap" size={24} color="#ACD6B8" />
         </View>
       </View>
 
       {/* Search Bar */}
-      <View className="flex-row items-center bg-white dark:bg-dark-card rounded-2xl px-4 py-3 border border-beige/30 dark:border-dark-border/30 mb-4">
-        <FontAwesome
-          name="search"
-          size={18}
-          color="#9CA3AF"
-          style={{ marginRight: 12 }}
-        />
+      <View className="flex-row items-center bg-white dark:bg-dark-card px-4 py-3 rounded-xl border border-beige/30 dark:border-dark-border/30 mb-3">
+        <FontAwesome name="search" size={16} color="#9CA3AF" />
         <TextInput
-          className="flex-1 text-base text-light-text dark:text-dark-text"
+          value={searchQuery}
+          onChangeText={handleSearch}
           placeholder="Tìm kiếm khóa học..."
           placeholderTextColor="#9CA3AF"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+          className="flex-1 ml-3 text-light-text dark:text-dark-text text-base"
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <FontAwesome name="times-circle" size={18} color="#9CA3AF" />
+          <TouchableOpacity onPress={() => handleSearch("")}>
+            <FontAwesome name="times-circle" size={16} color="#9CA3AF" />
           </TouchableOpacity>
         )}
       </View>
-{/* Category Filter */}
-<ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-  className="mb-2"
-  contentContainerStyle={{ paddingRight: 16 }}
->
-  {isCategoriesLoading ? (
-    <ActivityIndicator size="small" color="#ACD6B8" />
-  ) : (
-    categories.map((item) => (
-      <TouchableOpacity
-        key={item.id}
-        className={`px-4 py-2 rounded-full mr-2 ${
-          selectedCategory === item.id
-            ? "bg-mint dark:bg-gold"
-            : "bg-white dark:bg-dark-card border border-beige/30 dark:border-dark-border/30"
-        }`}
-        onPress={() => {
-  console.log("📂 Category selected:", item.name);
-  setSelectedCategory(item.id === "" ? "" : item.name);
-  setPage(1);
-}}
 
-      >
-        <Text
-          className={`font-semibold ${
-            selectedCategory === item.id
-              ? "text-white"
-              : "text-light-text dark:text-dark-text"
-          }`}
+      {/* Category Filter */}
+      {categoriesData && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 16 }}
         >
-          {item.name}
-        </Text>
-      </TouchableOpacity>
-    ))
-  )}
-</ScrollView>
+          {isCategoriesLoading ? (
+            <ActivityIndicator size="small" color="#ACD6B8" />
+          ) : (
+            <>
+              <TouchableOpacity
+                onPress={() => handleSelectCategory(undefined)}
+                className={`px-3 py-1.5 mr-2 rounded-full border ${
+                  !selectedCategory
+                    ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
+                    : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    !selectedCategory
+                      ? "text-mint dark:text-gold"
+                      : "text-light-textSecondary dark:text-dark-textSecondary"
+                  }`}
+                >
+                  Tất cả
+                </Text>
+              </TouchableOpacity>
+
+              {categoriesData.map((cat: any) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => handleSelectCategory(cat.name)}
+                  className={`px-3 py-1.5 mr-2 rounded-full border ${
+                    selectedCategory === cat.name
+                      ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
+                      : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-medium ${
+                      selectedCategory === cat.name
+                        ? "text-mint dark:text-gold"
+                        : "text-light-textSecondary dark:text-dark-textSecondary"
+                    }`}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 
   const renderFooter = () => {
-    const hasMore = page < totalPages;
+    const hasMore = totalPages && page < totalPages;
 
     return (
       <View className="py-6">
         {hasMore && (
           <TouchableOpacity
             className="py-3 rounded-full bg-white dark:bg-dark-card border border-mint/30 dark:border-gold/30"
-            onPress={() => setPage((prev) => prev + 1)}
+            onPress={handleLoadMore}
             disabled={isLoading}
           >
             <Text className="text-center text-mint dark:text-gold font-semibold">
@@ -297,9 +308,11 @@ const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCatego
         )}
 
         {/* Pagination Info */}
-        <Text className="text-center text-sm text-light-textSecondary dark:text-dark-textSecondary mt-4">
-          Trang {page} / {totalPages}
-        </Text>
+        {totalPages > 1 && (
+          <Text className="text-center text-sm text-light-textSecondary dark:text-dark-textSecondary mt-4">
+            Trang {page} / {totalPages}
+          </Text>
+        )}
       </View>
     );
   };
@@ -326,31 +339,60 @@ const { data: categoriesData, isLoading: isCategoriesLoading } = useCourseCatego
   }
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-cream dark:bg-dark-background"
-      edges={["top"]}
-    >
-      <FlatList
-        ListHeaderComponent={renderHeader}
-        data={filteredCourses}
-        renderItem={renderCourseCard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 20 }}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => {
-              console.log("🔄 Pull to refresh");
-              refetch();
-            }}
-            tintColor="#ACD6B8"
-            colors={["#ACD6B8"]}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+    <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
+      <View className="flex-1">
+        {/* Header */}
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30" style={{ paddingTop: Platform.OS === 'ios' ? 16 : 16 }}>
+          <View className="flex-row items-center justify-between mb-4">
+            {/* Left - Menu Button */}
+            <TouchableOpacity
+              className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3"
+              onPress={() => drawerNavigation?.openDrawer()}
+            >
+              <FontAwesome name="bars" size={20} color="#ACD6B8" />
+            </TouchableOpacity>
+
+            {/* Center - Title */}
+            <View className="flex-1">
+              <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
+                Khóa học
+              </Text>
+              <View className="flex-row items-center mt-2">
+                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                  Khám phá tất cả khóa học
+                </Text>
+              </View>
+            </View>
+
+            {/* Right - Icon */}
+            <View className="w-14 h-14 rounded-2xl bg-mint/10 dark:bg-gold/10 items-center justify-center">
+              <FontAwesome name="graduation-cap" size={24} color="#ACD6B8" />
+            </View>
+          </View>
+        </View>
+
+        {/* Courses List */}
+        <FlatList
+          data={coursesList}
+          renderItem={renderCourseCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={renderFooter}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor="#ACD6B8"
+              colors={["#ACD6B8"]}
+            />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
     </SafeAreaView>
   );
 }

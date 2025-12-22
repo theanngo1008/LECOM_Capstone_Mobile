@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { DrawerNavigationProp } from "@react-navigation/drawer";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +19,7 @@ import { useCancelOrder } from "../hooks/useCancelOrder";
 import { useConfirmOrder } from "../hooks/useConfirmOrder";
 import { useMyOrders } from "../hooks/useMyOrders";
 
-type NavigationProp = NativeStackNavigationProp<OrdersStackParamList>;
+type NavigationProp = NativeStackNavigationProp<OrdersStackParamList> & DrawerNavigationProp<any>;
 
 export function OrdersScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -411,31 +412,37 @@ export function OrdersScreen() {
       edges={["top"]}
     >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
-        >
-          <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
-        </TouchableOpacity>
+      <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+        <View className="flex-row items-center justify-between mb-4">
+          {/* Left - Menu Button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3"
+            onPress={() => navigation.openDrawer()}
+          >
+            <FontAwesome name="bars" size={20} color="#ACD6B8" />
+          </TouchableOpacity>
 
-        <View className="flex-1 items-center">
-          <Text className="text-xl font-bold text-light-text dark:text-dark-text">
-            Đơn hàng của tôi
-          </Text>
-          {orders.length > 0 && (
-            <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              {orders.length} đơn hàng
+          {/* Center - Title */}
+          <View className="flex-1">
+            <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
+              Đơn hàng của tôi
             </Text>
-          )}
-        </View>
+            <View className="flex-row items-center mt-2">
+              <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
+              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                {orders.length > 0 ? `${orders.length} đơn hàng` : "Lịch sử đơn hàng"}
+              </Text>
+            </View>
+          </View>
 
-        <TouchableOpacity
-          className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center"
-          onPress={() => refetch()}
-        >
-          <FontAwesome name="refresh" size={18} color="#ACD6B8" />
-        </TouchableOpacity>
+          {/* Right - Refresh Button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
+            onPress={() => refetch()}
+          >
+            <FontAwesome name="refresh" size={20} color="#ACD6B8" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}

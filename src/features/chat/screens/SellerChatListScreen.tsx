@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Platform,
   Pressable,
   RefreshControl,
   Text,
@@ -106,11 +105,13 @@ export function SellerChatListScreen() {
 
     return (
       <Pressable
-        className="mx-4 mb-3 rounded-3xl overflow-hidden shadow-sm active:scale-[0.98]"
+        className="mx-4 mb-3 rounded-2xl overflow-hidden border active:scale-[0.98]"
         style={{
-          backgroundColor: isAI ? '#E0F2FE' : '#FFFFFF', // Sky blue bg cho AI
-          borderWidth: hasUnread && !isAI ? 2 : 0,
-          borderColor: hasUnread && !isAI ? '#A5C4FB' : 'transparent',
+          backgroundColor: isAI ? '#EFF6FF' : '#FFFFFF',
+          borderColor: hasUnread 
+            ? (isAI ? '#3B82F6' : '#A5C4FB') 
+            : '#E5E7EB',
+          borderWidth: hasUnread ? 2 : 1,
         }}
         onPress={() =>
           navigation.navigate("ChatDetail", {
@@ -118,22 +119,6 @@ export function SellerChatListScreen() {
           })
         }
       >
-        {/* AI Border */}
-        {isAI && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderRadius: 24,
-              borderWidth: 2,
-              borderColor: '#0EA5E9',
-            }}
-          />
-        )}
-
         <View className="p-4">
           <View className="flex-row items-center">
             {/* Avatar & Product Image Stack */}
@@ -142,11 +127,11 @@ export function SellerChatListScreen() {
               {item.product.thumbnail ? (
                 <Image
                   source={{ uri: item.product.thumbnail }}
-                  className="w-14 h-14 rounded-2xl"
+                  className="w-14 h-14 rounded-xl"
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-14 h-14 rounded-2xl bg-skyBlue/10 items-center justify-center">
+                <View className="w-14 h-14 rounded-xl bg-skyBlue/10 items-center justify-center border border-beige/30 dark:border-dark-border/30">
                   <FontAwesome name="shopping-bag" size={20} color="#A5C4FB" />
                 </View>
               )}
@@ -154,9 +139,8 @@ export function SellerChatListScreen() {
               {/* Buyer Avatar Badge */}
               <View className="absolute -bottom-1 -right-1 rounded-full border-2 border-white dark:border-dark-card">
                 {isAI ? (
-                  // AI Avatar
-                  <View className="w-6 h-6 rounded-full bg-sky-500 items-center justify-center">
-                    <Text className="text-[12px]">🤖</Text>
+                  <View className="w-6 h-6 rounded-full bg-blue-500 items-center justify-center">
+                    <Text className="text-white text-[10px] font-bold">AI</Text>
                   </View>
                 ) : item.displayAvatar ? (
                   <Image
@@ -171,13 +155,6 @@ export function SellerChatListScreen() {
                   </View>
                 )}
               </View>
-
-              {/* AI Sparkle Badge */}
-              {isAI && (
-                <View className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-blue-400 items-center justify-center border-2 border-white">
-                  <Text className="text-[10px]">💬</Text>
-                </View>
-              )}
             </View>
 
             {/* Content */}
@@ -197,9 +174,9 @@ export function SellerChatListScreen() {
                   </Text>
                   {/* AI Badge inline */}
                   {isAI && (
-                    <View className="px-2 py-0.5 rounded-full bg-sky-500">
+                    <View className="px-2 py-0.5 rounded-full bg-blue-500 flex-row items-center">
                       <Text className="text-white text-[10px] font-bold">
-                        🤖 AI
+                        AI
                       </Text>
                     </View>
                   )}
@@ -208,7 +185,7 @@ export function SellerChatListScreen() {
                   className={`text-xs ${
                     hasUnread
                       ? isAI
-                        ? "text-sky-600 font-bold"
+                        ? "text-blue-600 font-bold"
                         : "text-skyBlue font-bold"
                       : "text-light-textSecondary dark:text-dark-textSecondary"
                   }`}
@@ -222,13 +199,13 @@ export function SellerChatListScreen() {
                 <FontAwesome
                   name="cube"
                   size={11}
-                  color={isAI ? "#0284C7" : "#9CA3AF"}
+                  color={isAI ? "#3B82F6" : "#9CA3AF"}
                   style={{ marginRight: 6 }}
                 />
                 <Text
                   className={`text-xs flex-1 ${
                     isAI
-                      ? "text-sky-600"
+                      ? "text-blue-600"
                       : "text-light-textSecondary dark:text-dark-textSecondary"
                   }`}
                   numberOfLines={1}
@@ -239,21 +216,14 @@ export function SellerChatListScreen() {
 
               {/* Last Message & Unread Badge */}
               <View className="flex-row items-center">
-                {/* AI Icon prefix */}
-                {isAI && (
-                  <View className="mr-1">
-                    <Text className="text-[12px]">💭</Text>
-                  </View>
-                )}
-
                 <Text
                   className={`text-sm flex-1 mr-2 ${
                     hasUnread
                       ? isAI
-                        ? "text-sky-700 font-semibold"
+                        ? "text-blue-700 font-semibold"
                         : "text-light-text dark:text-dark-text font-semibold"
                       : isAI
-                      ? "text-sky-600/70"
+                      ? "text-blue-600/70"
                       : "text-light-textSecondary dark:text-dark-textSecondary"
                   }`}
                   numberOfLines={1}
@@ -266,7 +236,7 @@ export function SellerChatListScreen() {
                   <View
                     className="min-w-[22px] h-[22px] rounded-full items-center justify-center px-2"
                     style={{
-                      backgroundColor: isAI ? '#0284C7' : '#F2A297',
+                      backgroundColor: isAI ? '#3B82F6' : '#F2A297',
                     }}
                   >
                     <Text className="text-white text-[11px] font-bold">
@@ -284,20 +254,15 @@ export function SellerChatListScreen() {
 
   const renderEmptyState = () => (
     <View className="flex-1 items-center justify-center py-20 px-8">
-      <View className="w-32 h-32 rounded-full bg-skyBlue/10 items-center justify-center mb-6">
-        <FontAwesome name="comments-o" size={56} color="#A5C4FB" />
+      <View className="w-24 h-24 rounded-full bg-skyBlue/10 items-center justify-center mb-6 border border-beige/30 dark:border-dark-border/30">
+        <FontAwesome name="comments-o" size={40} color="#A5C4FB" />
       </View>
-      <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3 text-center">
+      <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2 text-center">
         Chưa có tin nhắn
       </Text>
       <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center leading-6">
         Khi khách hàng hỏi về sản phẩm,{"\n"}tin nhắn sẽ xuất hiện ở đây
       </Text>
-      <View className="mt-8 px-8 py-4 rounded-full bg-skyBlue/10">
-        <Text className="text-sm text-skyBlue font-semibold">
-          💬 AI sẵn sàng hỗ trợ
-        </Text>
-      </View>
     </View>
   );
 
@@ -307,17 +272,28 @@ export function SellerChatListScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
-        <View className="flex-1 items-center justify-center">
-          <View className="w-20 h-20 rounded-full bg-skyBlue/10 items-center justify-center mb-4">
-            <ActivityIndicator size="large" color="#A5C4FB" />
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <Pressable
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </Pressable>
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Tin nhắn khách hàng
+            </Text>
           </View>
-          <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary font-medium">
-            Đang tải tin nhắn...
+        </View>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#A5C4FB" />
+          <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary font-medium mt-4">
+            Đang tải...
           </Text>
         </View>
       </SafeAreaView>
     );
-  };
+  }
 
   // ================================
   // Error UI
@@ -325,22 +301,35 @@ export function SellerChatListScreen() {
   if (isError) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="w-24 h-24 rounded-full bg-red-50 dark:bg-red-900/20 items-center justify-center mb-6">
-            <FontAwesome name="exclamation-circle" size={48} color="#EF4444" />
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <Pressable
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </Pressable>
+            <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+              Tin nhắn khách hàng
+            </Text>
           </View>
-          <Text className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
+        </View>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-6 border border-coral/30">
+            <FontAwesome name="exclamation-triangle" size={32} color="#F2A297" />
+          </View>
+          <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
             Không thể tải
           </Text>
-          <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center mb-8 leading-6">
+          <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center mb-8">
             Không thể tải danh sách tin nhắn.{"\n"}Vui lòng thử lại.
           </Text>
           <Pressable
-            className="bg-skyBlue px-8 py-4 rounded-2xl active:scale-95 shadow-lg"
+            className="bg-skyBlue px-6 py-3 rounded-xl active:scale-95"
             onPress={() => refetch()}
           >
             <View className="flex-row items-center">
-              <FontAwesome name="refresh" size={18} color="white" />
+              <FontAwesome name="refresh" size={16} color="white" />
               <Text className="text-white font-bold text-base ml-2">
                 Thử lại
               </Text>
@@ -363,17 +352,22 @@ export function SellerChatListScreen() {
   return (
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background">
       <View className="flex-1">
-        {/* Header */}
-        <View className="px-6 py-5 bg-white dark:bg-dark-card border-b border-beige/20 dark:border-dark-border/20">
-          <View className="flex-row items-center justify-between">
-            {/* Left: Title & Count */}
+        {/* Header with Back Button */}
+        <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
+          <View className="flex-row items-center">
+            <Pressable
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-full bg-beige/50 dark:bg-dark-border/50 items-center justify-center mr-3"
+            >
+              <FontAwesome name="arrow-left" size={18} color="#ACD6B8" />
+            </Pressable>
             <View className="flex-1">
-              <Text className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">
+              <Text className="text-xl font-bold text-light-text dark:text-dark-text">
                 Tin nhắn khách hàng
               </Text>
-              <View className="flex-row items-center">
+              <View className="flex-row items-center mt-1">
                 <View className="w-2 h-2 rounded-full bg-skyBlue mr-2" />
-                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary font-medium">
+                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
                   {conversations.length} cuộc trò chuyện
                 </Text>
                 {totalUnread > 0 && (
@@ -386,20 +380,18 @@ export function SellerChatListScreen() {
                 )}
               </View>
             </View>
-
-            {/* Right: Icon */}
-            <View className="relative">
-              <View className="w-14 h-14 rounded-2xl bg-skyBlue items-center justify-center shadow-lg">
-                <FontAwesome name="comments" size={24} color="white" />
-              </View>
-              {totalUnread > 0 && (
+            {totalUnread > 0 && (
+              <View className="relative ml-3">
+                <View className="w-12 h-12 rounded-xl bg-skyBlue items-center justify-center">
+                  <FontAwesome name="comments" size={20} color="white" />
+                </View>
                 <View className="absolute -top-1 -right-1 min-w-[20px] h-5 rounded-full bg-coral items-center justify-center px-1.5 border-2 border-white dark:border-dark-card">
                   <Text className="text-white text-[10px] font-bold">
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </Text>
                 </View>
-              )}
-            </View>
+              </View>
+            )}
           </View>
         </View>
 

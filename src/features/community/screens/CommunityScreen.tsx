@@ -1,4 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useNavigation } from "@react-navigation/native";
+import type { DrawerNavigationProp } from "@react-navigation/drawer";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,7 +19,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useCommunityPosts } from "../hooks/useCommunityPosts";
 import { useCreateCommunityPost } from "../hooks/useCreateCommunityPost";
 
-export function CommunityScreen({ navigation }: any) {
+export function CommunityScreen({ navigation: routeNavigation }: any) {
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -119,7 +122,16 @@ export function CommunityScreen({ navigation }: any) {
     <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={['top', 'bottom']}>
       {/* Header */}
       <View className="px-6 py-4 bg-white dark:bg-dark-card border-b border-beige/30 dark:border-dark-border/30">
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center justify-between mb-4">
+          {/* Left - Menu Button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center mr-3"
+            onPress={() => navigation.openDrawer()}
+          >
+            <FontAwesome name="bars" size={20} color="#ACD6B8" />
+          </TouchableOpacity>
+
+          {/* Center - Title */}
           <View className="flex-1">
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
               Community
@@ -132,7 +144,7 @@ export function CommunityScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Create Post Button */}
+          {/* Right - Create Post Button */}
           <TouchableOpacity
             className="w-12 h-12 rounded-xl bg-mint dark:bg-gold items-center justify-center shadow-lg"
             onPress={() => setShowCreateModal(true)}

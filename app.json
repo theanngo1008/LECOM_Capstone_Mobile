@@ -30,8 +30,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "lecom-fe.vercel.app",
-              "pathPrefix": "/auth/email-confirmed"
+              "host": "lecom-fe.vercel.app"
             }
           ],
           "category": [
@@ -59,6 +58,15 @@
           "dark": {
             "backgroundColor": "#1F2937"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#3B82F6",
+          "sounds": [],
+          "mode": "production"
         }
       ]
     ],

@@ -11,6 +11,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ProfileStackParamList } from "./types";
 import { AchievementsScreen } from "@/features/profile/screens/AchievementsScreen";
+import { MyEnrollmentsScreen } from "@/features/profile/screens/MyEnrollmentsScreen";
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 export function ProfileStackNavigator() {
@@ -63,6 +64,10 @@ export function ProfileStackNavigator() {
       <Stack.Screen
         name="Leaderboard"
         component={LeaderBoardScreen}
+      />
+      <Stack.Screen
+        name="MyEnrollments"
+        component={MyEnrollmentsScreen}
       />
      
     </Stack.Navigator>
