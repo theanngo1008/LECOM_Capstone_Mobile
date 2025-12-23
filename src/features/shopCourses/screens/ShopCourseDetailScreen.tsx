@@ -70,17 +70,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [lessonTitle, setLessonTitle] = useState("");
-  const [lessonType, setLessonType] = useState<"Video" | "Quiz">("Video");
   const [lessonVideoUrl, setLessonVideoUrl] = useState("");
   const [videoDuration, setVideoDuration] = useState<number>(0);
-  
-  // Quiz state
-  const [quizQuestions, setQuizQuestions] = useState<
-    {
-      content: string;
-      answers: { content: string; isCorrect: boolean }[];
-    }[]
-  >([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
 
   // Edit Course Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -282,120 +273,26 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
     );
   };
 
-  // Quiz helper functions
-  const addQuestion = () => {
-    setQuizQuestions([
-      ...quizQuestions,
-      { content: "", answers: [{ content: "", isCorrect: false }] },
-    ]);
-  };
-
-  const removeQuestion = (index: number) => {
-    if (quizQuestions.length > 1) {
-      setQuizQuestions(quizQuestions.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateQuestion = (index: number, content: string) => {
-    const updated = [...quizQuestions];
-    updated[index].content = content;
-    setQuizQuestions(updated);
-  };
-
-  const addAnswer = (questionIndex: number) => {
-    const updated = [...quizQuestions];
-    updated[questionIndex].answers.push({ content: "", isCorrect: false });
-    setQuizQuestions(updated);
-  };
-
-  const removeAnswer = (questionIndex: number, answerIndex: number) => {
-    const updated = [...quizQuestions];
-    if (updated[questionIndex].answers.length > 1) {
-      updated[questionIndex].answers = updated[questionIndex].answers.filter(
-        (_, i) => i !== answerIndex
-      );
-      setQuizQuestions(updated);
-    }
-  };
-
-  const updateAnswer = (
-    questionIndex: number,
-    answerIndex: number,
-    content: string
-  ) => {
-    const updated = [...quizQuestions];
-    updated[questionIndex].answers[answerIndex].content = content;
-    setQuizQuestions(updated);
-  };
-
-  const toggleCorrectAnswer = (questionIndex: number, answerIndex: number) => {
-    const updated = [...quizQuestions];
-    updated[questionIndex].answers[answerIndex].isCorrect =
-      !updated[questionIndex].answers[answerIndex].isCorrect;
-    setQuizQuestions(updated);
-  };
-
   const handleCreateLesson = () => {
     if (!lessonTitle.trim()) {
       Alert.alert("Lỗi xác thực", "Vui lòng điền tiêu đề bài học");
       return;
     }
 
-    if (lessonType === "Video" && !lessonVideoUrl) {
+    if (!lessonVideoUrl) {
       Alert.alert("Lỗi xác thực", "Vui lòng tải video lên");
       return;
     }
 
-    if (lessonType === "Quiz") {
-      // Validate quiz
-      const validQuestions = quizQuestions.filter(
-        (q) => q.content.trim() && q.answers.length >= 2
-      );
-      
-      if (validQuestions.length === 0) {
-        Alert.alert("Lỗi xác thực", "Vui lòng thêm ít nhất 1 câu hỏi với ít nhất 2 đáp án");
-        return;
-      }
-
-      // Validate each question has at least one correct answer
-      const hasCorrectAnswer = validQuestions.every((q) =>
-        q.answers.some((a) => a.isCorrect && a.content.trim())
-      );
-
-      if (!hasCorrectAnswer) {
-        Alert.alert("Lỗi xác thực", "Mỗi câu hỏi phải có ít nhất 1 đáp án đúng");
-        return;
-      }
-    }
-
-    const payload: any = {
+    const payload = {
       courseSectionId: selectedSectionId,
       title: lessonTitle.trim(),
-      type: lessonType,
+      type: "Video" as const,
+      contentUrl: lessonVideoUrl,
+      durationSeconds: videoDuration,
       orderIndex:
         sections?.find((s) => s.id === selectedSectionId)?.lessons.length || 0,
     };
-
-    if (lessonType === "Video") {
-      payload.contentUrl = lessonVideoUrl;
-      payload.durationSeconds = videoDuration;
-    } else if (lessonType === "Quiz") {
-      payload.quiz = {
-        questions: quizQuestions
-          .filter((q) => q.content.trim() && q.answers.length >= 2)
-          .map((q) => ({
-            content: q.content.trim(),
-            answers: q.answers
-              .filter((a) => a.content.trim())
-              .map((a) => ({
-                content: a.content.trim(),
-                isCorrect: a.isCorrect,
-              })),
-          })),
-      };
-      payload.contentUrl = null;
-      payload.durationSeconds = null;
-    }
 
     console.log("📤 Creating lesson payload:", payload);
 
@@ -410,10 +307,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         Alert.alert("Thành công", "Tạo bài học thành công!");
         setShowLessonModal(false);
         setLessonTitle("");
-        setLessonType("Video");
         setLessonVideoUrl("");
         setVideoDuration(0);
-        setQuizQuestions([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
       },
       onError: (error: any) => {
         console.log("❌ Full error:", error);
@@ -898,8 +793,6 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         onRequestClose={() => {
           setShowLessonModal(false);
           setVideoDuration(0);
-          setLessonType("Video");
-          setQuizQuestions([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
         }}
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-4">
@@ -912,8 +805,6 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 onPress={() => {
                   setShowLessonModal(false);
                   setVideoDuration(0);
-                  setLessonType("Video");
-                  setQuizQuestions([{ content: "", answers: [{ content: "", isCorrect: false }] }]);
                 }}
               >
                 <FontAwesome name="times" size={20} color="#9CA3AF" />
@@ -934,77 +825,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                 />
               </View>
 
-              {/* Type Selector */}
-              <View className="mb-4">
-                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                  Loại bài học <Text className="text-coral">*</Text>
-                </Text>
-                <View className="flex-row gap-3">
-                  <TouchableOpacity
-                    className={`flex-1 p-4 rounded-lg border-2 ${
-                      lessonType === "Video"
-                        ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
-                        : "border-gray-300 dark:border-dark-border"
-                    }`}
-                    onPress={() => {
-                      setLessonType("Video");
-                      setLessonVideoUrl("");
-                      setVideoDuration(0);
-                    }}
-                  >
-                    <View className="items-center">
-                      <FontAwesome
-                        name="video-camera"
-                        size={24}
-                        color={lessonType === "Video" ? "#ACD6B8" : "#9CA3AF"}
-                      />
-                      <Text
-                        className={`mt-2 font-semibold ${
-                          lessonType === "Video"
-                            ? "text-mint dark:text-gold"
-                            : "text-light-textSecondary dark:text-dark-textSecondary"
-                        }`}
-                      >
-                        Video
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    className={`flex-1 p-4 rounded-lg border-2 ${
-                      lessonType === "Quiz"
-                        ? "border-mint dark:border-gold bg-mint/10 dark:bg-gold/10"
-                        : "border-gray-300 dark:border-dark-border"
-                    }`}
-                    onPress={() => {
-                      setLessonType("Quiz");
-                      setLessonVideoUrl("");
-                      setVideoDuration(0);
-                    }}
-                  >
-                    <View className="items-center">
-                      <FontAwesome
-                        name="question-circle"
-                        size={24}
-                        color={lessonType === "Quiz" ? "#ACD6B8" : "#9CA3AF"}
-                      />
-                      <Text
-                        className={`mt-2 font-semibold ${
-                          lessonType === "Quiz"
-                            ? "text-mint dark:text-gold"
-                            : "text-light-textSecondary dark:text-dark-textSecondary"
-                        }`}
-                      >
-                        Quiz
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
               {/* Video Form */}
-              {lessonType === "Video" && (
-                <View className="mb-6">
+              <View className="mb-6">
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
                     Video <Text className="text-coral">*</Text>
                   </Text>
@@ -1058,113 +880,8 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
                       </>
                     )}
                   </TouchableOpacity>
-                  )}
-                </View>
-              )}
-
-              {/* Quiz Form */}
-              {lessonType === "Quiz" && (
-                <View className="mb-6">
-                  <View className="flex-row items-center justify-between mb-3">
-                    <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                      Câu hỏi <Text className="text-coral">*</Text>
-                    </Text>
-                    <TouchableOpacity
-                      className="px-3 py-1 bg-mint/10 dark:bg-gold/10 rounded-lg"
-                      onPress={addQuestion}
-                    >
-                      <View className="flex-row items-center">
-                        <FontAwesome name="plus" size={14} color="#ACD6B8" />
-                        <Text className="text-mint dark:text-gold font-semibold ml-1 text-xs">
-                          Thêm câu hỏi
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-
-                  {quizQuestions.map((question, questionIndex) => (
-                    <View
-                      key={questionIndex}
-                      className="mb-4 p-4 bg-beige/20 dark:bg-dark-border/20 rounded-xl border border-beige/30 dark:border-dark-border/30"
-                    >
-                      <View className="flex-row items-start justify-between mb-3">
-                        <Text className="text-xs font-semibold text-light-text dark:text-dark-text">
-                          Câu hỏi {questionIndex + 1}
-                        </Text>
-                        {quizQuestions.length > 1 && (
-                          <TouchableOpacity
-                            onPress={() => removeQuestion(questionIndex)}
-                          >
-                            <FontAwesome name="trash-o" size={16} color="#FF6B6B" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-
-                      <TextInput
-                        value={question.content}
-                        onChangeText={(text) => updateQuestion(questionIndex, text)}
-                        placeholder="Nhập nội dung câu hỏi"
-                        placeholderTextColor="#9CA3AF"
-                        className="border border-gray-300 dark:border-dark-border rounded-lg p-3 text-light-text dark:text-dark-text mb-3"
-                        multiline
-                      />
-
-                      <Text className="text-xs font-semibold text-light-text dark:text-dark-text mb-2">
-                        Đáp án:
-                      </Text>
-
-                      {question.answers.map((answer, answerIndex) => (
-                        <View
-                          key={answerIndex}
-                          className="flex-row items-center mb-2"
-                        >
-                          <TouchableOpacity
-                            className="w-6 h-6 rounded-full border-2 border-mint dark:border-gold items-center justify-center mr-2"
-                            onPress={() =>
-                              toggleCorrectAnswer(questionIndex, answerIndex)
-                            }
-                          >
-                            {answer.isCorrect && (
-                              <View className="w-3 h-3 rounded-full bg-mint dark:bg-gold" />
-                            )}
-                          </TouchableOpacity>
-
-                          <TextInput
-                            value={answer.content}
-                            onChangeText={(text) =>
-                              updateAnswer(questionIndex, answerIndex, text)
-                            }
-                            placeholder={`Đáp án ${answerIndex + 1}`}
-                            placeholderTextColor="#9CA3AF"
-                            className="flex-1 border border-gray-300 dark:border-dark-border rounded-lg p-2 text-light-text dark:text-dark-text text-sm"
-                          />
-
-                          {question.answers.length > 1 && (
-                            <TouchableOpacity
-                              className="ml-2"
-                              onPress={() =>
-                                removeAnswer(questionIndex, answerIndex)
-                              }
-                            >
-                              <FontAwesome name="times-circle" size={18} color="#FF6B6B" />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      ))}
-
-                      <TouchableOpacity
-                        className="mt-2 flex-row items-center"
-                        onPress={() => addAnswer(questionIndex)}
-                      >
-                        <FontAwesome name="plus-circle" size={16} color="#ACD6B8" />
-                        <Text className="text-mint dark:text-gold font-semibold text-xs ml-1">
-                          Thêm đáp án
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+                )}
+              </View>
 
               <TouchableOpacity
                 className="bg-mint dark:bg-gold rounded-full py-4 items-center"

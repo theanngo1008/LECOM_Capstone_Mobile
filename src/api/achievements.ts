@@ -42,4 +42,14 @@ export const achievementsApi = {
     )
     return data
   },
+
+  /**
+   * POST /gamification/achievements/{id}/claim
+   */
+  claim: async (id: number): Promise<ApiResponse<void>> => {
+    const { data } = await apiClient.post<ApiResponse<void>>(
+      `/gamification/achievements/${id}/claim`
+    )
+    return data
+  },
 }

@@ -1,10 +1,12 @@
 import { AchievementItem } from "@/api/achievements";
 import { useAchievements } from "@/features/profile/hooks/useAchievements";
+import { useClaimAchievement } from "@/features/profile/hooks/useClaimAchievement";
 import { ProfileStackScreenProps } from "@/navigation/types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -47,6 +49,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 export function AchievementsScreen({ navigation }: Props) {
   const { data: achievements, isLoading, error, refetch, isFetching } = useAchievements();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const claimAchievement = useClaimAchievement();
 
   // -----------------------------
   // stable callbacks
@@ -99,11 +102,45 @@ export function AchievementsScreen({ navigation }: Props) {
   );
 
   // -----------------------------
+  // Handle Claim Achievement
+  // -----------------------------
+  const handleClaimAchievement = useCallback((id: number, title: string) => {
+    Alert.alert(
+      "Nhận thưởng",
+      `Bạn có chắc chắn muốn nhận thưởng cho thành tựu "${title}"?`,
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Nhận thưởng",
+          onPress: () => {
+            claimAchievement.mutate(id, {
+              onSuccess: () => {
+                Alert.alert("Thành công", "Bạn đã nhận thưởng thành công!");
+              },
+              onError: (error: any) => {
+                Alert.alert(
+                  "Lỗi",
+                  error?.message || "Không thể nhận thưởng. Vui lòng thử lại sau."
+                );
+              },
+            });
+          },
+        },
+      ]
+    );
+  }, [claimAchievement]);
+
+  // -----------------------------
   // Render Achievement Card
   // -----------------------------
   const renderAchievementCard = useCallback((item: AchievementItem) => {
     const progress = Math.min((item.currentCount / item.targetCount) * 100, 100);
     const isCompleted = item.isCompleted;
+    const canClaim = isCompleted && !item.isRewardClaimed;
+    const isClaiming = claimAchievement.isPending;
 
     return (
       <View
@@ -176,26 +213,54 @@ export function AchievementsScreen({ navigation }: Props) {
             </View>
 
             {/* Progress */}
-            <View>
-              <View className="flex-row justify-between items-center mb-1">
-                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                  Tiến độ {item.currentCount} / {item.targetCount}
-                </Text>
-                <Text className="text-xs font-bold text-gold">{Math.round(progress)}%</Text>
-              </View>
+            {!isCompleted && (
+              <View>
+                <View className="flex-row justify-between items-center mb-1">
+                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                    Tiến độ {item.currentCount} / {item.targetCount}
+                  </Text>
+                  <Text className="text-xs font-bold text-gold">{Math.round(progress)}%</Text>
+                </View>
 
-              <View className="h-2 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
-                <View
-                  className="h-full bg-gold rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
+                <View className="h-2 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
+                  <View
+                    className="h-full bg-gold rounded-full"
+                    style={{ width: `${progress}%` }}
+                  />
+                </View>
               </View>
-            </View>
+            )}
+
+            {/* Claim Button */}
+            {canClaim && (
+              <TouchableOpacity
+                className="mt-3 bg-gold rounded-full py-2.5 items-center flex-row justify-center"
+                onPress={() => handleClaimAchievement(item.id, item.title)}
+                disabled={isClaiming}
+              >
+                {isClaiming ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <FontAwesome name="gift" size={14} color="white" style={{ marginRight: 6 }} />
+                    <Text className="text-white font-bold text-sm">Nhận thưởng</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {/* Already Claimed Badge */}
+            {isCompleted && item.isRewardClaimed && (
+              <View className="mt-3 bg-mint/10 dark:bg-mint/10 rounded-full py-2 items-center flex-row justify-center border border-mint/30">
+                <FontAwesome name="check-circle" size={14} color="#ACD6B8" style={{ marginRight: 6 }} />
+                <Text className="text-mint font-semibold text-xs">Đã nhận thưởng</Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
     );
-  }, [getCategoryIcon]);
+  }, [getCategoryIcon, handleClaimAchievement, claimAchievement.isPending]);
 
   // =============================
   // LOADING & ERROR UI

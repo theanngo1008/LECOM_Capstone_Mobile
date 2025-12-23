@@ -243,65 +243,6 @@ export function LessonDetailModal({
               </View>
             )}
 
-            {/* Quiz Content */}
-            {lesson.type === "Quiz" && lesson.quiz && (
-              <View className="mb-4">
-                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-3">
-                  Câu hỏi ({lesson.quiz.questions?.length || 0})
-                </Text>
-                {lesson.quiz.questions?.map((question, questionIndex) => (
-                  <View
-                    key={questionIndex}
-                    className="mb-4 p-4 bg-beige/20 dark:bg-dark-border/20 rounded-xl border border-beige/30 dark:border-dark-border/30"
-                  >
-                    <View className="flex-row items-start mb-3">
-                      <View className="w-6 h-6 rounded-full bg-mint/20 dark:bg-gold/20 items-center justify-center mr-2">
-                        <Text className="text-xs font-bold text-mint dark:text-gold">
-                          {questionIndex + 1}
-                        </Text>
-                      </View>
-                      <Text className="flex-1 text-base font-semibold text-light-text dark:text-dark-text">
-                        {question.content}
-                      </Text>
-                    </View>
-
-                    <View className="ml-8">
-                      <Text className="text-xs font-semibold text-light-textSecondary dark:text-dark-textSecondary mb-2">
-                        Đáp án:
-                      </Text>
-                      {question.answers?.map((answer, answerIndex) => (
-                        <View
-                          key={answerIndex}
-                          className="flex-row items-center mb-2 p-2 rounded-lg bg-white/50 dark:bg-dark-card/50"
-                        >
-                          <View
-                            className={`w-5 h-5 rounded-full border-2 mr-2 items-center justify-center ${
-                              answer.isCorrect
-                                ? "border-mint dark:border-gold bg-mint/20 dark:bg-gold/20"
-                                : "border-gray-300 dark:border-dark-border"
-                            }`}
-                          >
-                            {answer.isCorrect && (
-                              <FontAwesome name="check" size={10} color="#ACD6B8" />
-                            )}
-                          </View>
-                          <Text
-                            className={`flex-1 text-sm ${
-                              answer.isCorrect
-                                ? "text-mint dark:text-gold font-semibold"
-                                : "text-light-text dark:text-dark-text"
-                            }`}
-                          >
-                            {answer.content}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
             {/* Linked Products */}
             {lesson.linkedProducts && lesson.linkedProducts.length > 0 && (
               <View className="mb-4">
