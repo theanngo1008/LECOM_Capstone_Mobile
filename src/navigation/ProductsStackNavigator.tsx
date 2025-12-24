@@ -1,31 +1,14 @@
 import { CartScreen } from "@/features/cart/screens/CartScreen";
 import { CheckoutScreen } from "@/features/cart/screens/CheckoutScreen";
 import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
+import { OrderDetailScreen } from "@/features/orders/screens/OrderDetailScreen";
+import { OrdersScreen } from "@/features/orders/screens/OrdersScreen";
 import { ProductDetailScreen } from "@/features/products/screens/ProductDetailScreen";
 import { ProductsScreen } from "@/features/products/screens/ProductsScreen";
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
-
-// ==============================================
-// PRODUCTS + CART STACK PARAM LIST
-// ==============================================
-export type ProductsStackParamList = {
-  ProductsList: undefined;
-  ProductDetail: {
-    slug: string;
-  };
-  CartMain: undefined;
-  Checkout: undefined;
-  CartProductDetail: {
-    productId: string;
-  };
-   ChatDetail: {
-    conversationId: string;
-    isAIChat?: boolean;
-  };
-   OrdersMain: undefined;
-};
+import { ProductsStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ProductsStackParamList>();
 
@@ -64,12 +47,25 @@ export function ProductsStackNavigator() {
         options={{ title: "Thanh toán" }}
       />
      
-<Stack.Screen
-  name="ChatDetail"
-  component={ChatDetailScreen}
-  options={{ title: "Chi tiết trò chuyện" }}
-/>
+      <Stack.Screen
+        name="ChatDetail"
+        component={ChatDetailScreen}
+        options={{ title: "Chi tiết trò chuyện" }}
+      />
 
+      {/* ORDERS */}
+      <Stack.Screen
+        name="OrdersMain"
+        component={OrdersScreen}
+        options={{ title: "Đơn hàng" }}
+      />
+      <Stack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
+        options={{ title: "Chi tiết đơn hàng" }}
+      />
     </Stack.Navigator>
   );
-} 
+}
+export { ProductsStackParamList };
+

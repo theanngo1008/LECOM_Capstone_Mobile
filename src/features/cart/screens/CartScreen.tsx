@@ -130,7 +130,7 @@ const calculateShipping = () => {
 };
 
 const shippingFee = calculateShipping();
-const totalWithShipping = selectedSubtotal + shippingFee;
+const totalWithShipping = selectedSubtotal;
 
 
   // RENDER GIỎ HÀNG TRỐNG
@@ -421,7 +421,7 @@ const totalWithShipping = selectedSubtotal + shippingFee;
                 <View className="flex-row justify-between mb-2">
                   <Text className="text-light-textSecondary">Phí vận chuyển</Text>
                   <Text className="text-light-text font-semibold">
-                    {formatPrice(shippingFee)}
+                    ---
                   </Text>
                 </View>
 

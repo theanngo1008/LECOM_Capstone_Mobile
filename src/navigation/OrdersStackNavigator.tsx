@@ -4,20 +4,7 @@ import React from "react"
 // IMPORT SCREENS
 import { OrdersScreen } from "@/features/orders/screens/OrdersScreen"
 import { OrderDetailScreen } from "@/features/orders/screens/OrderDetailScreen"
-
-// ==============================================
-// ORDERS STACK PARAM LIST
-// ==============================================
-export type OrdersStackParamList = {
-  OrdersMain: undefined
-  OrderDetail: {
-    orderId: string
-  }
-  CheckoutSuccess: {
-    orderId?: string
-  }
- 
-}
+import { OrdersStackParamList } from "./types"
 
 const Stack = createNativeStackNavigator<OrdersStackParamList>()
 

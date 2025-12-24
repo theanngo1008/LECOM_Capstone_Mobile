@@ -33,14 +33,46 @@ export type CoursesStackParamList = {
     courseId: string;
     courseTitle: string;
     sectionId: string;
-};
-ProductDetail: {
+  };
+  ProductDetail: {
     slug: string;
   };
-}
+};
 export type CoursesStackScreenProps<T extends keyof CoursesStackParamList> =
   CompositeScreenProps<
     NativeStackScreenProps<CoursesStackParamList, T>,
+    CompositeScreenProps<
+      BottomTabScreenProps<MainTabParamList>,
+      RNDrawerScreenProps<DrawerParamList>
+    >
+  >;
+
+// ==============================================
+// HOME STACK
+// ==============================================
+export type HomeStackParamList = {
+  HomeMain: undefined;
+  CourseDetail: {
+    slug: string;
+  };
+  ProductDetail: {
+    slug: string;
+  };
+  CartMain: undefined;
+  Checkout: undefined;
+  ChatDetail: {
+    conversationId: string;
+    isAIChat?: boolean;
+  };
+  OrdersMain: undefined;
+  OrderDetail: {
+    orderId: string;
+  };
+};
+
+export type HomeStackScreenProps<T extends keyof HomeStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<HomeStackParamList, T>,
     CompositeScreenProps<
       BottomTabScreenProps<MainTabParamList>,
       RNDrawerScreenProps<DrawerParamList>
@@ -202,13 +234,16 @@ export type ProductsStackParamList = {
   CartMain: undefined;
   Checkout: undefined;
   CartProductDetail: {
-    productId: string;       
+    productId: string;
   };
   ChatDetail: {
     conversationId: string;
     isAIChat?: boolean;
   };
-    OrdersMain: undefined;
+  OrdersMain: undefined;
+  OrderDetail: {
+    orderId: string;
+  };
 };
 
 export type ProductsStackScreenProps<T extends keyof ProductsStackParamList> =
@@ -229,7 +264,7 @@ export type OrdersStackParamList = {
   OrderDetail: {
     orderId: string;
   };
-  CheckoutSuccess?: {
+  CheckoutSuccess: {
     orderId?: string;
   };
 };
@@ -258,6 +293,26 @@ export type ChatStackParamList = {
   };
   SellerChatList: undefined;
 };
+
+// ==============================================
+// CART STACK
+// ==============================================
+export type CartStackParamList = {
+  CartMain: undefined;
+  Checkout: undefined;
+  CartProductDetail: {
+    productId: string;
+  };
+};
+
+export type CartStackScreenProps<T extends keyof CartStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<CartStackParamList, T>,
+    CompositeScreenProps<
+      BottomTabScreenProps<MainTabParamList>,
+      RNDrawerScreenProps<DrawerParamList>
+    >
+  >;
 
 export type ChatStackScreenProps<T extends keyof ChatStackParamList> =
   CompositeScreenProps<

@@ -1,18 +1,14 @@
 import { CartScreen } from "@/features/cart/screens/CartScreen";
 import { CheckoutScreen } from "@/features/cart/screens/CheckoutScreen";
+import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
 import { CourseDetailScreen } from "@/features/courses/screens/CourseDetailScreen";
 import { HomeScreen } from "@/features/home/screens/HomeScreen";
+import { OrderDetailScreen } from "@/features/orders/screens/OrderDetailScreen";
+import { OrdersScreen } from "@/features/orders/screens/OrdersScreen";
 import { ProductDetailScreen } from "@/features/products/screens/ProductDetailScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
-
-export type HomeStackParamList = {
-  HomeMain: undefined;
-  CourseDetail: { slug: string };
-  ProductDetail: { slug: string };
-  CartMain: undefined;
-  Checkout: undefined;
-};
+import { HomeStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -32,6 +28,23 @@ export function HomeStackNavigator() {
               component={CheckoutScreen}
               options={{ title: "Thanh toán" }}
             />
+      <Stack.Screen
+        name="ChatDetail"
+        component={ChatDetailScreen}
+        options={{ title: "Chi tiết trò chuyện" }}
+      />
+      <Stack.Screen
+        name="OrdersMain"
+        component={OrdersScreen}
+        options={{ title: "Đơn hàng" }}
+      />
+      <Stack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
+        options={{ title: "Chi tiết đơn hàng" }}
+      />
     </Stack.Navigator>
   );
 }
+
+export { HomeStackParamList };

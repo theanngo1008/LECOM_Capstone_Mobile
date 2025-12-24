@@ -1,9 +1,9 @@
-import { cartApi, CheckoutPayload } from "@/api/cart"
-import { ApiResponse } from "@/types/common"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { cartApi, CheckoutPayload } from "@/api/cart";
+import { ApiResponse } from "@/types/common";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const useCheckout = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const {
     mutate: checkout,
@@ -14,20 +14,18 @@ export const useCheckout = () => {
     reset,
   } = useMutation<ApiResponse<any>, Error, CheckoutPayload>({
     mutationFn: async (payload) => {
-      return await cartApi.checkout(payload)
+      return await cartApi.checkout(payload);
     },
 
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
 
-      queryClient.invalidateQueries({ queryKey: ["cart"] })
-
-     
-      queryClient.invalidateQueries({ queryKey: ["vouchers", "my"] })
-
-    
-      queryClient.invalidateQueries({ queryKey: ["walletBalance"] })
+      queryClient.invalidateQueries({ queryKey: ["vouchers", "my"] });
+      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["walletBalance"] });
     },
-  })
+  });
 
   return {
     checkout,
@@ -38,5 +36,5 @@ export const useCheckout = () => {
     isSuccess,
     error,
     reset,
-  }
-}
+  };
+};

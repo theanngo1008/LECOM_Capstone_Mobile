@@ -1,14 +1,13 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Pressable,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Pressable,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ReplyModal } from "../components/ReplyModal";
@@ -19,43 +18,31 @@ import { useUpdateReply } from "../hooks/useUpdateReply";
 /**
  * Shop Feedback Screen
  * 
- * Note: This component uses useNavigation hook which requires NavigationContainer context.
- * In dev mode with Fast Refresh, if you see navigation context errors, try:
- * 1. Reload the app completely (not just Fast Refresh)
- * 2. Or navigate away and back to this screen
+ * Uses same pattern as other ShopStack screens (ShopScreen, UpdateShopScreen, etc.)
  */
-export function ShopFeedbackScreen() {
-  // Use useNavigation hook - this requires NavigationContainer to be mounted
-  // In production builds, this always works. In dev mode with Fast Refresh,
-  // navigation context might not be available immediately after hot reload.
-  const navigation = useNavigation();
-
-  // Hooks must be called before any early returns
+export function ShopFeedbackScreen({ navigation }: any) {
+  // State hooks
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [showReplyModal, setShowReplyModal] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const pageSize = 10;
 
+  // Query hooks - called directly like AchievementsScreen
   const { data, isLoading, isError, refetch } = useShopFeedback(
     pageNumber,
     pageSize,
     selectedRating
   );
 
+  // Mutation hooks
   const { mutate: replyFeedback, isPending: isReplying } = useReplyFeedback();
   const { mutate: updateReply, isPending: isUpdating } = useUpdateReply();
 
-  const feedbackData = data?.result?.items || [];
-  const totalPages = data?.result?.pagination?.totalPages || 1;
-  const totalCount = data?.result?.pagination?.totalItems || 0;
-  const currentPage = data?.result?.pagination?.currentPage || 1;
-
-  // Modal State
-  const [showReplyModal, setShowReplyModal] = useState(false);
-  const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [isEditMode, setIsEditMode] = useState(false);
-
-  // Render Stars
+  // Callback hooks (must be called before early returns)
   const renderStars = useCallback((rating: number) => {
     return (
       <View className="flex-row gap-0.5">
@@ -71,7 +58,6 @@ export function ShopFeedbackScreen() {
     );
   }, []);
 
-  // Get Response Status
   const getResponseStatus = useCallback((reply: any) => {
     if (reply?.content) {
       return {
@@ -85,7 +71,6 @@ export function ShopFeedbackScreen() {
     };
   }, []);
 
-  // Open Reply Modal
   const handleOpenReplyModal = useCallback((feedback: any) => {
     const hasExistingReply = !!feedback.reply?.content;
     setSelectedFeedback(feedback);
@@ -94,7 +79,6 @@ export function ShopFeedbackScreen() {
     setShowReplyModal(true);
   }, []);
 
-  // Submit Reply
   const handleSubmitReply = useCallback(() => {
     if (!replyContent.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập nội dung trả lời");
@@ -142,7 +126,6 @@ export function ShopFeedbackScreen() {
     refetch,
   ]);
 
-  // Render Feedback Item
   const renderFeedbackItem = useCallback(
     ({ item }: any) => {
       const hasResponse = !!item.reply?.content;
@@ -255,6 +238,12 @@ export function ShopFeedbackScreen() {
     },
     [renderStars, getResponseStatus, handleOpenReplyModal]
   );
+
+  // Derived data (computed after hooks)
+  const feedbackData = data?.result?.items || [];
+  const totalPages = data?.result?.pagination?.totalPages || 1;
+  const totalCount = data?.result?.pagination?.totalItems || 0;
+  const currentPage = data?.result?.pagination?.currentPage || 1;
 
   const isSubmitting = isReplying || isUpdating;
 

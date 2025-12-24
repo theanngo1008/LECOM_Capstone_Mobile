@@ -10,6 +10,7 @@ export const useCompleteLesson = () => {
     onSuccess: (_, lessonId) => {
       // Tự refresh lại progress course
       queryClient.invalidateQueries({ queryKey: ["learn-course"] })
+      queryClient.invalidateQueries({ queryKey: ["my-enrollments"] })
     }
   })
 }

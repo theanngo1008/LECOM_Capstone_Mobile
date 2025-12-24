@@ -1,16 +1,8 @@
 import { CartScreen } from "@/features/cart/screens/CartScreen";
+import { CheckoutScreen } from "@/features/cart/screens/CheckoutScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
-
-
-
-export type CartStackParamList = {
-  CartMain: undefined; // Trang chính giỏ hàng
-  Checkout: undefined; // Trang thanh toán
-  CartProductDetail: {
-    productId: string; // Chi tiết sản phẩm trong giỏ hàng
-  };
-};
+import { CartStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<CartStackParamList>();
 
@@ -27,7 +19,11 @@ export function CartStackNavigator() {
         component={CartScreen}
         options={{ title: "My Cart" }}
       />
-     
+      <Stack.Screen
+        name="Checkout"
+        component={CheckoutScreen}
+        options={{ title: "Thanh toán" }}
+      />
     </Stack.Navigator>
   );
 }

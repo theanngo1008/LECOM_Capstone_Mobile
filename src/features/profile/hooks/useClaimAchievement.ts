@@ -15,6 +15,7 @@ export const useClaimAchievement = () => {
     onSuccess: () => {
       // Invalidate achievements query để refetch và cập nhật isRewardClaimed
       queryClient.invalidateQueries({ queryKey: ["achievements"] })
+      queryClient.invalidateQueries({ queryKey: ["gamification-profile"] })
     },
   })
 }

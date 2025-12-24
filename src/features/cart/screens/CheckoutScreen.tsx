@@ -939,6 +939,28 @@ export function CheckoutScreen({ navigation, route }: any) {
           elevation: 10,
         }}
       >
+        {/* Subtotal */}
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+            Tạm tính
+          </Text>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            {formatPrice(subtotalSelected)}
+          </Text>
+        </View>
+
+        {/* Shipping Fee - Show when previewed */}
+        {hasPreviewed && shippingFee > 0 && (
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+              Phí vận chuyển
+            </Text>
+            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+              {formatPrice(shippingFee)}
+            </Text>
+          </View>
+        )}
+
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
             Tổng thanh toán

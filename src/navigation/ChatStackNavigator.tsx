@@ -3,21 +3,7 @@ import React from "react";
 import { Platform } from "react-native";
 import { UserChatListScreen } from "@/features/chat/screens/UserChatListScreen";
 import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
-
-// ==============================================
-// CHAT STACK PARAM LIST
-// ==============================================
-export type ChatStackParamList = {
-  ChatList: undefined;
-  ChatDetail: {
-    conversationId: string;
-  };
-  StartChat?: {
-    productId?: string;
-    productSlug?: string;
-  };
-  SellerChatList: undefined;
-};
+import { ChatStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ChatStackParamList>();
 
@@ -62,3 +48,5 @@ export function ChatStackNavigator() {
     </Stack.Navigator>
   );
 }
+
+export { ChatStackParamList };

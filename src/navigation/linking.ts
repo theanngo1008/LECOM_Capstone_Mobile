@@ -97,7 +97,7 @@ export const linking: LinkingOptions<any> = {
           ShopWalletTransactions: "shop/wallet/transactions",
           ShopWithdrawals: "shop/wallet/withdrawals",
           ShopDashboard: "shop/dashboard",
-          ShopFeedbackMain: "shop/feedback",
+          // ShopFeedbackMain: "shop/feedback", // Temporarily disabled to fix navigation context issue
           ShopRefundsMain: "shop/refunds",
         },
       },
