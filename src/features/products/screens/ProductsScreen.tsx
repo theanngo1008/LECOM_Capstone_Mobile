@@ -20,64 +20,98 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useProducts } from "../hooks/useProducts";
 
+// Helper function to convert Vietnamese text to slug
+const nameToSlug = (name: string): string => {
+  // First, remove đ/Đ completely (not replace with d)
+  let slug = name.replace(/[đĐ]/g, "");
+  
+  // Remove Vietnamese diacritics and convert to lowercase
+  slug = slug
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+  
+  return slug;
+};
 
 export function ProductsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ProductsStackParamList> & DrawerNavigationProp<any>>();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined); 
-  const pageSize = 10;
+  const [allItems, setAllItems] = useState<any[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 6;
 
-  // ✅ Lấy danh mục
   const { data: categories } = useProductCategories();
 
-  // ✅ Lấy giỏ hàng để đếm số lượng
   const { items: cartShopGroups } = useCart();
   
-  // ✅ Tính tổng số lượng sản phẩm từ tất cả shop
   const cartItemCount = cartShopGroups.reduce((total, shopGroup) => {
     const shopTotal = shopGroup.items.reduce((sum, item) => sum + item.quantity, 0);
     return total + shopTotal;
   }, 0);
 
-  // ✅ Gửi category name lên API khi có chọn
-  // Tạo params object mới mỗi lần để đảm bảo React Query detect thay đổi
-  const productsParams = React.useMemo(() => ({
-    search: searchQuery || undefined,
-    page,
-    pageSize,
-    category: selectedCategory || undefined,
-  }), [searchQuery, page, pageSize, selectedCategory]);
+  // Reset page when search or category changes
+  React.useEffect(() => {
+    setPage(1);
+    setAllItems([]);
+  }, [searchQuery, selectedCategory]);
+
+  const productsParams = React.useMemo(() => {
+    const params: any = {
+      page,
+      pageSize,
+    };
+    if (searchQuery) {
+      params.search = searchQuery;
+    }
+    if (selectedCategory) {
+      params.category = selectedCategory;
+    }
+    return params;
+  }, [searchQuery, page, pageSize, selectedCategory]);
 
   const { data, isLoading, refetch, isRefetching } = useProducts(productsParams);
 
-  // Debug: Log để kiểm tra filter
+  // Update items when data changes
   React.useEffect(() => {
-    console.log("🔍 ProductsScreen Filter:", {
-      selectedCategory,
-      searchQuery,
-      page,
-      categoryParam: selectedCategory || undefined,
-    });
-  }, [selectedCategory, searchQuery, page]);
-
-  const productData = data?.result;
+    const productData = data?.result;
+    if (productData) {
+      // Only update if we're on page 1 (fresh search/category) or appending pages
+      if (page === 1) {
+        setAllItems(productData.items || []);
+      } else {
+        setAllItems((prev) => {
+          // Avoid duplicates - check if items already exist
+          const existingIds = new Set(prev.map(item => item.id));
+          const newItems = (productData.items || []).filter(item => !existingIds.has(item.id));
+          return [...prev, ...newItems];
+        });
+      }
+      setTotalPages(productData.totalPages || 1);
+      setTotalItems(productData.totalItems || 0);
+    }
+  }, [data, page]);
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    setPage(1);
   };
 
   const handleLoadMore = () => {
-    if (productData && page < productData.totalPages && !isLoading) {
+    if (page < totalPages && !isLoading && !isRefetching) {
       setPage((prev) => prev + 1);
     }
   };
 
-  // ✅ Hàm chọn category - dùng category name
   const handleSelectCategory = (categoryName: string | undefined) => {
     setSelectedCategory(categoryName);
-    setPage(1);
   };
 
   const renderProductItem = ({ item }: { item: any }) => (
@@ -155,10 +189,10 @@ export function ProductsScreen() {
       <View className="flex-row items-center justify-between mb-4">
         <View>
           <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
-            {productData?.totalItems || 0} Sản phẩm
+            {totalItems} Sản phẩm
           </Text>
           <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary mt-1">
-            Trang {productData?.page || 1} / {productData?.totalPages || 1}
+            Đã tải {allItems.length} / {totalItems} sản phẩm
           </Text>
         </View>
         <Pressable
@@ -166,7 +200,6 @@ export function ProductsScreen() {
           onPress={() => navigation.navigate("CartMain")}
         >
           <FontAwesome name="shopping-cart" size={20} color="#ACD6B8" />
-          {/* ✅ Cart Badge */}
           {cartItemCount > 0 && (
             <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
               <Text className="text-white text-[10px] font-bold">
@@ -194,7 +227,6 @@ export function ProductsScreen() {
         )}
       </View>
 
-      {/* ✅ Category Filter */}
       {categories && (
         <ScrollView
           horizontal
@@ -218,27 +250,30 @@ export function ProductsScreen() {
             </Text>
           </Pressable>
 
-          {categories.map((cat: any) => (
-            <Pressable
-              key={cat.id}
-              onPress={() => handleSelectCategory(cat.name)}
-              className={`px-3 py-1.5 mr-2 rounded-full border ${
-                selectedCategory === cat.name
-                  ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
-                  : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
-              }`}
-            >
-              <Text
-                className={`text-xs font-medium ${
-                  selectedCategory === cat.name
-                    ? "text-mint dark:text-gold"
-                    : "text-light-textSecondary dark:text-dark-textSecondary"
+          {categories.map((cat: any) => {
+            const categorySlug = nameToSlug(cat.name);
+            return (
+              <Pressable
+                key={cat.id}
+                onPress={() => handleSelectCategory(categorySlug)}
+                className={`px-3 py-1.5 mr-2 rounded-full border ${
+                  selectedCategory === categorySlug
+                    ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
+                    : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
                 }`}
               >
-                {cat.name}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  className={`text-xs font-medium ${
+                    selectedCategory === categorySlug
+                      ? "text-mint dark:text-gold"
+                      : "text-light-textSecondary dark:text-dark-textSecondary"
+                  }`}
+                >
+                  {cat.name}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       )}
     </View>
@@ -280,28 +315,43 @@ export function ProductsScreen() {
 
         {/* Products List */}
         <FlatList
-          data={productData?.items || []}
+          data={allItems}
           renderItem={renderProductItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-20">
-              <View className="w-20 h-20 rounded-full bg-beige/20 dark:bg-dark-border/20 items-center justify-center mb-4">
-                <FontAwesome name="shopping-bag" size={40} color="#ACD6B8" />
+            isLoading ? null : (
+              <View className="flex-1 items-center justify-center py-20">
+                <View className="w-20 h-20 rounded-full bg-beige/20 dark:bg-dark-border/20 items-center justify-center mb-4">
+                  <FontAwesome name="shopping-bag" size={40} color="#ACD6B8" />
+                </View>
+                <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
+                  Không tìm thấy sản phẩm
+                </Text>
+                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center px-8">
+                  {searchQuery ? `Không có kết quả cho "${searchQuery}"` : "Thử điều chỉnh tìm kiếm hoặc danh mục"}
+                </Text>
               </View>
-              <Text className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
-                Không tìm thấy sản phẩm
-              </Text>
-              <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center px-8">
-                {searchQuery ? `Không có kết quả cho "${searchQuery}"` : "Thử điều chỉnh tìm kiếm hoặc danh mục"}
-              </Text>
-            </View>
+            )
+          }
+          ListFooterComponent={
+            isLoading && page > 1 ? (
+              <View className="py-4 items-center">
+                <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
+                  Đang tải thêm...
+                </Text>
+              </View>
+            ) : null
           }
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
+              refreshing={isRefetching && page === 1}
+              onRefresh={() => {
+                setPage(1);
+                setAllItems([]);
+                refetch();
+              }}
               tintColor="#ACD6B8"
               colors={["#ACD6B8"]}
             />

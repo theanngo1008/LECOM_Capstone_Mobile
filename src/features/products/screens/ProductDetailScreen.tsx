@@ -1,5 +1,6 @@
 import { useAddToCart } from "@/features/cart/hooks/useAddToCart";
 import { useCart } from "@/features/cart/hooks/useCart";
+import { toVietnamTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
@@ -514,7 +515,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
                 Thông tin cửa hàng
               </Text>
 
-              <View className="flex-row items-center">
+              <View className="flex-row items-center mb-4">
                 {product.shopAvatar ? (
                   <Image
                     source={{ uri: product.shopAvatar }}
@@ -538,6 +539,17 @@ export function ProductDetailScreen({ navigation, route }: Props) {
                   </Text>
                 </View>
               </View>
+
+              <TouchableOpacity
+                className="bg-mint/10 dark:bg-gold/10 border border-mint dark:border-gold rounded-full py-3 flex-row items-center justify-center"
+                onPress={() => {
+                  navigation.navigate("ShopDetail", { shopId: product.shopId });
+                }}
+              >
+                <Text className="text-mint dark:text-gold font-bold">
+                  Xem cửa hàng
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* FEEDBACK SECTION */}
@@ -683,7 +695,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
                     Cập nhật lần cuối
                   </Text>
                   <Text className="text-light-text dark:text-dark-text font-semibold">
-                    {new Date(product.lastUpdatedAt).toLocaleDateString(
+                    {toVietnamTime(product.lastUpdatedAt).toLocaleDateString(
                       "vi-VN"
                     )}
                   </Text>

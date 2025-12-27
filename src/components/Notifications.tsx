@@ -3,10 +3,12 @@ import { useMarkAsRead } from "@/hooks/useMarkAsRead";
 import { useNotificationsHub } from "@/hooks/useNotificationsHub";
 import { useNotificationsList } from "@/hooks/useNotificationsList";
 import { useNotificationsStore } from "@/store/notifications-store";
+import { toVietnamTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
-import React, { useEffect, useState, useMemo } from "react";
+import * as Haptics from "expo-haptics";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -25,41 +27,34 @@ interface NotificationsProps {
   onNotificationPress?: (id: string) => void;
 }
 
-// ✅ Helper function to convert UTC to Vietnam time (+7 hours)
-const toVietnamTime = (utcDateString: string): Date => {
-  const utcDate = new Date(utcDateString);
-  const vietnamTime = new Date(utcDate.getTime() + 7 * 60 * 60 * 1000);
-  return vietnamTime;
-};
-
 export function Notifications({ onNotificationPress }: NotificationsProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const slideAnim = useState(new Animated.Value(height))[0];
 
-  // SignalR Hub (chỉ dùng để trigger refetch)
   const { latestNotification } = useNotificationsHub();
 
-  // REST API - ✅ Fetch ngay khi mount
   const { data, isLoading, refetch, isFetching } = useNotificationsList(page, 20);
   const markAsReadMutation = useMarkAsRead();
   const markAllAsReadMutation = useMarkAllAsRead();
 
-  // Get unread count from store
   const { unreadCount } = useNotificationsStore();
+
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const prevUnreadCountRef = useRef(unreadCount);
 
   const notifications = data?.result || [];
 
-  // Sync unread count from API to store when notifications change
   useEffect(() => {
     const apiUnreadCount = notifications.filter(notif => !notif.isRead).length;
     const { setUnreadCount } = useNotificationsStore.getState();
     setUnreadCount(apiUnreadCount);
-  }, [notifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.result]);
 
-  // ✅ Fetch data ngay khi component mount
   useEffect(() => {
     refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Animate modal
@@ -78,6 +73,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
         useNativeDriver: true,
       }).start();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalVisible]);
 
   // Update when new notification arrives
@@ -85,14 +81,120 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
     if (latestNotification) {
       refetch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestNotification]);
+
+  useEffect(() => {
+    if (unreadCount > 0 && prevUnreadCountRef.current !== unreadCount) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount]);
+
+  const animationLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (animationLoopRef.current) {
+      animationLoopRef.current.stop();
+      animationLoopRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    if (unreadCount > 0 && !isModalVisible) {
+      const createShakeAnimation = () => {
+        return Animated.sequence([
+          Animated.timing(shakeAnim, {
+            toValue: 3,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: -3,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 2,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: -2,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]);
+      };
+
+      const runAnimation = () => {
+        const { unreadCount: currentUnreadCount } = useNotificationsStore.getState();
+        
+        if (currentUnreadCount > 0 && !isModalVisible) {
+          const animation = createShakeAnimation();
+          
+          animationLoopRef.current = animation;
+          
+          animation.start(() => {
+            const { unreadCount: checkUnreadCount } = useNotificationsStore.getState();
+            
+            if (checkUnreadCount > 0 && !isModalVisible) {
+              timeoutRef.current = setTimeout(() => {
+                runAnimation();
+              }, 2000);
+            } else {
+              Animated.timing(shakeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+              }).start();
+            }
+          });
+        } else {
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+      };
+
+      runAnimation();
+    } else {
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+
+    return () => {
+      if (animationLoopRef.current) {
+        animationLoopRef.current.stop();
+        animationLoopRef.current = null;
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadCount, isModalVisible]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
       await markAsReadMutation.mutateAsync(id);
       const { decrementUnreadCount } = useNotificationsStore.getState();
       decrementUnreadCount();
-      refetch(); // ✅ Refetch để cập nhật danh sách
+      refetch();
     } catch (error) {
       console.error("❌ Error marking as read:", error);
     }
@@ -103,7 +205,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
       await markAllAsReadMutation.mutateAsync();
       const { resetUnreadCount } = useNotificationsStore.getState();
       resetUnreadCount();
-      refetch(); // ✅ Refetch để cập nhật danh sách
+      refetch();
     } catch (error) {
       console.error("❌ Error marking all as read:", error);
     }
@@ -152,22 +254,28 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
 
   return (
     <>
-      {/* Bell Icon Button */}
-      <Pressable
-        className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center relative"
-        onPress={() => setIsModalVisible(true)}
+      <Animated.View
+        style={{
+          transform: [
+            { translateX: shakeAnim },
+          ],
+        }}
       >
-        <FontAwesome name="bell" size={20} color="#ACD6B8" />
-        {unreadCount > 0 && (
-          <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
-            <Text className="text-white text-[10px] font-bold">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </Text>
-          </View>
-        )}
-      </Pressable>
+        <Pressable
+          className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center relative"
+          onPress={() => setIsModalVisible(true)}
+        >
+          <FontAwesome name="bell" size={20} color="#ACD6B8" />
+          {unreadCount > 0 && (
+            <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-coral items-center justify-center border-2 border-white dark:border-dark-card">
+              <Text className="text-white text-[10px] font-bold">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          )}
+        </Pressable>
+      </Animated.View>
 
-      {/* Modal */}
       <Modal
         visible={isModalVisible}
         animationType="fade"
@@ -252,7 +360,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
               style={{ flex: 1, backgroundColor: '#F9FAFB' }}
               contentContainerStyle={{ 
                 paddingHorizontal: 16,
-                paddingTop: 12,
+                paddingTop: 16,
                 paddingBottom: 24,
               }}
               showsVerticalScrollIndicator={false}
@@ -299,13 +407,18 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                     <Pressable
                       key={notif.id}
                       style={({ pressed }) => ({
-                        marginBottom: 10,
-                        padding: 14,
+                        marginBottom: 16,
+                        padding: 16,
                         borderRadius: 16,
                         backgroundColor: getNotificationBgColor(notif.type, notif.isRead),
                         opacity: pressed ? 0.95 : 1,
                         borderWidth: 1,
-                        borderColor: notif.isRead ? '#F3F4F6' : 'transparent',
+                        borderColor: notif.isRead ? '#E5E7EB' : getNotificationColor(notif.type) + '30',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 3,
+                        elevation: 2,
                       })}
                       onPress={() => {
                         if (!notif.isRead) {
@@ -322,7 +435,7 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                             borderRadius: 12,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginRight: 12,
+                            marginRight: 14,
                             backgroundColor: `${getNotificationColor(notif.type)}20`,
                           }}
                         >
@@ -337,8 +450,9 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                           <View style={{ 
                             flexDirection: 'row', 
                             alignItems: 'center',
-                            marginBottom: 4,
+                            marginBottom: 8,
                             gap: 6,
+                            flexWrap: 'wrap',
                           }}>
                             <View style={{
                               paddingHorizontal: 8,
@@ -381,8 +495,8 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                             fontSize: 15, 
                             fontWeight: '700', 
                             color: '#111827',
-                            marginBottom: 4,
-                            lineHeight: 20,
+                            marginBottom: 6,
+                            lineHeight: 22,
                           }}>
                             {notif.title}
                           </Text>
@@ -390,7 +504,8 @@ export function Notifications({ onNotificationPress }: NotificationsProps) {
                           <Text style={{ 
                             fontSize: 14, 
                             color: '#4B5563',
-                            lineHeight: 19,
+                            lineHeight: 20,
+                            marginTop: 2,
                           }}>
                             {notif.content}
                           </Text>

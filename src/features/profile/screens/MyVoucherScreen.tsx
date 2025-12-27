@@ -1,6 +1,7 @@
 import { Voucher } from "@/api/voucher";
 import { useVouchers } from "@/features/cart/hooks/useVouchers";
 import { ProfileStackScreenProps } from "@/navigation/types";
+import { toVietnamTime } from "@/utils/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useMemo } from "react";
@@ -117,7 +118,7 @@ export function MyVoucherScreen({ navigation }: Props) {
                     <Text className="text-xs text-gray-500 dark:text-gray-500">
                       HSD:{" "}
                       <Text className="font-semibold">
-                        {new Date(item.endDate).toLocaleDateString("vi-VN")}
+                        {toVietnamTime(item.endDate).toLocaleDateString("vi-VN")}
                       </Text>
                     </Text>
                   </View>

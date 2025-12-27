@@ -1,13 +1,14 @@
+import { formatVietnamDateTimeFull } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Pressable,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Pressable,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ReplyModal } from "../components/ReplyModal";
@@ -155,13 +156,7 @@ export function ShopFeedbackScreen({ navigation }: any) {
             </View>
 
             <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-              {new Date(item.createdAt).toLocaleString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })}
+              {formatVietnamDateTimeFull(item.createdAt)}
             </Text>
           </View>
 

@@ -1,5 +1,6 @@
 import { useWalletBalance } from "@/features/cart/hooks/useWalletBalance";
 import { useCustomerTransactions } from "@/features/wallet/hooks/useCustomerTransactions";
+import { formatVietnamDateTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
@@ -28,14 +29,7 @@ export function WalletScreen({ navigation }: any) {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatVietnamDateTime(dateString);
   };
 
   type FAIconName = React.ComponentProps<typeof FontAwesome>['name'];

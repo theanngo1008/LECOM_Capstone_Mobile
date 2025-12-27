@@ -1,6 +1,7 @@
 import { MyEnrollment } from "@/api/course";
 import { useMyEnrollments } from "@/features/profile/hooks/useMyEnrollments";
 import { ProfileStackScreenProps } from "@/navigation/types";
+import { toVietnamTime } from "@/utils/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useCallback, useMemo } from "react";
@@ -33,7 +34,7 @@ export function MyEnrollmentsScreen({ navigation }: Props) {
   // Format date helper
   // ===========================
   const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
+    const date = toVietnamTime(dateString);
     const time = date.toLocaleTimeString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",

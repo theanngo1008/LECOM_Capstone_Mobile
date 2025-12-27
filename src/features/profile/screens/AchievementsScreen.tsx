@@ -214,21 +214,21 @@ export function AchievementsScreen({ navigation }: Props) {
 
             {/* Progress */}
             {!isCompleted && (
-              <View>
-                <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                    Tiến độ {item.currentCount} / {item.targetCount}
-                  </Text>
-                  <Text className="text-xs font-bold text-gold">{Math.round(progress)}%</Text>
-                </View>
-
-                <View className="h-2 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
-                  <View
-                    className="h-full bg-gold rounded-full"
-                    style={{ width: `${progress}%` }}
-                  />
-                </View>
+            <View>
+              <View className="flex-row justify-between items-center mb-1">
+                <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                  Tiến độ {item.currentCount} / {item.targetCount}
+                </Text>
+                <Text className="text-xs font-bold text-gold">{Math.round(progress)}%</Text>
               </View>
+
+              <View className="h-2 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
+                <View
+                  className="h-full bg-gold rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              </View>
+            </View>
             )}
 
             {/* Claim Button */}

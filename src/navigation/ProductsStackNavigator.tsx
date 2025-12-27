@@ -1,10 +1,12 @@
 import { CartScreen } from "@/features/cart/screens/CartScreen";
 import { CheckoutScreen } from "@/features/cart/screens/CheckoutScreen";
 import { ChatDetailScreen } from "@/features/chat/screens/ChatDetailScreen";
+import { CourseDetailScreen } from "@/features/courses/screens/CourseDetailScreen";
 import { OrderDetailScreen } from "@/features/orders/screens/OrderDetailScreen";
 import { OrdersScreen } from "@/features/orders/screens/OrdersScreen";
 import { ProductDetailScreen } from "@/features/products/screens/ProductDetailScreen";
 import { ProductsScreen } from "@/features/products/screens/ProductsScreen";
+import { ShopDetailScreen } from "@/features/products/screens/ShopDetailScreen";
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
@@ -34,6 +36,20 @@ export function ProductsStackNavigator() {
           title: "Chi tiết sản phẩm",
         }}
       />
+      <Stack.Screen
+        name="ShopDetail"
+        component={ShopDetailScreen}
+        options={{
+          title: "Chi tiết cửa hàng",
+        }}
+      />
+      <Stack.Screen
+        name="CourseDetail"
+        component={CourseDetailScreen}
+        options={{
+          title: "Chi tiết khóa học",
+        }}
+      />
 
       {/* CART */}
       <Stack.Screen
@@ -47,11 +63,11 @@ export function ProductsStackNavigator() {
         options={{ title: "Thanh toán" }}
       />
      
-      <Stack.Screen
-        name="ChatDetail"
-        component={ChatDetailScreen}
-        options={{ title: "Chi tiết trò chuyện" }}
-      />
+<Stack.Screen
+  name="ChatDetail"
+  component={ChatDetailScreen}
+  options={{ title: "Chi tiết trò chuyện" }}
+/>
 
       {/* ORDERS */}
       <Stack.Screen
@@ -66,6 +82,6 @@ export function ProductsStackNavigator() {
       />
     </Stack.Navigator>
   );
-}
+} 
 export { ProductsStackParamList };
 

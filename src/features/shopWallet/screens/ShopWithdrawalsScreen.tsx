@@ -2,6 +2,7 @@ import { useShopWalletSummary } from "@/features/shopWallet/hooks/useShopWalletS
 import { useCreateShopWithdrawal } from "@/features/shopWallet/hooks/useCreateShopWithdrawal";
 import { useShopWithdrawals } from "@/features/shopWallet/hooks/useShopWithdrawals";
 import { useCancelShopWithdrawal } from "@/features/shopWallet/hooks/useCancelShopWithdrawal";
+import { formatVietnamDateTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
@@ -42,14 +43,7 @@ export function ShopWithdrawalsScreen({ navigation }: any) {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatVietnamDateTime(dateString);
   };
 
   const getStatusConfig = (status: string): {

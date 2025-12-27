@@ -21,7 +21,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       userId: null,
       isAuthenticated: false,
-      isLoading: true, // ✅ Start loading
+      isLoading: true,
 
       setAuth: (token, refreshToken, userId) => {
         console.log("✅ Auth Store: setAuth", { userId, hasToken: !!token });
@@ -38,11 +38,9 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log("🚪 Auth Store: Starting logout...");
           
-          // ✅ 1. Clear React Query cache
           queryClient.clear();
           console.log("✅ React Query cache cleared");
 
-          // ✅ 2. Clear Zustand state
           set({
             token: null,
             refreshToken: null,
@@ -51,13 +49,11 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
 
-          // ✅ 3. Clear ALL AsyncStorage (xóa toàn bộ cache)
           await AsyncStorage.clear();
           console.log("✅ AsyncStorage cleared completely");
 
         } catch (error) {
           console.error("❌ Logout error:", error);
-          // Force clear state even if AsyncStorage fails
           set({
             token: null,
             refreshToken: null,
@@ -77,7 +73,6 @@ export const useAuthStore = create<AuthState>()(
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
       
-      // ✅ Rehydrate callback
       onRehydrateStorage: () => {
         console.log("🔄 Auth Store: Starting rehydration...");
         
@@ -94,7 +89,6 @@ export const useAuthStore = create<AuthState>()(
             });
           }
           
-          // ✅ Finish loading AFTER rehydrate
           state?.setLoading(false);
         };
       },

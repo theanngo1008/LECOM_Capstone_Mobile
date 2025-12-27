@@ -1,3 +1,4 @@
+import { getRelativeTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
@@ -39,7 +40,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
 
   const handleCreateComment = () => {
     if (!commentBody.trim()) {
-      Alert.alert("Error", "Please enter a comment");
+      Alert.alert("Lỗi", "Vui lòng nhập bình luận");
       return;
     }
 
@@ -51,25 +52,28 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           refetch();
         },
         onError: (error: any) => {
-          Alert.alert("Error", error.message || "Failed to add comment");
+          Alert.alert("Lỗi", error.message || "Không thể thêm bình luận");
         },
       }
     );
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    return getRelativeTime(dateString);
+  };
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const stripHtmlTags = (html: string) => {
+    if (!html) return "";
+    // Remove HTML tags and decode HTML entities
+    return html
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/&nbsp;/g, " ") // Replace &nbsp; with space
+      .replace(/&amp;/g, "&") // Replace &amp; with &
+      .replace(/&lt;/g, "<") // Replace &lt; with <
+      .replace(/&gt;/g, ">") // Replace &gt; with >
+      .replace(/&quot;/g, '"') // Replace &quot; with "
+      .replace(/&#39;/g, "'") // Replace &#39; with '
+      .trim();
   };
 
   // Loading State
@@ -79,7 +83,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
         <View className="items-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4 text-base">
-            Loading post...
+            Đang tải bài viết...
           </Text>
         </View>
       </SafeAreaView>
@@ -94,21 +98,21 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
           <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
             <FontAwesome name="exclamation-triangle" size={40} color="#F2A297" />
           </View>
-          <Text className="text-coral font-bold text-xl mb-2">Oops!</Text>
+          <Text className="text-coral font-bold text-xl mb-2">Ồ!</Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-            Failed to load post details
+            Không thể tải chi tiết bài viết
           </Text>
           <TouchableOpacity
             className="bg-mint dark:bg-gold rounded-2xl py-3 px-8 active:opacity-80 mb-3"
             onPress={() => refetch()}
           >
-            <Text className="text-white font-bold text-base">Try Again</Text>
+            <Text className="text-white font-bold text-base">Thử lại</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="bg-white dark:bg-dark-card rounded-2xl py-3 px-8 border-2 border-beige/30 dark:border-dark-border/30 active:opacity-80"
             onPress={() => navigation.goBack()}
           >
-            <Text className="text-light-text dark:text-dark-text font-bold text-base">Go Back</Text>
+            <Text className="text-light-text dark:text-dark-text font-bold text-base">Quay lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -140,12 +144,12 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
             
             <View className="flex-1">
               <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
-                Post Details
+                Chi tiết bài viết
               </Text>
               <View className="flex-row items-center mt-1">
                 <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                  {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
+                  {totalComments} {totalComments === 1 ? 'bình luận' : 'bình luận'}
                 </Text>
               </View>
             </View>
@@ -177,7 +181,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                 )}
                 <View className="flex-1 ml-3">
                   <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-                    {post.user.userName || "Anonymous"}
+                    {post.user.userName || "Ẩn danh"}
                   </Text>
                   <View className="flex-row items-center mt-1">
                     <FontAwesome name="clock-o" size={12} color="#9CA3AF" />
@@ -195,7 +199,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                 {post.title}
               </Text>
               <Text className="text-base text-light-text dark:text-dark-text leading-6">
-                {post.body}
+                {stripHtmlTags(post.body)}
               </Text>
             </View>
 
@@ -206,7 +210,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                   <FontAwesome name="comment" size={14} color="#ACD6B8" />
                 </View>
                 <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                  {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
+                  {totalComments} {totalComments === 1 ? 'bình luận' : 'bình luận'}
                 </Text>
               </View>
             </View>
@@ -219,7 +223,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                 <FontAwesome name="comments" size={14} color="#ACD6B8" />
               </View>
               <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-                Comments
+                Bình luận
               </Text>
               <View className="flex-1 h-px bg-beige/30 dark:bg-dark-border/30 ml-3" />
             </View>
@@ -230,10 +234,10 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                   <FontAwesome name="comment-o" size={28} color="#ACD6B8" />
                 </View>
                 <Text className="text-base font-bold text-light-text dark:text-dark-text mb-1">
-                  No comments yet
+                  Chưa có bình luận
                 </Text>
                 <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary text-center">
-                  Be the first to share your thoughts!
+                  Hãy là người đầu tiên chia sẻ suy nghĩ của bạn!
                 </Text>
               </View>
             ) : (
@@ -261,7 +265,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                         <View className="flex-1 ml-3">
                           <View className="flex-row items-center justify-between mb-2">
                             <Text className="text-base font-bold text-light-text dark:text-dark-text">
-                              {comment.user.userName || "Anonymous"}
+                              {comment.user.userName || "Ẩn danh"}
                             </Text>
                             <View className="flex-row items-center">
                               <FontAwesome name="clock-o" size={10} color="#9CA3AF" />
@@ -293,8 +297,8 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                       />
                       <Text className="text-mint dark:text-gold font-semibold text-sm ml-2">
                         {showAllComments 
-                          ? "Show Less" 
-                          : `View ${totalComments - INITIAL_COMMENT_LIMIT} More ${totalComments - INITIAL_COMMENT_LIMIT === 1 ? 'Comment' : 'Comments'}`
+                          ? "Ẩn bớt" 
+                          : `Xem thêm ${totalComments - INITIAL_COMMENT_LIMIT} ${totalComments - INITIAL_COMMENT_LIMIT === 1 ? 'bình luận' : 'bình luận'}`
                         }
                       </Text>
                     </View>
@@ -313,7 +317,7 @@ export function PostDetailScreen({ route, navigation }: PostDetailScreenProps) {
                 className="text-base text-light-text dark:text-dark-text max-h-[100px]"
                 value={commentBody}
                 onChangeText={setCommentBody}
-                placeholder="Write a comment..."
+                placeholder="Viết bình luận..."
                 placeholderTextColor="#9CA3AF"
                 multiline
                 maxLength={500}

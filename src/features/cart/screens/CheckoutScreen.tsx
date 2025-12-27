@@ -1055,7 +1055,7 @@ export function CheckoutScreen({ navigation, route }: any) {
 
             {!voucherLoading &&
               vouchers?.map((v) => {
-                const eligible = subtotalSelected >= v.minOrderAmount;
+                const eligible = subtotalSelected >= v.minOrderAmount && !v.isUsed;
 
                 return (
                   <TouchableOpacity
@@ -1079,7 +1079,14 @@ export function CheckoutScreen({ navigation, route }: any) {
                           {v.code}
                         </Text>
                       </View>
-                      {!eligible && (
+                      {v.isUsed && (
+                        <View className="bg-gray-500 dark:bg-gray-600 px-2 py-1 rounded-full">
+                          <Text className="text-white text-xs font-semibold">
+                            Đã sử dụng
+                          </Text>
+                        </View>
+                      )}
+                      {!v.isUsed && !eligible && (
                         <View className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full">
                           <Text className="text-red-600 dark:text-red-400 text-xs font-semibold">
                             Không đủ điều kiện

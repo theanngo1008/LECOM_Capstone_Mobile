@@ -1,3 +1,4 @@
+import { formatVietnamDateTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useLayoutEffect, useState } from "react";
 import {
@@ -65,14 +66,7 @@ export function ShopRefundListScreen({ navigation }: any) {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
+    return formatVietnamDateTime(dateString);
   };
 
   const getStatusColor = (status: string) => {

@@ -4,6 +4,7 @@ import React from "react"
 // IMPORT SCREENS
 import { OrdersScreen } from "@/features/orders/screens/OrdersScreen"
 import { OrderDetailScreen } from "@/features/orders/screens/OrderDetailScreen"
+import { CustomerRefundsScreen } from "@/features/orders/screens/CustomerRefundsScreen"
 import { OrdersStackParamList } from "./types"
 
 const Stack = createNativeStackNavigator<OrdersStackParamList>()
@@ -27,6 +28,15 @@ export function OrdersStackNavigator() {
       <Stack.Screen
         name="OrderDetail"
         component={OrderDetailScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      {/* CUSTOMER REFUNDS */}
+      <Stack.Screen
+        name="CustomerRefunds"
+        component={CustomerRefundsScreen}
         options={{
           headerShown: false,
         }}

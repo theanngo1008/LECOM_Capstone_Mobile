@@ -42,7 +42,7 @@ export function HomeStackNavigator() {
         name="OrderDetail"
         component={OrderDetailScreen}
         options={{ title: "Chi tiết đơn hàng" }}
-      />
+            />
     </Stack.Navigator>
   );
 }

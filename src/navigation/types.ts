@@ -33,8 +33,8 @@ export type CoursesStackParamList = {
     courseId: string;
     courseTitle: string;
     sectionId: string;
-  };
-  ProductDetail: {
+};
+ProductDetail: {
     slug: string;
   };
 };
@@ -231,16 +231,22 @@ export type ProductsStackParamList = {
   ProductDetail: {
     slug: string;
   };
+  ShopDetail: {
+    shopId: number;
+  };
+  CourseDetail: {
+    slug: string;
+  };
   CartMain: undefined;
   Checkout: undefined;
   CartProductDetail: {
-    productId: string;
+    productId: string;       
   };
   ChatDetail: {
     conversationId: string;
     isAIChat?: boolean;
   };
-  OrdersMain: undefined;
+    OrdersMain: undefined;
   OrderDetail: {
     orderId: string;
   };
@@ -267,6 +273,7 @@ export type OrdersStackParamList = {
   CheckoutSuccess: {
     orderId?: string;
   };
+  CustomerRefunds: undefined;
 };
 
 export type OrdersStackScreenProps<T extends keyof OrdersStackParamList> =

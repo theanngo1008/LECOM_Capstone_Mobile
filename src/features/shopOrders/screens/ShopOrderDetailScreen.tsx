@@ -1,4 +1,5 @@
 import { OrdersStackScreenProps } from "@/navigation/types";
+import { formatVietnamDateTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
@@ -61,13 +62,7 @@ export function ShopOrderDetailScreen({ route, navigation }: Props) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatVietnamDateTime(dateString);
   };
 
   const handleConfirmAction = () => {

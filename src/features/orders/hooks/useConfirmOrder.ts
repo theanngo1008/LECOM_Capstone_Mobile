@@ -7,9 +7,12 @@ export const useConfirmOrder = () => {
   return useMutation({
     mutationFn: (orderId: string) => ordersApi.confirmOrder(orderId),
 
-    onSuccess: () => {
+    onSuccess: (data, orderId) => {
       queryClient.invalidateQueries({ queryKey: ["my-orders"] })
-      queryClient.invalidateQueries({ queryKey: ["order-details"] })
+      // Invalidate order detail với orderId cụ thể
+      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] })
+      // Invalidate tất cả order details (nếu cần)
+      queryClient.invalidateQueries({ queryKey: ["order-detail"] })
     },
   })
 }

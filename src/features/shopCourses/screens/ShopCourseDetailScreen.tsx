@@ -481,7 +481,7 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         key={lesson.id}
         lesson={lesson}
         index={index}
-        onPress={() => {
+            onPress={() => {
           setSelectedLesson(lesson);
           setShowLessonDetailModal(true);
         }}
@@ -509,9 +509,9 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
         onToggle={() => toggleSection(section.id)}
         onDelete={handleDeleteSection}
         onAddLesson={() => {
-          setSelectedSectionId(section.id);
-          setShowLessonModal(true);
-        }}
+                setSelectedSectionId(section.id);
+                setShowLessonModal(true);
+              }}
         isDeleting={deleteSection.isPending}
         getApprovalStatusColor={getApprovalStatusColor}
         getApprovalStatusTextColor={getApprovalStatusTextColor}
@@ -827,11 +827,11 @@ export function ShopCourseDetailScreen({ navigation, route }: any) {
 
               {/* Video Form */}
               <View className="mb-6">
-                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
-                    Video <Text className="text-coral">*</Text>
-                  </Text>
-                  {lessonVideoUrl ? (
-                    <View className="bg-mint/10 dark:bg-gold/10 rounded-lg p-4">
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text mb-2">
+                  Video <Text className="text-coral">*</Text>
+                </Text>
+                {lessonVideoUrl ? (
+                  <View className="bg-mint/10 dark:bg-gold/10 rounded-lg p-4">
                     <View className="flex-row items-center justify-between mb-2">
                       <View className="flex-row items-center flex-1">
                         <FontAwesome name="check-circle" size={20} color="#ACD6B8" />

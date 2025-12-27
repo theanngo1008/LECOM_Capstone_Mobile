@@ -92,11 +92,39 @@ export function ChatDetailScreen() {
 
   // -------------------------------
   // ⭐ Merge & REVERSE messages (newest first)
+  // Remove duplicates - filter optimistic messages that already exist in serverMessages
   // -------------------------------
+  const filteredOptimisticMessages = optimisticMessages.filter((optMsg) => {
+    // Check if this optimistic message already exists in serverMessages
+    // Match by content and senderId to avoid duplicates
+    const existsInServer = serverMessages.some(
+      (serverMsg) =>
+        serverMsg.content === optMsg.content &&
+        serverMsg.senderId === optMsg.senderId &&
+        Math.abs(
+          new Date(serverMsg.createdAt).getTime() -
+            new Date(optMsg.createdAt).getTime()
+        ) < 5000 // Within 5 seconds (to handle timing differences)
+    );
+    
+    // Also check if exists in liveMessages
+    const existsInLive = liveMessages.some(
+      (liveMsg) =>
+        liveMsg.content === optMsg.content &&
+        liveMsg.senderId === optMsg.senderId &&
+        Math.abs(
+          new Date(liveMsg.createdAt).getTime() -
+            new Date(optMsg.createdAt).getTime()
+        ) < 5000
+    );
+    
+    return !existsInServer && !existsInLive;
+  });
+
   const messages = [
     ...serverMessages,
     ...liveMessages,
-    ...optimisticMessages,
+    ...filteredOptimisticMessages,
   ].reverse(); // ⭐ Đảo ngược để tin nhắn mới nhất ở đầu
 
   // -------------------------------
@@ -138,6 +166,30 @@ export function ChatDetailScreen() {
       setLiveMessages([]);
     }
   }, [serverMessages.length]);
+
+  // -------------------------------
+  // Clear optimistic messages when they appear in serverMessages
+  // This prevents duplicate messages when AI responds
+  // -------------------------------
+  useEffect(() => {
+    if (optimisticMessages.length > 0 && serverMessages.length > 0) {
+      setOptimisticMessages((prev) => {
+        return prev.filter((optMsg) => {
+          // Check if this optimistic message already exists in serverMessages
+          const existsInServer = serverMessages.some(
+            (serverMsg) =>
+              serverMsg.content === optMsg.content &&
+              serverMsg.senderId === optMsg.senderId &&
+              Math.abs(
+                new Date(serverMsg.createdAt).getTime() -
+                  new Date(optMsg.createdAt).getTime()
+              ) < 10000 // Within 10 seconds
+          );
+          return !existsInServer;
+        });
+      });
+    }
+  }, [serverMessages, optimisticMessages.length]);
 
   // -------------------------------
   // Send message handlers

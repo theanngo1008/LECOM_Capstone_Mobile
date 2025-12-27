@@ -13,9 +13,12 @@ export const useCancelOrder = () => {
       reason: string;
     }) => ordersApi.cancelOrder(orderId, reason),
 
-    onSuccess: () => {
-      
+    onSuccess: (data, variables) => {
+      const { orderId } = variables;
       queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      // Invalidate order detail với orderId cụ thể
+      queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+      // Invalidate tất cả order details (nếu cần)
       queryClient.invalidateQueries({ queryKey: ["order-detail"] });
       queryClient.invalidateQueries({ queryKey: ["walletBalance"] });
     },

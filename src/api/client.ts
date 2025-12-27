@@ -48,10 +48,6 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
-// ========================
-// RESPONSE INTERCEPTOR
-// ========================
 apiClient.interceptors.response.use(
   (response) => {
     console.log("📥 Client: Response success", {
@@ -64,7 +60,6 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
     const status = error.response?.status;
 
-    // ✅ Extract error messages from response data
     const errorMessages = error.response?.data?.errorMessages || [];
     const errorMessage = errorMessages.length > 0 
       ? errorMessages.join(", ") 
@@ -98,7 +93,6 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // ✅ Queue requests khi đang refresh
       if (isRefreshing) {
         console.log("⏳ Client: Already refreshing, queueing request");
         
@@ -138,11 +132,9 @@ apiClient.interceptors.response.use(
           console.log("✅ Client: Token refreshed successfully");
           setAuth(newToken, newRefresh, userId!);
           
-          // ✅ Process queued requests
           console.log(`🔄 Client: Processing ${failedQueue.length} queued requests`);
           processQueue(null, newToken);
 
-          // ✅ Retry original request
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           console.log("🔄 Client: Retrying original request");
           return apiClient(originalRequest);
@@ -163,7 +155,6 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // ✅ Log error with messages from API
     console.log("❌ Client: Error -", errorMessage);
     return Promise.reject(error);
   }

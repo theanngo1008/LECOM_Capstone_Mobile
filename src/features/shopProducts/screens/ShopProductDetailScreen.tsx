@@ -1,4 +1,5 @@
 import { ShopStackParamList } from "@/navigation/types";
+import { formatVietnamDateTimeFull } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useState } from "react";
@@ -169,7 +170,7 @@ export const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
                 Cập nhật lần cuối:{" "}
                 <Text className="font-semibold text-light-text dark:text-dark-text">
-                  {new Date(product.lastUpdatedAt).toLocaleString("vi-VN")}
+                  {formatVietnamDateTimeFull(product.lastUpdatedAt)}
                 </Text>
               </Text>
             </View>

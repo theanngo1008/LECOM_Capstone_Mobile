@@ -1,3 +1,4 @@
+import { formatVietnamDateTime } from "@/utils/dateUtils";
 import React, { useState } from "react";
 import {
   View,
@@ -68,13 +69,7 @@ export function FeedbackSection({ productId }: FeedbackSectionProps) {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatVietnamDateTime(dateString);
   };
 
   const renderStarRating = (rating: number, size = 16) => {

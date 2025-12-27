@@ -49,6 +49,67 @@ export interface ProductQueryParams {
   maxPrice?: number
 }
 
+// Shop Detail Types
+export interface ShopDetail {
+  id: number
+  name: string
+  description: string
+  phoneNumber: string
+  provinceId: number
+  provinceName: string
+  districtId: number
+  districtName: string
+  wardCode: string
+  wardName: string
+  address: string
+  businessType: string
+  ownershipDocumentUrl: string
+  shopAvatar: string
+  shopBanner: string
+  shopFacebook: string | null
+  shopTiktok: string | null
+  shopInstagram: string | null
+  categoryId: string
+  categoryName: string
+  status: string
+  rejectedReason: string | null
+  ownerFullName: string
+  ownerDateOfBirth: string
+  ownerPersonalIdNumber: string
+  ownerPersonalIdFrontUrl: string
+  ownerPersonalIdBackUrl: string
+  sellerId: string
+  createdAt: string
+  approvedAt: string
+}
+
+export interface ShopDetailProduct extends ProductItem {
+  approvalStatus: string
+  moderatorNote: string | null
+}
+
+export interface ShopDetailCourse {
+  id: string
+  title: string
+  slug: string
+  summary: string
+  categoryId: string
+  categoryName: string
+  shopId: number
+  shopName: string
+  shopAvatar: string | null
+  courseThumbnail: string
+  active: number
+}
+
+export interface ShopDetailResult {
+  shop: ShopDetail
+  products: ShopDetailProduct[]
+  courses: ShopDetailCourse[]
+}
+
+export type ShopDetailResponse = ApiResponse<ShopDetailResult>
+
 export const productsApi = {
   getProducts: async (params?: ProductQueryParams): Promise<ProductListResponse> => {
     const { data } = await apiClient.get<ProductListResponse>("/home/products", { params })
@@ -57,6 +118,11 @@ export const productsApi = {
 
   getProductBySlug: async (slug: string): Promise<ProductDetailResponse> => {
     const { data } = await apiClient.get<ProductDetailResponse>(`/home/products/by-slug/${slug}`)
+    return data
+  },
+
+  getShopDetail: async (shopId: number): Promise<ShopDetailResponse> => {
+    const { data } = await apiClient.get<ShopDetailResponse>(`/home/${shopId}`)
     return data
   },
 }

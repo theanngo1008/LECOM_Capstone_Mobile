@@ -6,5 +6,7 @@ export const useOrderDetail = (orderId: string) => {
     queryKey: ["order-detail", orderId],
     queryFn: () => ordersApi.getOrderById(orderId),
     enabled: !!orderId, // chỉ chạy khi có orderId
+    refetchOnMount: true, // Refetch mỗi khi component mount
+    staleTime: 0, // Data luôn được coi là stale, luôn refetch khi cần
   })
 }

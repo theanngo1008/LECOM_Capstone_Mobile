@@ -1,20 +1,24 @@
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { OrdersStackScreenProps } from "@/navigation/types";
+import { formatVietnamDateTime, toVietnamTime } from "@/utils/dateUtils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useCancelOrder } from "../hooks/useCancelOrder";
 import { useCreateFeedback } from "../hooks/useCreateFeedback";
 import { useCreateRefund } from "../hooks/useCreateRefund";
 import { useOrderDetail } from "../hooks/useOrderDetail";
@@ -48,21 +52,39 @@ export function OrderDetailScreen({ route, navigation }: Props) {
   const { data, isLoading, isError, refetch } = useOrderDetail(orderId);
   const { mutate: createRefund, isPending: isCreatingRefund } = useCreateRefund();
   const { mutate: createFeedback, isPending: isCreatingFeedback } = useCreateFeedback();
-  const { uploadFile, isLoading: isUploading } = useUploadFile(); // Only for refund
+  const { cancelOrder, isLoading: isCanceling } = useCancelOrder();
+  const { uploadFile, isLoading: isUploading } = useUploadFile();
 
-  // Refund Modal States
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
-  // ✨ Feedback Modal States (No upload URLs needed - API handles it)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [rating, setRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState("");
-  const [feedbackImages, setFeedbackImages] = useState<any[]>([]); // Store RN file objects
+  const [feedbackImages, setFeedbackImages] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const order = data?.result;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Refetch order detail mỗi khi vào lại màn hình
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -72,20 +94,14 @@ export function OrderDetailScreen({ route, navigation }: Props) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatVietnamDateTime(dateString);
   };
 
   const isRefundAllowed = () => {
     if (!order || order.status !== "Completed") return false;
     if (!order.completedAt) return false;
 
-    const completedDate = new Date(order.completedAt);
+    const completedDate = toVietnamTime(order.completedAt);
     if (isNaN(completedDate.getTime())) return false;
 
     const now = new Date();
@@ -100,7 +116,7 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     if (!order || order.status !== "Completed") return 0;
     if (!order.completedAt) return 0;
 
-    const completedDate = new Date(order.completedAt);
+    const completedDate = toVietnamTime(order.completedAt);
     if (isNaN(completedDate.getTime())) return 0;
 
     const now = new Date();
@@ -111,9 +127,6 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     return Math.max(0, 5 - daysDiff);
   };
 
-  // ================================
-  // REFUND HANDLERS
-  // ================================
   const handlePickImage = async () => {
     try {
       const { status: permissionStatus } =
@@ -218,9 +231,6 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     });
   };
 
-  // ================================
-  // ✨ FEEDBACK HANDLERS (Simplified)
-  // ================================
   const handlePickFeedbackImages = async () => {
     try {
       if (feedbackImages.length >= 5) {
@@ -243,7 +253,6 @@ export function OrderDetailScreen({ route, navigation }: Props) {
 
       if (result.canceled) return;
 
-      // ✅ Convert to RN file format directly - no manual upload
       const newFiles = result.assets.map((asset) => ({
         uri: asset.uri,
         name: asset.fileName || `feedback_${Date.now()}_${Math.random()}.jpg`,
@@ -261,7 +270,9 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     setFeedbackImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleFeedbackButtonPress = () => {
+  const handleFeedbackButtonPress = (productId: string, product: any) => {
+    setSelectedProductId(productId);
+    setSelectedProduct(product);
     setShowFeedbackModal(true);
   };
 
@@ -271,17 +282,13 @@ export function OrderDetailScreen({ route, navigation }: Props) {
       return;
     }
 
-    if (!order) return;
-
-    const productId = order.details[0]?.productId;
-    if (!productId) {
+    if (!order || !selectedProductId) {
       Alert.alert("Lỗi", "Không tìm thấy thông tin sản phẩm");
       return;
     }
 
-    // ✅ Send RN file objects directly - API handles upload via multipart/form-data
     const payload = {
-      productId,
+      productId: selectedProductId,
       orderId: order.id,
       rating,
       content: feedbackComment.trim(),
@@ -289,12 +296,14 @@ export function OrderDetailScreen({ route, navigation }: Props) {
     };
 
     console.log("=== FEEDBACK PAYLOAD ===");
-    console.log(`Product: ${productId}, Order: ${order.id}, Rating: ${rating}`);
+    console.log(`Product: ${selectedProductId}, Order: ${order.id}, Rating: ${rating}`);
     console.log(`Images: ${feedbackImages.length} files`);
 
     createFeedback(payload, {
       onSuccess: () => {
         setShowFeedbackModal(false);
+        setSelectedProductId(null);
+        setSelectedProduct(null);
         setRating(5);
         setFeedbackComment("");
         setFeedbackImages([]);
@@ -318,14 +327,13 @@ export function OrderDetailScreen({ route, navigation }: Props) {
 
   const resetFeedbackModal = () => {
     setShowFeedbackModal(false);
+    setSelectedProductId(null);
+    setSelectedProduct(null);
     setRating(5);
     setFeedbackComment("");
     setFeedbackImages([]);
   };
 
-  // ================================
-  // LOADING & ERROR STATES
-  // ================================
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-cream dark:bg-dark-background" edges={["top"]}>
@@ -424,47 +432,30 @@ export function OrderDetailScreen({ route, navigation }: Props) {
           </Text>
         </View>
       </View>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#ACD6B8"
+            colors={["#ACD6B8"]}
+          />
+        }
+      >
         {/* Order Status Timeline */}
         {!isCancelled && !isRefunded && !isPaymentFailed && (
           <View className="bg-white dark:bg-dark-card mx-6 mt-6 rounded-2xl p-6 border border-beige/30 dark:border-dark-border/30">
-            <Text className="text-base font-bold text-light-text dark:text-dark-text mb-4">
+            <Text className="text-base font-bold text-light-text dark:text-dark-text mb-6">
               Trạng thái đơn hàng
             </Text>
 
-            <View className="flex-row items-center justify-between mb-4">
-              {statusSteps.map((step, index) => (
-                <View key={step.key} className="items-center flex-1">
-                  <View
-                    className={`w-10 h-10 rounded-full items-center justify-center ${
-                      index <= currentStepIndex
-                        ? "bg-mint dark:bg-gold"
-                        : "bg-beige/30 dark:bg-dark-border/30"
-                    }`}
-                  >
-                    <FontAwesome
-                      name={step.icon as any}
-                      size={16}
-                      color={index <= currentStepIndex ? "#fff" : "#9CA3AF"}
-                    />
-                  </View>
-                  <Text
-                    className={`text-xs mt-2 text-center ${
-                      index <= currentStepIndex
-                        ? "text-mint dark:text-gold font-semibold"
-                        : "text-light-textSecondary dark:text-dark-textSecondary"
-                    }`}
-                    numberOfLines={2}
-                  >
-                    {step.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            <View className="h-1 bg-beige/30 dark:bg-dark-border/30 rounded-full overflow-hidden">
+            {/* Progress Bar */}
+            <View className="relative mb-8">
+              <View className="absolute top-5 left-0 right-0 h-1 bg-beige/30 dark:bg-dark-border/30 rounded-full" />
               <View
-                className="h-full bg-mint dark:bg-gold rounded-full"
+                className="absolute top-5 left-0 h-1 bg-mint dark:bg-gold rounded-full"
                 style={{
                   width: `${
                     currentStepIndex >= 0
@@ -473,6 +464,38 @@ export function OrderDetailScreen({ route, navigation }: Props) {
                   }%`,
                 }}
               />
+              
+              {/* Steps */}
+              <View className="flex-row justify-between">
+                {statusSteps.map((step, index) => (
+                  <View key={step.key} className="items-center" style={{ flex: 1 }}>
+                    <View
+                      className={`w-10 h-10 rounded-full items-center justify-center z-10 ${
+                        index <= currentStepIndex
+                          ? "bg-mint dark:bg-gold"
+                          : "bg-beige/30 dark:bg-dark-border/30"
+                      }`}
+                    >
+                      <FontAwesome
+                        name={step.icon as any}
+                        size={16}
+                        color={index <= currentStepIndex ? "#fff" : "#9CA3AF"}
+                      />
+                    </View>
+                    <Text
+                      className={`text-[10px] mt-2 text-center px-1 ${
+                        index <= currentStepIndex
+                          ? "text-mint dark:text-gold font-semibold"
+                          : "text-light-textSecondary dark:text-dark-textSecondary"
+                      }`}
+                      numberOfLines={2}
+                      style={{ minHeight: 32 }}
+                    >
+                      {step.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
 
             {order.status === "Completed" && (
@@ -670,6 +693,17 @@ export function OrderDetailScreen({ route, navigation }: Props) {
                     {formatCurrency(item.lineTotal)}
                   </Text>
                 </View>
+                {order.status === "Completed" && (
+                  <TouchableOpacity
+                    className="mt-3 py-2 px-4 rounded-xl border-2 border-mint dark:border-gold items-center self-start"
+                    onPress={() => handleFeedbackButtonPress(item.productId, item)}
+                    activeOpacity={0.7}
+                  >
+                    <Text className="text-mint dark:text-gold font-semibold text-sm">
+                      Đánh giá
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           ))}
@@ -785,8 +819,39 @@ export function OrderDetailScreen({ route, navigation }: Props) {
       {order.status === "Pending" && (
         <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
           <View className="flex-row gap-3">
-            <TouchableOpacity className="flex-1 py-3 rounded-xl border-2 border-coral items-center">
-              <Text className="text-coral font-bold">Hủy đơn</Text>
+            <TouchableOpacity 
+              className="flex-1 py-3 rounded-xl border-2 border-coral items-center"
+              onPress={() => {
+                Alert.alert(
+                  "Hủy đơn hàng",
+                  "Bạn có chắc chắn muốn hủy đơn hàng này?",
+                  [
+                    {
+                      text: "Không",
+                      style: "cancel",
+                    },
+                    {
+                      text: "Hủy đơn",
+                      style: "destructive",
+                      onPress: async () => {
+                        try {
+                          await cancelOrder({ orderId, reason: "Khách hàng yêu cầu hủy" });
+                          refetch(); // Refetch để cập nhật ngay
+                        } catch {
+                          Alert.alert("Lỗi", "Không thể hủy đơn hàng");
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+              disabled={isCanceling}
+            >
+              {isCanceling ? (
+                <ActivityIndicator size="small" color="#EF4444" />
+              ) : (
+                <Text className="text-coral font-bold">Hủy đơn</Text>
+              )}
             </TouchableOpacity>
             <TouchableOpacity className="flex-1 py-3 rounded-xl bg-mint dark:bg-gold items-center">
               <Text className="text-white font-bold">Thanh toán ngay</Text>
@@ -797,37 +862,26 @@ export function OrderDetailScreen({ route, navigation }: Props) {
 
       {order.status === "Completed" && (
         <View className="px-6 py-4 bg-white dark:bg-dark-card border-t border-beige/30 dark:border-dark-border/30">
-          <View className="flex-row gap-3">
-            <TouchableOpacity
-              className={`flex-1 py-3 rounded-xl border-2 items-center ${
+          <TouchableOpacity
+            className={`w-full py-3 rounded-xl border-2 items-center ${
+              isRefundAllowed()
+                ? "border-coral"
+                : "border-gray-300 dark:border-gray-600"
+            }`}
+            onPress={handleRefundButtonPress}
+            activeOpacity={0.7}
+            disabled={!isRefundAllowed()}
+          >
+            <Text
+              className={`font-bold ${
                 isRefundAllowed()
-                  ? "border-coral"
-                  : "border-gray-300 dark:border-gray-600"
+                  ? "text-coral"
+                  : "text-gray-400 dark:text-gray-500"
               }`}
-              onPress={handleRefundButtonPress}
-              activeOpacity={0.7}
-              disabled={!isRefundAllowed()}
             >
-              <Text
-                className={`font-bold ${
-                  isRefundAllowed()
-                    ? "text-coral"
-                    : "text-gray-400 dark:text-gray-500"
-                }`}
-              >
-                Hoàn tiền
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="flex-1 py-3 rounded-xl border-2 border-mint dark:border-gold items-center"
-              onPress={handleFeedbackButtonPress}
-            >
-              <Text className="text-mint dark:text-gold font-bold">Đánh giá</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="flex-1 py-3 rounded-xl bg-mint dark:bg-gold items-center">
-              <Text className="text-white font-bold">Mua lại</Text>
-            </TouchableOpacity>
-          </View>
+              Hoàn tiền
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -1029,7 +1083,6 @@ export function OrderDetailScreen({ route, navigation }: Props) {
         </View>
       </Modal>
 
-      {/* ✨ Feedback Modal */}
       <Modal
         visible={showFeedbackModal}
         transparent
@@ -1055,32 +1108,34 @@ export function OrderDetailScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               </View>
 
-              <View className="flex-row items-center bg-beige/20 dark:bg-dark-border/20 rounded-xl p-4 mb-6">
-                <View className="w-16 h-16 bg-beige/30 dark:bg-dark-border/30 rounded-xl overflow-hidden mr-3">
-                  {order.details[0]?.productImage ? (
-                    <Image
-                      source={{ uri: order.details[0].productImage }}
-                      className="w-full h-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View className="w-full h-full items-center justify-center">
-                      <FontAwesome name="image" size={20} color="#9CA3AF" />
-                    </View>
-                  )}
+              {selectedProduct && (
+                <View className="flex-row items-center bg-beige/20 dark:bg-dark-border/20 rounded-xl p-4 mb-6">
+                  <View className="w-16 h-16 bg-beige/30 dark:bg-dark-border/30 rounded-xl overflow-hidden mr-3">
+                    {selectedProduct.productImage ? (
+                      <Image
+                        source={{ uri: selectedProduct.productImage }}
+                        className="w-full h-full"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="w-full h-full items-center justify-center">
+                        <FontAwesome name="image" size={20} color="#9CA3AF" />
+                      </View>
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
+                      numberOfLines={2}
+                    >
+                      {selectedProduct.productName}
+                    </Text>
+                    <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
+                      {formatCurrency(selectedProduct.unitPrice || 0)}
+                    </Text>
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <Text
-                    className="text-sm font-bold text-light-text dark:text-dark-text mb-1"
-                    numberOfLines={2}
-                  >
-                    {order.details[0]?.productName}
-                  </Text>
-                  <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
-                    {formatCurrency(order.details[0]?.unitPrice || 0)}
-                  </Text>
-                </View>
-              </View>
+              )}
 
               <View className="items-center mb-6">
                 <Text className="text-base font-semibold text-light-text dark:text-dark-text mb-3">

@@ -2,6 +2,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { DrawerNavigationProp } from "@react-navigation/drawer";
+import { formatVietnamDateTime } from "@/utils/dateUtils";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -39,14 +40,7 @@ export function OrdersScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
+    return formatVietnamDateTime(dateString);
   };
 
   const getStatusColor = (status: string) => {
@@ -143,10 +137,6 @@ export function OrdersScreen() {
         },
       ]
     );
-  };
-
-  const handleReview = (orderId: string) => {
-    console.log("Đánh giá đơn hàng:", orderId);
   };
 
   const handleNavigateToDetail = (orderId: string) => {
@@ -249,20 +239,6 @@ export function OrdersScreen() {
                   </Text>
                 </>
               )}
-            </TouchableOpacity>
-          )}
-
-          {/* Review Button - Only for Completed status */}
-          {status === "Completed" && (
-            <TouchableOpacity
-              className="flex-1 py-2.5 rounded-xl bg-lavender dark:bg-lavender/80 flex-row items-center justify-center"
-              onPress={() => handleReview(id)}
-              activeOpacity={0.7}
-            >
-              <FontAwesome name="star" size={14} color="#fff" />
-              <Text className="text-white font-bold text-xs ml-1.5">
-                Đánh giá
-              </Text>
             </TouchableOpacity>
           )}
 
@@ -435,13 +411,21 @@ export function OrdersScreen() {
             </View>
           </View>
 
-          {/* Right - Refresh Button */}
-          <TouchableOpacity
-            className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
-            onPress={() => refetch()}
-          >
-            <FontAwesome name="refresh" size={20} color="#ACD6B8" />
-          </TouchableOpacity>
+          {/* Right - Buttons */}
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
+              onPress={() => navigation.navigate("CustomerRefunds")}
+            >
+              <FontAwesome name="undo" size={18} color="#ACD6B8" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="w-12 h-12 rounded-xl bg-mint/10 dark:bg-gold/10 items-center justify-center"
+              onPress={() => refetch()}
+            >
+              <FontAwesome name="refresh" size={20} color="#ACD6B8" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 

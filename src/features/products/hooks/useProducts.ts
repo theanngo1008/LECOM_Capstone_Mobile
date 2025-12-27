@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ProductQueryParams, productsApi } from "../../../api/products";
 
 export const useProducts = (params?: ProductQueryParams) => {
-  // Tạo queryKey với tất cả params để đảm bảo refetch khi params thay đổi
   const queryKey = [
     "products",
     params?.search || "",
@@ -24,7 +23,7 @@ export const useProducts = (params?: ProductQueryParams) => {
         throw error
       }
     },
-    staleTime: 0, // Always refetch when params change
+    staleTime: 0,
     refetchOnWindowFocus: false,
   })
 }

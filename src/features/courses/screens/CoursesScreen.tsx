@@ -20,6 +20,25 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCourses } from "../hooks/useCourses";
 
+// Helper function to convert Vietnamese text to slug
+const nameToSlug = (name: string): string => {
+  // First, remove đ/Đ completely (not replace with d)
+  let slug = name.replace(/[đĐ]/g, "");
+  
+  // Remove Vietnamese diacritics and convert to lowercase
+  slug = slug
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+  
+  return slug;
+};
+
 type Props = CoursesStackScreenProps<"CoursesList">;
 
 export function CoursesScreen({ navigation }: Props) {
@@ -262,27 +281,30 @@ export function CoursesScreen({ navigation }: Props) {
                 </Text>
               </TouchableOpacity>
 
-              {categoriesData.map((cat: any) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  onPress={() => handleSelectCategory(cat.name)}
-                  className={`px-3 py-1.5 mr-2 rounded-full border ${
-                    selectedCategory === cat.name
-                      ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
-                      : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-medium ${
-                      selectedCategory === cat.name
-                        ? "text-mint dark:text-gold"
-                        : "text-light-textSecondary dark:text-dark-textSecondary"
+              {categoriesData.map((cat: any) => {
+                const categorySlug = nameToSlug(cat.name);
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => handleSelectCategory(categorySlug)}
+                    className={`px-3 py-1.5 mr-2 rounded-full border ${
+                      selectedCategory === categorySlug
+                        ? "bg-mint/10 border-mint dark:bg-gold/10 dark:border-gold"
+                        : "bg-white dark:bg-dark-card border-beige/30 dark:border-dark-border/30"
                     }`}
                   >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      className={`text-xs font-medium ${
+                        selectedCategory === categorySlug
+                          ? "text-mint dark:text-gold"
+                          : "text-light-textSecondary dark:text-dark-textSecondary"
+                      }`}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
         </ScrollView>

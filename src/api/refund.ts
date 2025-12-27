@@ -97,5 +97,13 @@ export const refundApi = {
       payload
     );
     return data;
-  }
+  },
+
+  // ============================
+  // GET /refund/my (Customer refunds)
+  // ============================
+  getMyRefunds: async (): Promise<RefundListResponse> => {
+    const { data } = await apiClient.get<RefundListResponse>("/refund/my");
+    return data;
+  },
 };

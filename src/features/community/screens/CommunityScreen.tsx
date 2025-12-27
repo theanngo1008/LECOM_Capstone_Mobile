@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useNavigation } from "@react-navigation/native";
 import type { DrawerNavigationProp } from "@react-navigation/drawer";
+import { getRelativeTime } from "@/utils/dateUtils";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -33,7 +34,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
 
   const handleCreatePost = () => {
     if (!title.trim() || !body.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin");
       return;
     }
 
@@ -41,14 +42,14 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
       { title: title.trim(), body: body.trim() },
       {
         onSuccess: () => {
-          Alert.alert(" Success", "Post created successfully!");
+          Alert.alert("Thành công", "Đã tạo bài viết thành công!");
           setTitle("");
           setBody("");
           setShowCreateModal(false);
           refetch();
         },
         onError: (error: any) => {
-          Alert.alert(" Error", error.message || "Failed to create post");
+          Alert.alert("Lỗi", error.message || "Không thể tạo bài viết");
         },
       }
     );
@@ -67,18 +68,21 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    return getRelativeTime(dateString);
+  };
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const stripHtmlTags = (html: string) => {
+    if (!html) return "";
+    // Remove HTML tags and decode HTML entities
+    return html
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/&nbsp;/g, " ") // Replace &nbsp; with space
+      .replace(/&amp;/g, "&") // Replace &amp; with &
+      .replace(/&lt;/g, "<") // Replace &lt; with <
+      .replace(/&gt;/g, ">") // Replace &gt; with >
+      .replace(/&quot;/g, '"') // Replace &quot; with "
+      .replace(/&#39;/g, "'") // Replace &#39; with '
+      .trim();
   };
 
   // Loading State
@@ -88,7 +92,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
         <View className="items-center">
           <ActivityIndicator size="large" color="#ACD6B8" />
           <Text className="text-light-textSecondary dark:text-dark-textSecondary mt-4 text-base">
-            Loading posts...
+            Đang tải bài viết...
           </Text>
         </View>
       </SafeAreaView>
@@ -103,15 +107,15 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
           <View className="w-20 h-20 rounded-full bg-coral/20 items-center justify-center mb-4">
             <FontAwesome name="exclamation-triangle" size={40} color="#F2A297" />
           </View>
-          <Text className="text-coral font-bold text-xl mb-2">Oops!</Text>
+          <Text className="text-coral font-bold text-xl mb-2">Ồ!</Text>
           <Text className="text-light-textSecondary dark:text-dark-textSecondary text-center mb-6">
-            Failed to load posts
+            Không thể tải bài viết
           </Text>
           <TouchableOpacity
             className="bg-mint dark:bg-gold rounded-2xl py-3 px-8 active:opacity-80"
             onPress={() => refetch()}
           >
-            <Text className="text-white font-bold text-base">Try Again</Text>
+            <Text className="text-white font-bold text-base">Thử lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -134,12 +138,12 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
           {/* Center - Title */}
           <View className="flex-1">
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text">
-              Community
+              Cộng đồng
             </Text>
             <View className="flex-row items-center mt-2">
               <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
               <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                {posts.length} {posts.length === 1 ? 'bài viết' : 'bài viết'}
               </Text>
             </View>
           </View>
@@ -167,11 +171,11 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
             </View>
             
             <Text className="text-3xl font-bold text-light-text dark:text-dark-text mb-3 text-center">
-              No Posts Yet
+              Chưa có bài viết
             </Text>
             
             <Text className="text-base text-light-textSecondary dark:text-dark-textSecondary text-center mb-8 px-4">
-              Be the first to share something with the community!
+              Hãy là người đầu tiên chia sẻ điều gì đó với cộng đồng!
             </Text>
 
             <TouchableOpacity
@@ -180,7 +184,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
             >
               <View className="flex-row items-center">
                 <FontAwesome name="plus" size={18} color="white" />
-                <Text className="text-white font-bold text-lg ml-2">Create Post</Text>
+                <Text className="text-white font-bold text-lg ml-2">Tạo bài viết</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -221,7 +225,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                   )}
                   <View className="flex-1 ml-3">
                     <Text className="text-base font-bold text-light-text dark:text-dark-text">
-                      {post.user.userName || "Anonymous"}
+                      {post.user.userName || "Ẩn danh"}
                     </Text>
                     <Text className="text-xs text-light-textSecondary dark:text-dark-textSecondary">
                       {formatDate(post.createdAt)}
@@ -236,7 +240,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                   {post.title}
                 </Text>
                 <Text className="text-base text-light-text dark:text-dark-text leading-6">
-                  {post.body}
+                  {stripHtmlTags(post.body)}
                 </Text>
               </View>
 
@@ -250,7 +254,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                     <FontAwesome name="comment" size={14} color="#ACD6B8" />
                   </View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                    {post.comments.length} {post.comments.length === 1 ? 'comment' : 'comments'}
+                    {post.comments.length} {post.comments.length === 1 ? 'bình luận' : 'bình luận'}
                   </Text>
                   <FontAwesome 
                     name={expandedPosts.has(post.id) ? "chevron-up" : "chevron-down"} 
@@ -284,7 +288,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                       <View className="flex-1 ml-3">
                         <View className="bg-white dark:bg-dark-card rounded-2xl px-3 py-2 border border-beige/30 dark:border-dark-border/30">
                           <Text className="text-sm font-bold text-light-text dark:text-dark-text mb-1">
-                            {comment.user.userName || "Anonymous"}
+                            {comment.user.userName || "Ẩn danh"}
                           </Text>
                           <Text className="text-sm text-light-text dark:text-dark-text leading-5">
                             {comment.body}
@@ -318,12 +322,12 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
                   <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
-                    Create Post
+                    Tạo bài viết
                   </Text>
                   <View className="flex-row items-center mt-1">
                     <View className="w-2 h-2 rounded-full bg-mint dark:bg-gold mr-2" />
                     <Text className="text-sm text-light-textSecondary dark:text-dark-textSecondary">
-                      Share with community
+                      Chia sẻ với cộng đồng
                     </Text>
                   </View>
                 </View>
@@ -349,7 +353,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                     <FontAwesome name="header" size={14} color="#ACD6B8" />
                   </View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                    Title <Text className="text-coral">*</Text>
+                    Tiêu đề <Text className="text-coral">*</Text>
                   </Text>
                 </View>
                 
@@ -358,7 +362,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                     className="text-base text-light-text dark:text-dark-text py-4"
                     value={title}
                     onChangeText={setTitle}
-                    placeholder="Enter post title"
+                    placeholder="Nhập tiêu đề bài viết"
                     placeholderTextColor="#9CA3AF"
                     editable={!isCreating}
                   />
@@ -372,7 +376,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                     <FontAwesome name="align-left" size={14} color="#ACD6B8" />
                   </View>
                   <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                    Content <Text className="text-coral">*</Text>
+                    Nội dung <Text className="text-coral">*</Text>
                   </Text>
                 </View>
                 
@@ -381,7 +385,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                     className="text-base text-light-text dark:text-dark-text py-4 min-h-[200px]"
                     value={body}
                     onChangeText={setBody}
-                    placeholder="What's on your mind?"
+                    placeholder="Bạn đang nghĩ gì?"
                     placeholderTextColor="#9CA3AF"
                     multiline
                     textAlignVertical="top"
@@ -395,7 +399,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                 <View className="flex-row items-start">
                   <FontAwesome name="info-circle" size={16} color="#ACD6B8" />
                   <Text className="flex-1 ml-3 text-sm text-light-text dark:text-dark-text">
-                    Be respectful and follow community guidelines when posting.
+                    Hãy tôn trọng và tuân theo nguyên tắc cộng đồng khi đăng bài.
                   </Text>
                 </View>
               </View>
@@ -411,12 +415,12 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                     {isCreating ? (
                       <>
                         <ActivityIndicator size="small" color="white" />
-                        <Text className="text-white font-bold text-lg ml-2">Creating...</Text>
+                        <Text className="text-white font-bold text-lg ml-2">Đang tạo...</Text>
                       </>
                     ) : (
                       <>
                         <FontAwesome name="send" size={18} color="white" />
-                        <Text className="text-white font-bold text-lg ml-2">Post</Text>
+                        <Text className="text-white font-bold text-lg ml-2">Đăng</Text>
                       </>
                     )}
                   </View>
@@ -428,7 +432,7 @@ export function CommunityScreen({ navigation: routeNavigation }: any) {
                   disabled={isCreating}
                 >
                   <Text className="text-light-text dark:text-dark-text font-bold text-lg text-center">
-                    Cancel
+                    Hủy
                   </Text>
                 </TouchableOpacity>
               </View>
